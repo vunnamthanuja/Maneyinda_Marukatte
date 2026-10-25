@@ -40,6 +40,9 @@
       </div>
 
       <div class="demo-tools">
+        <button id="lang-toggle-btn" class="tool-icon-btn" onclick="AppLang.toggleLang()" title="Switch Language (English / ಕನ್ನಡ)">
+          🌐 English (EN)
+        </button>
         <div id="api-status-badge" class="api-status-pill offline" title="Click to test Backend Connection" onclick="window.apiClient && window.apiClient.checkHealth()">
           ⚡ Local Mode
         </div>
@@ -98,6 +101,7 @@
   <!-- Application Logic Modules -->
   <script src="assets/illustrations.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/lang.js"></script>
   <script src="js/api-client.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/auth.js"></script>

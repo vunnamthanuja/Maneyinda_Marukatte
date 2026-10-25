@@ -28,10 +28,10 @@ const CustomerModule = {
       <!-- Home Header -->
       <div class="home-header-bar">
         <div class="home-greeting-wrap">
-          <span class="home-user-name">👋 Welcome, ${user.name ? user.name.split(' ')[0] : 'Customer'}</span>
+          <span class="home-user-name">👋 ${(window.AppLang && AppLang.t('welcome')) || 'Welcome'}, ${user.name ? user.name.split(' ')[0] : 'Customer'}</span>
           <button class="delivery-location-btn" onclick="CustomerModule.openLocationBottomSheet()">
             <span class="material-symbols-rounded" style="font-size:16px;">location_on</span>
-            <span>Deliver to: <strong>${selAddr ? selAddr.label : 'Select Location'}</strong></span>
+            <span>${(window.AppLang && AppLang.t('deliverTo')) || 'Deliver to:'} <strong>${selAddr ? selAddr.label : 'Select Location'}</strong></span>
             <span class="material-symbols-rounded" style="font-size:16px;">expand_more</span>
           </button>
         </div>
@@ -51,7 +51,7 @@ const CustomerModule = {
       <!-- Search Bar Trigger -->
       <div class="search-bar-trigger" onclick="AppRouter.navigate('screen-customer-search')">
         <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">search</span>
-        <span>Search Products, Stores or Categories...</span>
+        <span>${(window.AppLang && AppLang.t('searchPlaceholder')) || 'Search Products, Stores or Categories...'}</span>
       </div>
 
       <div class="screen-content" style="padding-top:0; padding-bottom:70px;">
@@ -60,7 +60,7 @@ const CustomerModule = {
           ${store.data.categories.filter(c => c.active).map(cat => `
             <button class="filter-chip" onclick="CustomerModule.viewCategoryListing('${cat.name}')">
               <span class="material-symbols-rounded" style="font-size:15px; vertical-align:middle; margin-right:4px;">${cat.icon || 'category'}</span>
-              ${cat.name}
+              ${(window.AppLang && AppLang.tCategory(cat.name)) || cat.name}
             </button>
           `).join('')}
         </div>
@@ -69,7 +69,7 @@ const CustomerModule = {
         <div class="section-header-row">
           <h3 class="section-header-title">
             <span class="material-symbols-rounded" style="color:var(--color-accent); font-size:20px;">local_fire_department</span>
-            🔥 Popular Products
+            ${(window.AppLang && AppLang.t('popularProducts')) || '🔥 Popular Products'}
           </h3>
         </div>
 
@@ -89,7 +89,7 @@ const CustomerModule = {
         <div class="section-header-row" style="margin-top:20px;">
           <h3 class="section-header-title">
             <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">trending_up</span>
-            🔥 Trending This Week
+            ${(window.AppLang && AppLang.t('trendingThisWeek')) || '🔥 Trending This Week'}
           </h3>
         </div>
 
@@ -1812,6 +1812,18 @@ const CustomerModule = {
       o.replacementRequest = reqObj;
     }
 
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.request(`/orders/${orderId}/after-sales`, {
+        method: 'POST',
+        body: JSON.stringify({
+          type,
+          reason,
+          description: desc,
+          photos: []
+        })
+      });
+    }
+
     // Notify entrepreneur
     store.addNotification({
       userId: o.entrepreneurId,
@@ -1911,14 +1923,20 @@ const CustomerModule = {
     }
 
     const user = store.getUser();
-    store.addReview({
+    const revPayload = {
       orderId,
       productId,
       customerId: user.id,
       customerName: user.name,
       rating,
       comment
-    });
+    };
+
+    store.addReview(revPayload);
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.submitReview(revPayload);
+    }
 
     AppUtils.showToast('Thank you! Review published.');
     AppRouter.navigate('screen-customer-order-details', { orderId });
@@ -1926,6 +1944,9 @@ const CustomerModule = {
 
   deleteMyReview(reviewId, orderId) {
     store.deleteReview(reviewId);
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.deleteReview(reviewId);
+    }
     AppUtils.showToast('Review removed.');
     AppRouter.navigate('screen-customer-order-details', { orderId });
   },
@@ -2365,6 +2386,19 @@ const CustomerModule = {
       issueType,
       description: desc
     });
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.request('/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: user.id,
+          customerName: user.name,
+          category: issueType,
+          subject: issueType,
+          description: desc
+        })
+      });
+    }
 
     store.addActivityLog(`Customer raised new Support Ticket: ${t.id} (${issueType})`);
     AppUtils.closeBottomSheet();

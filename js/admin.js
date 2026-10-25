@@ -694,6 +694,9 @@ const AdminModule = {
     const cat = store.data.categories.find(c => c.id === catId);
     if (cat) {
       cat.active = !cat.active;
+      if (window.apiClient && window.apiClient.isOnline) {
+        window.apiClient.request(`/admin/categories/${catId}/toggle`, { method: 'PATCH' });
+      }
       store.addActivityLog(`Set category "${cat.name}" active=${cat.active}`);
       store.saveData();
       AppUtils.showToast(`Category is now ${cat.active ? 'Active' : 'Inactive'}`);

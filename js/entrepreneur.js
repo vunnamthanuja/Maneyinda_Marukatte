@@ -582,9 +582,22 @@ const EntrepreneurModule = {
 
     if (this.activeProductModalId) {
       store.updateProduct(this.activeProductModalId, prodPayload);
+      if (window.apiClient && window.apiClient.isOnline) {
+        window.apiClient.request(`/products/${this.activeProductModalId}`, {
+          method: 'PUT',
+          body: JSON.stringify(prodPayload)
+        });
+      }
       AppUtils.showToast('✅ Product Updated Successfully');
     } else {
-      store.addProduct(prodPayload);
+      if (window.apiClient && window.apiClient.isOnline) {
+        window.apiClient.createProduct(prodPayload).then(res => {
+          if (res.data) store.addProduct(res.data);
+          else store.addProduct(prodPayload);
+        });
+      } else {
+        store.addProduct(prodPayload);
+      }
       AppUtils.showToast('✅ Product Added Successfully');
     }
 
@@ -634,6 +647,9 @@ const EntrepreneurModule = {
       stock: newStock,
       status: newStock > 0 ? 'active' : 'out_of_stock'
     });
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.updateStock(productId, newStock);
+    }
     AppUtils.closeBottomSheet();
     AppUtils.showToast('✅ Stock Updated Successfully');
     AppRouter.renderActiveScreen();
@@ -1246,6 +1262,10 @@ const EntrepreneurModule = {
       isStoreOpen: isOpen,
       openingSchedule: schedule
     });
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.updateAvailability(ent.id, isOpen, schedule);
+    }
 
     AppUtils.showToast(`Store status updated: ${isOpen ? 'Open' : 'Closed'}`);
     AppRouter.navigate('screen-ent-profile');

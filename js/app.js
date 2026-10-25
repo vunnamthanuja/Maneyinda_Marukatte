@@ -19,6 +19,7 @@ const AppRouter = {
 
     // Initial render
     this.syncDemoRolePills();
+    if (window.AppLang) AppLang.updateLangUI();
   },
 
   updateClock() {
