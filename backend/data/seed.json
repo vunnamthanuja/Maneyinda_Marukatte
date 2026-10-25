@@ -1,0 +1,655 @@
+{
+  "users": [
+    {
+      "id": "cust_01",
+      "name": "Thanuja Gowda",
+      "email": "thanuja@example.com",
+      "phone": "9845123456",
+      "role": "both",
+      "entrepreneurId": "ent_01",
+      "selectedAddressId": "addr_01",
+      "savedAddresses": [
+        {
+          "id": "addr_01",
+          "label": "Home",
+          "door": "#12, MG Road",
+          "street": "8th Cross, Malleshwaram",
+          "area": "Malleshwaram",
+          "city": "Bangalore",
+          "state": "Karnataka",
+          "pincode": "560003",
+          "isDefault": true
+        },
+        {
+          "id": "addr_02",
+          "label": "Hostel",
+          "door": "Room 204, Ganga Hostel",
+          "street": "IISc Campus Road",
+          "area": "Yeshwanthpur",
+          "city": "Bangalore",
+          "state": "Karnataka",
+          "pincode": "560012",
+          "isDefault": false
+        },
+        {
+          "id": "addr_03",
+          "label": "Office",
+          "door": "Unit 402, ABC Tech Park",
+          "street": "Outer Ring Road",
+          "area": "Hebbal",
+          "city": "Bangalore",
+          "state": "Karnataka",
+          "pincode": "560024",
+          "isDefault": false
+        }
+      ],
+      "wishlist": ["prod_01", "prod_02"],
+      "cart": [
+        {
+          "productId": "prod_01",
+          "qty": 2,
+          "customization": { "Cake Message": "Happy Birthday Thanuja!" },
+          "entrepreneurId": "ent_01"
+        },
+        {
+          "productId": "prod_04",
+          "qty": 1,
+          "customization": {},
+          "entrepreneurId": "ent_01"
+        }
+      ]
+    }
+  ],
+
+  "categories": [
+    { "id": "cat_01", "name": "Bakery & Sweets", "active": true, "icon": "cake" },
+    { "id": "cat_02", "name": "Food & Tiffin", "active": true, "icon": "restaurant" },
+    { "id": "cat_03", "name": "Tailoring & Alterations", "active": true, "icon": "styler" },
+    { "id": "cat_04", "name": "Handmade Crafts", "active": true, "icon": "palette" },
+    { "id": "cat_05", "name": "Home Decor", "active": true, "icon": "chair" },
+    { "id": "cat_06", "name": "Beauty & Wellness", "active": true, "icon": "spa" }
+  ],
+
+  "entrepreneurs": [
+    {
+      "id": "ent_01",
+      "name": "Anitha Ramesh",
+      "businessName": "Anita's Bakery",
+      "businessCategory": "Bakery & Sweets",
+      "email": "anitha@bakery.com",
+      "phone": "9845011223",
+      "username": "anitha_bakery",
+      "password": "password123",
+      "address": {
+        "door": "#45",
+        "street": "Temple Road",
+        "area": "Malleshwaram",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "pincode": "560003"
+      },
+      "deliveryRadius": 10,
+      "yearsExp": 4,
+      "about": "Fresh, 100% homemade eggless cakes and traditional Karnataka sweets made with pure ghee and no preservatives.",
+      "status": "approved",
+      "rejectionReason": "",
+      "badge": "Rising Star",
+      "isStoreOpen": true,
+      "openingSchedule": "Opens Daily at 9:00 AM - Closes 8:00 PM",
+      "rating": 4.8,
+      "reviewCount": 185,
+      "completedOrdersCount": 245,
+      "positiveReviewsCount": 220,
+      "negativeReviewsCount": 10,
+      "complaintsCount": 0,
+      "paymentSettings": {
+        "accountHolder": "Anitha Ramesh",
+        "bankName": "State Bank of India",
+        "accountNumber": "38192847192",
+        "ifsc": "SBIN0004128",
+        "upiId": "anithabakery@okaxis"
+      },
+      "notificationPreferences": {
+        "orders": true,
+        "reviews": true,
+        "account": true
+      },
+      "securityQuestions": [
+        { "q": "What is your school name?", "a": "Malleshwaram High" },
+        { "q": "What is your village name?", "a": "Mandya" },
+        { "q": "What is your favourite food?", "a": "Mysore Pak" }
+      ]
+    },
+    {
+      "id": "ent_02",
+      "name": "Lakshmi Devi",
+      "businessName": "Lakshmi Crafts",
+      "businessCategory": "Handmade Crafts",
+      "email": "lakshmi@crafts.com",
+      "phone": "9845022334",
+      "username": "lakshmi_crafts",
+      "password": "password123",
+      "address": {
+        "door": "#18",
+        "street": "Pottery Road",
+        "area": "Frazer Town",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "pincode": "560005"
+      },
+      "deliveryRadius": 15,
+      "yearsExp": 6,
+      "about": "Handcrafted jute bags, banana fibre runners, and terracotta artifacts crafted by local women artisans.",
+      "status": "approved",
+      "rejectionReason": "",
+      "badge": "Top Rated",
+      "isStoreOpen": true,
+      "openingSchedule": "Opens Daily at 10:00 AM",
+      "rating": 4.6,
+      "reviewCount": 98,
+      "completedOrdersCount": 140,
+      "positiveReviewsCount": 92,
+      "negativeReviewsCount": 4,
+      "complaintsCount": 1,
+      "paymentSettings": {
+        "accountHolder": "Lakshmi Devi",
+        "bankName": "Canara Bank",
+        "accountNumber": "10293847561",
+        "ifsc": "CNRB0001045",
+        "upiId": "lakshmicrafts@upi"
+      },
+      "notificationPreferences": { "orders": true, "reviews": true, "account": true },
+      "securityQuestions": [
+        { "q": "What is your school name?", "a": "St Ann Convent" },
+        { "q": "Who is your favourite teacher?", "a": "Shanthala Maam" },
+        { "q": "What is your favourite food?", "a": "Bisi Bele Bath" }
+      ]
+    },
+    {
+      "id": "ent_03",
+      "name": "Priya Sharma",
+      "businessName": "Priya Home Foods",
+      "businessCategory": "Food & Tiffin",
+      "email": "priya@foods.com",
+      "phone": "9845033445",
+      "username": "priya_foods",
+      "password": "password123",
+      "address": {
+        "door": "#7",
+        "street": "Subbarama Chetty Road",
+        "area": "Basavanagudi",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "pincode": "560004"
+      },
+      "deliveryRadius": 5,
+      "yearsExp": 3,
+      "about": "Authentic South Indian Brahmin style meals, preservative-free pickles, and fresh breakfast idli/dosa batter.",
+      "status": "approved",
+      "rejectionReason": "",
+      "badge": "Best Entrepreneur",
+      "isStoreOpen": true,
+      "openingSchedule": "Opens Daily at 7:30 AM",
+      "rating": 4.7,
+      "reviewCount": 82,
+      "completedOrdersCount": 180,
+      "positiveReviewsCount": 78,
+      "negativeReviewsCount": 3,
+      "complaintsCount": 2,
+      "paymentSettings": {
+        "accountHolder": "Priya Sharma",
+        "bankName": "Bank of Baroda",
+        "accountNumber": "56123478901",
+        "ifsc": "BARB0BASAVA",
+        "upiId": "priyafoods@okicici"
+      },
+      "notificationPreferences": { "orders": true, "reviews": true, "account": true },
+      "securityQuestions": [
+        { "q": "What is your village name?", "a": "Udupi" },
+        { "q": "Who is your favourite teacher?", "a": "Narasimha Rao" },
+        { "q": "What is your favourite food?", "a": "Rava Idli" }
+      ]
+    },
+    {
+      "id": "ent_04",
+      "name": "Savitha Gowda",
+      "businessName": "Savitha Designer Tailors",
+      "businessCategory": "Tailoring & Alterations",
+      "email": "savitha@tailors.com",
+      "phone": "9845044556",
+      "username": "savitha_tailor",
+      "password": "password123",
+      "address": {
+        "door": "#92",
+        "street": "Pipeline Road",
+        "area": "Vijayanagar",
+        "city": "Bangalore",
+        "state": "Karnataka",
+        "pincode": "560040"
+      },
+      "deliveryRadius": 10,
+      "yearsExp": 8,
+      "about": "Custom blouse designing, maggam embroidery, and bridal wear stitching with express 48hr delivery.",
+      "status": "pending",
+      "rejectionReason": "",
+      "badge": "",
+      "isStoreOpen": true,
+      "openingSchedule": "Opens Daily at 10:00 AM",
+      "rating": 4.9,
+      "reviewCount": 45,
+      "completedOrdersCount": 60,
+      "positiveReviewsCount": 45,
+      "negativeReviewsCount": 0,
+      "complaintsCount": 0,
+      "appliedDate": "24 Oct 2026",
+      "documents": {
+        "idType": "Aadhaar Card",
+        "idFile": "aadhaar_savitha_verified.pdf",
+        "businessProof": "Boutique_Kitchen_Photo.jpg"
+      }
+    }
+  ],
+
+  "products": [
+    {
+      "id": "prod_01",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "name": "Homemade Dutch Chocolate Cake (Eggless)",
+      "category": "Bakery & Sweets",
+      "price": 450,
+      "stock": 8,
+      "description": "Fresh homemade chocolate cake prepared with premium cocoa and pure butter. Melt-in-the-mouth texture, 100% vegetarian & eggless.",
+      "images": [
+        "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=600&auto=format&fit=crop&q=80"
+      ],
+      "attributes": ["Eggless", "Freshly Baked", "No Preservatives"],
+      "specifications": {
+        "Weight": "1 Kg",
+        "Sweetness": "Medium",
+        "Egg": "100% Eggless",
+        "Shelf Life": "3 Days"
+      },
+      "customizationFields": [
+        { "name": "Cake Message", "type": "text", "placeholder": "e.g. Happy Birthday!", "required": false },
+        { "name": "Sweetness Level", "type": "select", "options": ["Low Sweetness", "Regular", "Extra Sweet"], "required": true }
+      ],
+      "deliveryMethod": {
+        "homeDelivery": true,
+        "pickup": true,
+        "deliveryRadius": 10,
+        "deliveryCharge": 30,
+        "freeDelivery": false,
+        "estimatedDelivery": "Today before 5:30 PM"
+      },
+      "afterSales": {
+        "type": "Return & Replacement",
+        "supportWindow": "3 Days",
+        "returnRequired": true,
+        "instructions": "Please take a photo and keep the cake chilled if requesting replacement."
+      },
+      "additionalInfo": "Keep refrigerated. Consume within 48 hours for best flavour.",
+      "status": "active",
+      "rating": 4.8,
+      "reviewCount": 235,
+      "views": 780,
+      "ordersCount": 240,
+      "reportsCount": 0
+    },
+    {
+      "id": "prod_02",
+      "entrepreneurId": "ent_02",
+      "storeName": "Lakshmi Crafts",
+      "name": "Handcrafted Eco-Friendly Jute Tote Bag",
+      "category": "Handmade Crafts",
+      "price": 350,
+      "stock": 14,
+      "description": "Durable, stylish hand-stitched jute tote bag crafted by rural women artisans. Features brass rivets, cotton inner lining, and sturdy zipper.",
+      "images": [
+        "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=600&auto=format&fit=crop&q=80"
+      ],
+      "attributes": ["Eco-Friendly", "Handmade", "Natural Fibre"],
+      "specifications": {
+        "Material": "Natural Golden Jute",
+        "Dimensions": "15 x 14 x 5 inches",
+        "Closure": "Zipper",
+        "Handle": "Braided Cotton"
+      },
+      "customizationFields": [
+        { "name": "Embroidery Initial", "type": "text", "placeholder": "Letter A-Z (Optional)", "required": false },
+        { "name": "Strap Color", "type": "select", "options": ["Natural Beige", "Forest Green", "Rust Orange"], "required": true }
+      ],
+      "deliveryMethod": {
+        "homeDelivery": true,
+        "pickup": true,
+        "deliveryRadius": 15,
+        "deliveryCharge": 40,
+        "freeDelivery": false,
+        "estimatedDelivery": "Tomorrow by 4:00 PM"
+      },
+      "afterSales": {
+        "type": "Replacement Only",
+        "supportWindow": "7 Days",
+        "returnRequired": false,
+        "instructions": "Upload a picture of any stitch flaw or zipper damage."
+      },
+      "additionalInfo": "Spot clean with damp cloth. Do not soak.",
+      "status": "active",
+      "rating": 4.6,
+      "reviewCount": 98,
+      "views": 420,
+      "ordersCount": 98,
+      "reportsCount": 0
+    },
+    {
+      "id": "prod_03",
+      "entrepreneurId": "ent_03",
+      "storeName": "Priya Home Foods",
+      "name": "Home Style South Indian Meals Tiffin",
+      "category": "Food & Tiffin",
+      "price": 160,
+      "stock": 20,
+      "description": "Hot, hygienic home-cooked meal packed in eco-friendly foil containers: Steamed Rice, Sambar, Rasam, Palya (Poriyal), Curd, Papad & Pickle.",
+      "images": [
+        "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=600&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&auto=format&fit=crop&q=80"
+      ],
+      "attributes": ["Fresh Daily", "Traditional Recipe", "No Palm Oil"],
+      "specifications": {
+        "Serves": "1 Person",
+        "MealType": "Pure Vegetarian",
+        "Packaging": "Leakproof Hot-Pack",
+        "Included": "Rice, Sambar, Rasam, Sabzi, Curd"
+      },
+      "customizationFields": [
+        { "name": "Spice Level", "type": "select", "options": ["Mild", "Medium", "Spicy"], "required": true },
+        { "name": "Rice Preference", "type": "select", "options": ["Sona Masoori", "Brown Rice (+₹20)"], "required": true }
+      ],
+      "deliveryMethod": {
+        "homeDelivery": true,
+        "pickup": true,
+        "deliveryRadius": 5,
+        "deliveryCharge": 20,
+        "freeDelivery": false,
+        "estimatedDelivery": "Today 1:00 PM - 2:00 PM"
+      },
+      "afterSales": {
+        "type": "Replacement Only",
+        "supportWindow": "24 Hours",
+        "returnRequired": false,
+        "instructions": "Report any temperature or spill issue immediately upon receipt."
+      },
+      "additionalInfo": "Cooked fresh at 11:30 AM every morning in small batches.",
+      "status": "active",
+      "rating": 4.7,
+      "reviewCount": 145,
+      "views": 650,
+      "ordersCount": 180,
+      "reportsCount": 0
+    },
+    {
+      "id": "prod_04",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "name": "Assorted Gourmet Cupcakes (Box of 4)",
+      "category": "Bakery & Sweets",
+      "price": 240,
+      "stock": 12,
+      "description": "Four freshly baked soft sponge cupcakes with silky buttercream swirls: 2 Vanilla Velvet and 2 Dark Cocoa.",
+      "images": [
+        "https://images.unsplash.com/photo-1587668178277-295251f900ce?w=600&auto=format&fit=crop&q=80"
+      ],
+      "attributes": ["Eggless", "Soft Centered"],
+      "specifications": {
+        "Quantity": "4 Pieces",
+        "Flavours": "Vanilla & Chocolate",
+        "Shelf Life": "2 Days"
+      },
+      "customizationFields": [],
+      "deliveryMethod": {
+        "homeDelivery": true,
+        "pickup": true,
+        "deliveryRadius": 10,
+        "deliveryCharge": 30,
+        "freeDelivery": false,
+        "estimatedDelivery": "Today before 5:30 PM"
+      },
+      "afterSales": {
+        "type": "Return & Replacement",
+        "supportWindow": "24 Hours",
+        "returnRequired": true,
+        "instructions": "Inspect upon delivery."
+      },
+      "additionalInfo": "Hand-packed in food-safe craft boxes.",
+      "status": "active",
+      "rating": 4.9,
+      "reviewCount": 65,
+      "views": 310,
+      "ordersCount": 85,
+      "reportsCount": 0
+    },
+    {
+      "id": "prod_05",
+      "entrepreneurId": "ent_03",
+      "storeName": "Priya Home Foods",
+      "name": "Authentic Avakkai Mango Pickle (500g Jar)",
+      "category": "Food & Tiffin",
+      "price": 190,
+      "stock": 25,
+      "description": "Traditional home-made raw mango pickle seasoned with cold-pressed sesame oil, freshly ground mustard, and Guntur chili powder.",
+      "images": [
+        "https://images.unsplash.com/photo-1589135233689-d56d68b8159b?w=600&auto=format&fit=crop&q=80"
+      ],
+      "attributes": ["Handcrafted", "Cold Pressed Oil"],
+      "specifications": {
+        "Weight": "500 Grams",
+        "Oil": "Pure Sesame Gingelly Oil",
+        "Shelf Life": "9 Months"
+      },
+      "customizationFields": [],
+      "deliveryMethod": {
+        "homeDelivery": true,
+        "pickup": true,
+        "deliveryRadius": 10,
+        "deliveryCharge": 30,
+        "freeDelivery": false,
+        "estimatedDelivery": "Today before 6:00 PM"
+      },
+      "afterSales": {
+        "type": "Replacement Only",
+        "supportWindow": "7 Days",
+        "returnRequired": false,
+        "instructions": "Report if safety seal or jar is damaged."
+      },
+      "additionalInfo": "Use dry spoon always. Stays aromatic and fresh naturally.",
+      "status": "active",
+      "rating": 4.8,
+      "reviewCount": 112,
+      "views": 480,
+      "ordersCount": 140,
+      "reportsCount": 0
+    }
+  ],
+
+  "orders": [
+    {
+      "id": "ORD-12345",
+      "customerId": "cust_01",
+      "customerName": "Thanuja Gowda",
+      "customerPhone": "9845123456",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "date": "25 Oct 2026",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": { "Cake Message": "Happy Birthday Anita!", "Sweetness Level": "Regular" },
+          "image": "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop&q=80",
+          "afterSales": {
+            "type": "Return & Replacement",
+            "supportWindow": "3 Days",
+            "returnRequired": true
+          }
+        }
+      ],
+      "subtotal": 450,
+      "deliveryCharge": 30,
+      "grandTotal": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": {
+        "label": "Home",
+        "door": "#12, MG Road",
+        "street": "8th Cross, Malleshwaram",
+        "area": "Malleshwaram",
+        "city": "Bangalore",
+        "pincode": "560003"
+      },
+      "orderNote": "Please keep extra napkins if possible, thank you!",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "orderStatus": "Delivered",
+      "expectedDelivery": "Today before 5:30 PM",
+      "deliveredDate": "25 Oct 2026",
+      "supportWindowExpiresDate": "28 Oct 2026",
+      "reviewSubmitted": true,
+      "refundRequest": null,
+      "replacementRequest": null
+    },
+    {
+      "id": "ORD-12346",
+      "customerId": "cust_01",
+      "customerName": "Thanuja Gowda",
+      "customerPhone": "9845123456",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "date": "25 Oct 2026",
+      "items": [
+        {
+          "productId": "prod_04",
+          "name": "Assorted Gourmet Cupcakes (Box of 4)",
+          "price": 240,
+          "qty": 2,
+          "customization": {},
+          "image": "https://images.unsplash.com/photo-1587668178277-295251f900ce?w=600&auto=format&fit=crop&q=80",
+          "afterSales": {
+            "type": "Return & Replacement",
+            "supportWindow": "24 Hours",
+            "returnRequired": true
+          }
+        }
+      ],
+      "subtotal": 480,
+      "deliveryCharge": 30,
+      "grandTotal": 510,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": {
+        "label": "Home",
+        "door": "#12, MG Road",
+        "street": "8th Cross, Malleshwaram",
+        "area": "Malleshwaram",
+        "city": "Bangalore",
+        "pincode": "560003"
+      },
+      "orderNote": "",
+      "paymentMethod": "Cash on Delivery",
+      "paymentStatus": "Pending",
+      "orderStatus": "Preparing",
+      "expectedDelivery": "Today before 6:30 PM",
+      "deliveredDate": null,
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null
+    }
+  ],
+
+  "reviews": [
+    {
+      "id": "rev_01",
+      "orderId": "ORD-12345",
+      "productId": "prod_01",
+      "customerId": "cust_01",
+      "customerName": "Thanuja Gowda",
+      "rating": 5,
+      "qualityRating": 5,
+      "deliveryRating": 5,
+      "comment": "Absolutely heavenly chocolate cake! Soft, moist, and not overly sweet. Delivered right on time in pristine packaging.",
+      "date": "25 Oct 2026",
+      "photos": []
+    },
+    {
+      "id": "rev_02",
+      "orderId": "ORD-12100",
+      "productId": "prod_01",
+      "customerId": "cust_02",
+      "customerName": "Ravi Kumar",
+      "rating": 5,
+      "qualityRating": 5,
+      "deliveryRating": 4,
+      "comment": "Ordered for our anniversary. The personalized cake message was written with so much care. Everyone in our family loved it!",
+      "date": "23 Oct 2026",
+      "photos": []
+    },
+    {
+      "id": "rev_03",
+      "orderId": "ORD-12050",
+      "productId": "prod_02",
+      "customerId": "cust_03",
+      "customerName": "Deepa Hegde",
+      "rating": 4,
+      "qualityRating": 5,
+      "deliveryRating": 4,
+      "comment": "Very sturdy jute bag. Love that it supports local women weavers. Would appreciate longer strap options next time!",
+      "date": "21 Oct 2026",
+      "photos": []
+    }
+  ],
+
+  "supportTickets": [
+    {
+      "id": "SUP-1023",
+      "customerId": "cust_01",
+      "customerName": "Thanuja Gowda",
+      "customerPhone": "9845123456",
+      "issueType": "Payment Issue",
+      "description": "Double debit occurred during UPI checkout on an earlier attempt. Bank reference UTR is 4098129381.",
+      "status": "Open",
+      "adminNotes": "Verified with payment gateway logs. Refund batch initiated to user bank.",
+      "date": "24 Oct 2026"
+    },
+    {
+      "id": "SUP-1024",
+      "customerId": "cust_02",
+      "customerName": "Ravi Kumar",
+      "customerPhone": "9845987654",
+      "issueType": "Refund Appeal",
+      "description": "Dispute regarding damaged container during transit. Entrepreneur rejected replacement request.",
+      "status": "In Progress",
+      "adminNotes": "Investigating courier notes and entrepreneur dispatch photos.",
+      "date": "23 Oct 2026"
+    }
+  ],
+
+  "activityLogs": [
+    { "id": "act_01", "text": "Approved Anita Bakery verification application", "time": "Today • 9:15 AM" },
+    { "id": "act_02", "text": "Assigned \"Rising Star\" badge to Anita's Bakery", "time": "Today • 9:30 AM" },
+    { "id": "act_03", "text": "Resolved Support Ticket #SUP-1020 (Account Phone Update)", "time": "Yesterday • 4:20 PM" },
+    { "id": "act_04", "text": "Added new Category \"Beauty & Wellness\" to platform", "time": "22 Oct 2026" }
+  ],
+
+  "reportedProducts": [
+    {
+      "productId": "prod_03",
+      "productName": "Home Style South Indian Meals Tiffin",
+      "storeName": "Priya Home Foods",
+      "reportsCount": 1,
+      "reason": "Wrong delivery radius stated on card",
+      "status": "reported",
+      "adminActionReason": ""
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+/* =====================================================================
+   MANEYINDA MARUKATTE - REST API ROUTER
+   High-performance zero-dependency path pattern matcher & request dispatcher
+===================================================================== */
+
+const authController = require('../controllers/authController');
+const productController = require('../controllers/productController');
+const orderController = require('../controllers/orderController');
+const entrepreneurController = require('../controllers/entrepreneurController');
+const reviewController = require('../controllers/reviewController');
+const supportController = require('../controllers/supportController');
+const adminController = require('../controllers/adminController');
+const uploadController = require('../controllers/uploadController');
+
+class Router {
+  constructor() {
+    this.routes = [];
+    this.initRoutes();
+  }
+
+  add(method, pathPattern, handler) {
+    // Convert path pattern like "/api/products/:id" to Regex & parameter names
+    const paramNames = [];
+    const regexPath = pathPattern.replace(/:([a-zA-Z0-9_]+)/g, (_, paramName) => {
+      paramNames.push(paramName);
+      return '([^\\/]+)';
+    });
+
+    const regex = new RegExp(`^${regexPath}\\/?$`);
+    this.routes.push({
+      method: method.toUpperCase(),
+      pattern: pathPattern,
+      regex,
+      paramNames,
+      handler
+    });
+  }
+
+  initRoutes() {
+    // Health check
+    this.add('GET', '/api/health', (req, res) => {
+      return res.status(200).json({
+        success: true,
+        status: 'UP',
+        timestamp: new Date().toISOString(),
+        service: 'Maneyinda Marukatte REST API'
+      });
+    });
+
+    // --- Authentication ---
+    this.add('POST', '/api/auth/send-otp', authController.sendOtp);
+    this.add('POST', '/api/auth/verify-otp', authController.verifyOtp);
+    this.add('POST', '/api/auth/login-customer', authController.loginCustomer);
+    this.add('POST', '/api/auth/login-entrepreneur', authController.loginEntrepreneur);
+    this.add('POST', '/api/auth/reset-password', authController.resetPassword);
+
+    // --- Products ---
+    this.add('GET', '/api/products', productController.getProducts);
+    this.add('GET', '/api/products/:id', productController.getProductById);
+    this.add('POST', '/api/products', productController.createProduct);
+    this.add('PUT', '/api/products/:id', productController.updateProduct);
+    this.add('PATCH', '/api/products/:id/stock', productController.updateStock);
+    this.add('DELETE', '/api/products/:id', productController.deleteProduct);
+
+    // --- Orders ---
+    this.add('GET', '/api/orders', orderController.getOrders);
+    this.add('GET', '/api/orders/:id', orderController.getOrderById);
+    this.add('POST', '/api/orders', orderController.createOrder);
+    this.add('PATCH', '/api/orders/:id/status', orderController.updateStatus);
+    this.add('POST', '/api/orders/:id/cancel', orderController.cancelOrder);
+    this.add('POST', '/api/orders/:id/after-sales', orderController.submitAfterSales);
+
+    // --- Entrepreneurs ---
+    this.add('GET', '/api/entrepreneurs', entrepreneurController.getEntrepreneurs);
+    this.add('GET', '/api/entrepreneurs/:id', entrepreneurController.getEntrepreneurById);
+    this.add('POST', '/api/entrepreneurs/register', entrepreneurController.registerEntrepreneur);
+    this.add('PATCH', '/api/entrepreneurs/:id/availability', entrepreneurController.updateAvailability);
+    this.add('PUT', '/api/entrepreneurs/:id', entrepreneurController.updateProfile);
+
+    // --- Reviews ---
+    this.add('GET', '/api/reviews', reviewController.getReviews);
+    this.add('POST', '/api/reviews', reviewController.createReview);
+    this.add('DELETE', '/api/reviews/:id', reviewController.deleteReview);
+
+    // --- Support Tickets ---
+    this.add('GET', '/api/support/tickets', supportController.getTickets);
+    this.add('GET', '/api/support/tickets/:id', supportController.getTicketById);
+    this.add('POST', '/api/support/tickets', supportController.createTicket);
+    this.add('PATCH', '/api/support/tickets/:id/resolve', supportController.resolveTicket);
+
+    // --- Admin & Platform ---
+    this.add('GET', '/api/admin/verification-queue', adminController.getVerificationQueue);
+    this.add('POST', '/api/admin/verify/:id', adminController.verifyEntrepreneur);
+    this.add('POST', '/api/admin/assign-badge/:id', adminController.assignBadge);
+    this.add('GET', '/api/admin/ai-trends', adminController.getAiTrends);
+    this.add('GET', '/api/admin/categories', adminController.getCategories);
+    this.add('POST', '/api/admin/categories', adminController.createCategory);
+    this.add('PATCH', '/api/admin/categories/:id/toggle', adminController.toggleCategory);
+    this.add('GET', '/api/admin/logs', adminController.getActivityLogs);
+    this.add('GET', '/api/admin/reports', adminController.getReportedProducts);
+    this.add('POST', '/api/admin/reports/:index/dismiss', adminController.dismissReport);
+
+    // --- Media Upload ---
+    this.add('POST', '/api/upload', uploadController.handleUpload);
+  }
+
+  match(method, pathname) {
+    const targetMethod = method.toUpperCase();
+
+    for (const route of this.routes) {
+      if (route.method !== targetMethod) continue;
+      const match = pathname.match(route.regex);
+      if (match) {
+        const params = {};
+        route.paramNames.forEach((name, i) => {
+          params[name] = decodeURIComponent(match[i + 1]);
+        });
+        return {
+          handler: route.handler,
+          params
+        };
+      }
+    }
+
+    return null;
+  }
+}
+
+module.exports = new Router();
