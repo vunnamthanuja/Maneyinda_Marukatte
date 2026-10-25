@@ -63,7 +63,9 @@ const server = http.createServer((req, res) => {
     return this;
   };
 
-  const parsedUrl = url.parse(req.url, true);
+  // Parse URL with standard modern WHATWG URL API
+  const baseUrl = `http://${req.headers.host || 'localhost:5000'}`;
+  const parsedUrl = new URL(req.url, baseUrl);
   const pathname = parsedUrl.pathname;
 
   // 2. Serve static uploads (/uploads/*)
@@ -93,7 +95,11 @@ const server = http.createServer((req, res) => {
   }
 
   // Attach query & path parameters
-  req.query = parsedUrl.query || {};
+  const query = {};
+  parsedUrl.searchParams.forEach((val, key) => {
+    query[key] = val;
+  });
+  req.query = query;
   req.params = match.params || {};
 
   // 4. Collect request body for POST/PUT/PATCH
