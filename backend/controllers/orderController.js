@@ -127,7 +127,8 @@ const orderController = {
       deliveryAddress: deliveryAddress || null,
       orderNote: body.orderNote || '',
       paymentMethod: paymentMethod || 'Online Payment',
-      paymentStatus: 'Paid'
+      paymentStatus: body.paymentStatus || (paymentMethod === 'Cash on Delivery' ? 'Pending' : 'Paid'),
+      paymentDetails: body.paymentDetails || null
     });
 
     db.addActivityLog(`Order #${newOrder.id} placed for ₹${grandTotal} with ${newOrder.storeName}`);

@@ -12,6 +12,7 @@ const reviewController = require('../controllers/reviewController');
 const supportController = require('../controllers/supportController');
 const adminController = require('../controllers/adminController');
 const uploadController = require('../controllers/uploadController');
+const paymentController = require('../controllers/paymentController');
 const AuthMiddleware = require('../middleware/auth');
 
 class Router {
@@ -135,6 +136,11 @@ class Router {
 
     // --- Media Upload ---
     this.add('POST', '/api/upload', uploadController.handleUpload);
+
+    // --- Payments (Razorpay Real Payment Gateway) ---
+    this.add('GET', '/api/payments/status', paymentController.getPaymentConfigStatus);
+    this.add('POST', '/api/payments/create-order', paymentController.createRazorpayOrder);
+    this.add('POST', '/api/payments/verify', paymentController.verifyPaymentSignature);
   }
 
   match(method, pathname) {

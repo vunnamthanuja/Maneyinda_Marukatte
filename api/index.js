@@ -59,6 +59,23 @@ module.exports = async (req, res) => {
   req.query = req.query || query;
   req.params = match.params || {};
 
+  // Safeguard: Ensure body is parsed on Vercel serverless functions
+  if (!req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+    let rawBody = '';
+    await new Promise((resolve) => {
+      req.on('data', chunk => { rawBody += chunk; });
+      req.on('end', () => {
+        try {
+          req.body = JSON.parse(rawBody);
+        } catch (e) {
+          req.body = {};
+        }
+        resolve();
+      });
+      req.on('error', () => resolve());
+    });
+  }
+
   try {
     return match.handler(req, res);
   } catch (err) {

@@ -315,6 +315,63 @@ async function runInProcessTests() {
     }
   });
 
+  // -------------------------------------------------------------
+  // RAZORPAY PAYMENT GATEWAY VERIFICATION TESTS
+  // -------------------------------------------------------------
+  await test('GET /api/payments/status returns Razorpay gateway status', async () => {
+    const res = await mockRequest('GET', '/api/payments/status');
+    if (res.status !== 200 || !res.data.success || res.data.provider !== 'razorpay') {
+      throw new Error(`Invalid payments status response: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  await test('POST /api/payments/create-order rejects missing or invalid amount', async () => {
+    const res = await mockRequest('POST', '/api/payments/create-order', { amount: 0 });
+    if (res.status !== 400 || res.data.error !== 'INVALID_AMOUNT') {
+      throw new Error(`Expected 400 INVALID_AMOUNT, got ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  await test('POST /api/payments/verify validates cryptographic HMAC-SHA256 signature', async () => {
+    const crypto = require('crypto');
+    const originalSecret = process.env.RAZORPAY_KEY_SECRET;
+    const testSecret = 'test_unit_verification_secret_key_123';
+    process.env.RAZORPAY_KEY_SECRET = testSecret;
+
+    try {
+      const orderId = 'order_test_9999';
+      const paymentId = 'pay_test_8888';
+      const validSignature = crypto
+        .createHmac('sha256', testSecret)
+        .update(`${orderId}|${paymentId}`)
+        .digest('hex');
+
+      // Valid signature verification
+      const verifyRes = await mockRequest('POST', '/api/payments/verify', {
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: validSignature
+      });
+
+      if (verifyRes.status !== 200 || !verifyRes.data.verified) {
+        throw new Error(`Expected valid signature to verify, got ${verifyRes.status}: ${JSON.stringify(verifyRes.data)}`);
+      }
+
+      // Tampered / Invalid signature verification rejection
+      const invalidRes = await mockRequest('POST', '/api/payments/verify', {
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: 'tampered_invalid_signature_hex_code'
+      });
+
+      if (invalidRes.status !== 400 || invalidRes.data.error !== 'INVALID_SIGNATURE') {
+        throw new Error(`Expected 400 INVALID_SIGNATURE, got ${invalidRes.status}: ${JSON.stringify(invalidRes.data)}`);
+      }
+    } finally {
+      process.env.RAZORPAY_KEY_SECRET = originalSecret;
+    }
+  });
+
   console.log(`\n======================================================`);
   console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`);
   console.log(`======================================================\n`);

@@ -1331,7 +1331,7 @@ const CustomerModule = {
     document.getElementById('pay-mode-card-cod').classList.toggle('selected', !isOnline);
   },
 
-  handleExecuteOrder(entrepreneurId, subtotal, baseDeliveryCharge) {
+  async handleExecuteOrder(entrepreneurId, subtotal, baseDeliveryCharge) {
     const isOnline = document.getElementById('pay-radio-online').checked;
     const delChecked = document.querySelector('input[name="chk-del-method"]:checked');
     const isHome = delChecked ? delChecked.value === 'Home Delivery' : true;
@@ -1340,6 +1340,8 @@ const CustomerModule = {
     const noteEl = document.getElementById('checkout-order-note');
     const note = noteEl ? noteEl.value : '';
     const selAddr = store.getSelectedAddress();
+    const user = store.getUser() || {};
+    const ent = store.getEntrepreneurById(entrepreneurId) || {};
 
     if (!selAddr) {
       AppUtils.showToast('Please add or select a delivery address.');
@@ -1347,7 +1349,103 @@ const CustomerModule = {
     }
 
     if (isOnline) {
-      // Show simulated online payment processing dialog
+      // Check if backend is live and Razorpay is configured
+      if (window.apiClient && window.apiClient.isOnline && typeof window.Razorpay !== 'undefined') {
+        const configRes = await window.apiClient.getPaymentConfig();
+        if (configRes && configRes.isConfigured) {
+          // Real Razorpay Checkout flow
+          AppUtils.showBottomSheet(`
+            <div style="text-align:center; padding:20px 0;">
+              <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
+              <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Opening Razorpay Gateway...</h4>
+              <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Setting up secure UPI / Card / NetBanking session</p>
+            </div>
+          `);
+
+          const orderRes = await window.apiClient.createPaymentOrder(grandTotal, `rcpt_${Date.now()}`, {
+            entrepreneurId,
+            customerId: user.id
+          });
+
+          AppUtils.closeBottomSheet();
+
+          if (orderRes && orderRes.success && orderRes.orderId) {
+            const options = {
+              key: orderRes.keyId,
+              amount: orderRes.amount,
+              currency: orderRes.currency || 'INR',
+              name: 'Maneyindha Marukatte',
+              description: `Order from ${ent.businessName || 'Local Artisan'}`,
+              order_id: orderRes.orderId,
+              prefill: {
+                name: user.name || 'Valued Customer',
+                email: user.email || '',
+                contact: user.phone || ''
+              },
+              theme: {
+                color: '#8B4513'
+              },
+              handler: async (rzpResp) => {
+                AppUtils.showBottomSheet(`
+                  <div style="text-align:center; padding:20px 0;">
+                    <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
+                    <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Verifying Payment...</h4>
+                    <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Verifying cryptographic signature with server</p>
+                  </div>
+                `);
+
+                const verifyRes = await window.apiClient.verifyPaymentSignature({
+                  razorpay_order_id: rzpResp.razorpay_order_id,
+                  razorpay_payment_id: rzpResp.razorpay_payment_id,
+                  razorpay_signature: rzpResp.razorpay_signature
+                });
+
+                AppUtils.closeBottomSheet();
+
+                if (verifyRes && verifyRes.success && verifyRes.verified) {
+                  AppUtils.showToast('Payment verified successfully!');
+                  this.completeOrderCreation({
+                    entrepreneurId,
+                    subtotal,
+                    deliveryCharge,
+                    grandTotal,
+                    deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
+                    deliveryAddress: selAddr,
+                    orderNote: note,
+                    paymentMethod: 'Razorpay UPI / Online',
+                    paymentStatus: 'Paid',
+                    paymentDetails: {
+                      provider: 'razorpay',
+                      paymentId: rzpResp.razorpay_payment_id,
+                      orderId: rzpResp.razorpay_order_id,
+                      signature: rzpResp.razorpay_signature
+                    }
+                  });
+                } else {
+                  AppUtils.showToast(verifyRes.message || 'Payment signature verification failed.');
+                }
+              },
+              modal: {
+                ondismiss: () => {
+                  AppUtils.showToast('Payment cancelled. Your cart is preserved.');
+                }
+              }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', (resp) => {
+              AppUtils.showToast(`Payment failed: ${(resp.error && resp.error.description) || 'Payment declined'}`);
+            });
+            rzp.open();
+            return;
+          } else {
+            console.warn('[PAYMENT] Razorpay order creation failed, falling back:', orderRes);
+            AppUtils.showToast(orderRes.message || 'Razorpay order creation failed. Falling back to test simulation.');
+          }
+        }
+      }
+
+      // Fallback: Simulated online payment processing dialog (when keys are pending or offline)
       AppUtils.showBottomSheet(`
         <div style="text-align:center; padding:20px 0;">
           <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
@@ -1366,7 +1464,7 @@ const CustomerModule = {
           deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
           deliveryAddress: selAddr,
           orderNote: note,
-          paymentMethod: 'Online Payment',
+          paymentMethod: 'Online Payment (Simulation)',
           paymentStatus: 'Paid'
         });
       }, 1500);

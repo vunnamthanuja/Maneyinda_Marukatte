@@ -528,6 +528,57 @@ class APIClient {
       topEntrepreneurs: store.data.entrepreneurs.slice(0, 3)
     };
   }
+
+  // =============================================================
+  // 7. PAYMENTS MODULE (RAZORPAY REAL GATEWAY)
+  // =============================================================
+  async getPaymentConfig() {
+    if (this.isOnline) {
+      try {
+        const res = await this.request('/payments/status');
+        return res;
+      } catch (e) {
+        console.warn('[API] Could not check payment status:', e);
+      }
+    }
+    return {
+      success: true,
+      provider: 'razorpay',
+      isConfigured: false,
+      keyId: null,
+      mode: 'test',
+      message: 'Running in offline/local simulation mode'
+    };
+  }
+
+  async createPaymentOrder(amount, receipt, notes = {}) {
+    if (this.isOnline) {
+      return await this.request('/payments/create-order', {
+        method: 'POST',
+        body: JSON.stringify({ amount, receipt, notes })
+      });
+    }
+    return {
+      success: false,
+      error: 'OFFLINE_MODE',
+      message: 'Backend server is offline. Please use test payment.'
+    };
+  }
+
+  async verifyPaymentSignature(paymentData) {
+    if (this.isOnline) {
+      return await this.request('/payments/verify', {
+        method: 'POST',
+        body: JSON.stringify(paymentData)
+      });
+    }
+    return {
+      success: true,
+      verified: true,
+      simulated: true,
+      message: 'Offline payment verified.'
+    };
+  }
 }
 
 // Global Singleton Instance
