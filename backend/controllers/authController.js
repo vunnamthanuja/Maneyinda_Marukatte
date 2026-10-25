@@ -78,20 +78,18 @@ const authController = {
     const salt = process.env.PASSWORD_SALT || 'maneyinda_salt_2026';
     const otpHashed = crypto.createHash('sha256').update(rawOtp + salt).digest('hex');
 
-    // 5. Send Real Email via Configured Provider (Resend API)
+    // 5. Send Real Email via Configured Provider (Resend, Brevo, or SMTP)
     const sendResult = await emailService.sendOtpEmail(cleanEmail, rawOtp, purpose || 'registration');
 
-    // In development mode or test suite, if ALLOW_DEMO_OTP=true and Resend is not configured, we allow local testing
-    // but report status accurately without faking email delivery!
-    const isLocalDevDemo = process.env.ALLOW_DEMO_OTP === 'true' && !emailService.isConfigured();
-
-    if (!sendResult.success && !isLocalDevDemo) {
+    // Never fake success if the email provider failed or is unconfigured
+    if (!sendResult.success) {
+      console.error(`[AUTH] Failed to send OTP email to ${cleanEmail}:`, sendResult.message);
       return res.status(502).json({
         success: false,
         error: sendResult.error || 'EMAIL_DELIVERY_FAILED',
-        provider: 'resend',
+        provider: sendResult.provider,
         recipient: cleanEmail,
-        message: sendResult.message || 'Failed to deliver verification email. Please verify email service configuration.'
+        message: sendResult.message || 'Failed to deliver verification email. Please check server email configuration.'
       });
     }
 
@@ -109,17 +107,22 @@ const authController = {
       resendCooldownUntil: now + RESEND_COOLDOWN_MS
     });
 
-    if (isLocalDevDemo) {
-      console.log(`[DEV MODE] Resend API key not set in .env. Test OTP for ${cleanEmail}: ${rawOtp} (Demo code: 123456)`);
-    }
-
     return res.status(200).json({
       success: true,
       message: `Verification code sent to ${cleanEmail}.`,
       expiresInSeconds: 300,
       resendCooldownSeconds: 60,
       recipient: cleanEmail,
-      provider: emailService.isConfigured() ? 'resend' : 'local_dev'
+      provider: sendResult.provider
+    });
+  },
+
+  // GET /api/auth/email-status
+  getEmailStatus(req, res) {
+    const status = emailService.getStatus();
+    return res.status(200).json({
+      success: true,
+      ...status
     });
   },
 

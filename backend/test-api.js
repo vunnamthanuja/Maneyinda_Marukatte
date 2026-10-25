@@ -3,6 +3,7 @@
    Tests authentication, role authorization, permissions, and security guards.
 ===================================================================== */
 
+process.env.NODE_ENV = 'test';
 const { EventEmitter } = require('events');
 const server = require('./server');
 
@@ -66,10 +67,15 @@ async function runInProcessTests() {
     }
   }
 
-  // 1. Health check
+  // 1. Health check & Email Provider Diagnostic
   await test('GET /api/health should return status UP', async () => {
     const res = await mockRequest('GET', '/api/health');
     if (res.status !== 200 || res.data.status !== 'UP') throw new Error(`Failed health check`);
+  });
+
+  await test('GET /api/auth/email-status should report provider configuration', async () => {
+    const res = await mockRequest('GET', '/api/auth/email-status');
+    if (res.status !== 200 || !res.data.success || !res.data.provider) throw new Error(`Email status error: ${JSON.stringify(res.data)}`);
   });
 
   // 2. Products list

@@ -72,6 +72,7 @@ class Router {
     });
 
     // --- Authentication & Session Security ---
+    this.add('GET', '/api/auth/email-status', authController.getEmailStatus);
     this.add('POST', '/api/auth/send-otp', authController.sendOtp);
     this.add('POST', '/api/auth/verify-otp', authController.verifyOtp);
     this.add('POST', '/api/auth/login-customer', authController.loginCustomer);

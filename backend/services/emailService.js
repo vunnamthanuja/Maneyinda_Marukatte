@@ -1,29 +1,94 @@
 /* =====================================================================
-   MANEYINDA MARUKATTE - REAL TRANSACTIONAL EMAIL SERVICE
-   Integrates directly with Resend API (HTTPS REST) with zero dependencies.
-   Delivers branded, responsive OTP verification emails to real recipients.
+   MANEYINDA MARUKATTE - MULTI-PROVIDER REAL TRANSACTIONAL EMAIL SERVICE
+   Supports:
+   1. Resend API (HTTPS REST via official api.resend.com)
+   2. Brevo API (HTTPS REST via official api.brevo.com)
+   3. Native SMTP (Direct TLS on port 465, e.g. Gmail App Password, Brevo SMTP)
+   4. Safe Test Transport (strictly for automated in-process test runner)
+   Zero external npm dependencies.
 ===================================================================== */
 
 const https = require('https');
 const url = require('url');
+const SmtpClient = require('./smtpClient');
 require('../config/env');
 
 class EmailService {
   constructor() {
-    this.provider = 'resend';
+    this.lastDeliveryStatus = null;
   }
 
-  getApiKey() {
-    return process.env.RESEND_API_KEY || '';
-  }
+  getActiveProvider() {
+    const resendKey = process.env.RESEND_API_KEY || '';
+    if (resendKey && resendKey.startsWith('re_') && !resendKey.includes('your_api_key')) {
+      return 'resend';
+    }
 
-  getFromAddress() {
-    return process.env.EMAIL_FROM || 'Maneyindha Marukatte <onboarding@resend.dev>';
+    const brevoKey = process.env.BREVO_API_KEY || '';
+    if (brevoKey && (brevoKey.startsWith('xkeysib-') || brevoKey.length > 20) && !brevoKey.includes('your_api_key')) {
+      return 'brevo';
+    }
+
+    const smtpHost = process.env.SMTP_HOST || '';
+    if (smtpHost && !smtpHost.includes('your_smtp')) {
+      return 'smtp';
+    }
+
+    if (process.env.NODE_ENV === 'test') {
+      return 'test';
+    }
+
+    return 'none';
   }
 
   isConfigured() {
-    const key = this.getApiKey();
-    return Boolean(key && key.trim().startsWith('re_') && !key.includes('your_api_key'));
+    return this.getActiveProvider() !== 'none';
+  }
+
+  getFromAddress() {
+    if (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('verified_sender')) {
+      return process.env.EMAIL_FROM;
+    }
+    if (process.env.SMTP_USER) {
+      return `Maneyindha Marukatte <${process.env.SMTP_USER}>`;
+    }
+    return 'Maneyindha Marukatte <onboarding@resend.dev>';
+  }
+
+  /**
+   * Diagnostic summary of email configuration
+   */
+  getStatus() {
+    const provider = this.getActiveProvider();
+    const from = this.getFromAddress();
+
+    let details = 'No email delivery provider is configured.';
+    let ready = false;
+
+    if (provider === 'resend') {
+      ready = true;
+      const isSandboxDomain = from.includes('resend.dev');
+      details = isSandboxDomain
+        ? 'Using Resend Sandbox domain (onboarding@resend.dev). Note: Free sandbox domain can only send to your own registered Resend email.'
+        : `Resend API configured with custom verified sender: ${from}`;
+    } else if (provider === 'brevo') {
+      ready = true;
+      details = `Brevo API configured with sender: ${from}`;
+    } else if (provider === 'smtp') {
+      ready = true;
+      details = `Native SMTP configured via ${process.env.SMTP_HOST}:${process.env.SMTP_PORT || 465} (User: ${process.env.SMTP_USER || 'anonymous'})`;
+    } else if (provider === 'test') {
+      ready = true;
+      details = 'Automated test environment (in-memory mock delivery).';
+    }
+
+    return {
+      provider,
+      isConfigured: ready,
+      sender: from,
+      details,
+      lastDelivery: this.lastDeliveryStatus
+    };
   }
 
   /**
@@ -71,7 +136,7 @@ class EmailService {
     <div class="email-content">
       <div class="greeting">Hello,</div>
       <p class="intro-text">
-        We received a request to ${purposeText} using the email address <strong>${email}</strong>. Please enter the verification code below to verify your email address:
+        We received a request to ${purposeText} using the email address <strong>${email}</strong>. Please enter the verification code below:
       </p>
 
       <div class="otp-card">
@@ -99,27 +164,53 @@ class EmailService {
   }
 
   /**
-   * Sends real email via Resend API
-   * @param {string} toEmail - Recipient email address
-   * @param {string} otp - 6-digit OTP code
-   * @param {string} purpose - Purpose of verification
-   * @returns {Promise<{success: boolean, messageId?: string, error?: string, message: string}>}
+   * Main dispatch method - sends to user's real email using configured provider
    */
   async sendOtpEmail(toEmail, otp, purpose = 'registration') {
     const cleanTo = String(toEmail).toLowerCase().trim();
-    const apiKey = this.getApiKey();
+    const provider = this.getActiveProvider();
 
-    if (!apiKey) {
-      console.warn(`[EMAIL] RESEND_API_KEY is not configured in .env. Cannot deliver to ${cleanTo}`);
-      return {
+    if (provider === 'none') {
+      const err = {
         success: false,
         error: 'EMAIL_PROVIDER_NOT_CONFIGURED',
-        message: 'Email service is not configured. Please set RESEND_API_KEY in your server environment or .env file.'
+        provider: 'none',
+        message: 'No email delivery provider is configured. Please add RESEND_API_KEY, BREVO_API_KEY, or SMTP credentials in your .env file.'
+      };
+      this.lastDeliveryStatus = { ...err, timestamp: new Date().toISOString(), recipient: cleanTo };
+      console.warn(`[EMAIL] Delivery failed: No email provider configured in .env for ${cleanTo}`);
+      return err;
+    }
+
+    if (provider === 'test') {
+      console.log(`[EMAIL:TEST] Test mode: generated OTP for ${cleanTo}`);
+      return {
+        success: true,
+        provider: 'test',
+        messageId: `test-${Date.now()}`,
+        message: `Test email dispatched to ${cleanTo}`
       };
     }
 
+    if (provider === 'resend') {
+      return await this.sendViaResend(cleanTo, otp, purpose);
+    }
+
+    if (provider === 'brevo') {
+      return await this.sendViaBrevo(cleanTo, otp, purpose);
+    }
+
+    if (provider === 'smtp') {
+      return await this.sendViaSmtp(cleanTo, otp, purpose);
+    }
+  }
+
+  // --- 1. RESEND API DELIVERY ---
+  async sendViaResend(cleanTo, otp, purpose) {
+    const apiKey = process.env.RESEND_API_KEY.trim();
+    const from = this.getFromAddress();
     const payload = JSON.stringify({
-      from: this.getFromAddress(),
+      from,
       to: [cleanTo],
       subject: 'Verify Your Email – Maneyindha Marukatte',
       html: this.generateOtpTemplate(otp, cleanTo, purpose)
@@ -132,18 +223,16 @@ class EmailService {
         path: '/emails',
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey.trim()}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload)
         },
-        timeout: 10000 // 10s timeout
+        timeout: 10000
       };
 
       const req = https.request(options, (res) => {
         let responseBody = '';
-        res.on('data', (chunk) => {
-          responseBody += chunk;
-        });
+        res.on('data', chunk => responseBody += chunk);
 
         res.on('end', () => {
           let parsed = {};
@@ -154,55 +243,157 @@ class EmailService {
           }
 
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            console.log(`[EMAIL] Successfully dispatched OTP to ${cleanTo} via Resend. Message ID: ${parsed.id}`);
-            return resolve({
+            console.log(`[EMAIL:RESEND] Dispatched email to ${cleanTo}. Resend Message ID: ${parsed.id}`);
+            const result = {
               success: true,
               provider: 'resend',
               messageId: parsed.id,
-              message: `Verification code sent to ${cleanTo}.`
-            });
+              message: `Verification code delivered to ${cleanTo}.`
+            };
+            this.lastDeliveryStatus = { ...result, timestamp: new Date().toISOString(), recipient: cleanTo };
+            return resolve(result);
           }
 
-          // Provider rejected request
-          console.error(`[EMAIL] Resend API error (${res.statusCode}):`, parsed);
-          let errorMessage = parsed.message || 'Failed to deliver email through provider.';
-          
-          // Provide actionable guidance if on free unverified domain
-          if (parsed.statusCode === 403 && parsed.name === 'validation_error') {
-            errorMessage = 'Resend free testing domain (onboarding@resend.dev) can only send to your account email, or verify your custom domain in Resend dashboard.';
+          let errorMessage = parsed.message || 'Resend API rejected the email request.';
+          if (res.statusCode === 403 && from.includes('resend.dev')) {
+            errorMessage = `Resend sandbox domain (onboarding@resend.dev) can only send to your own Resend account email. To send to ${cleanTo}, please add & verify your custom domain in Resend dashboard, or configure SMTP in .env.`;
+          } else if (res.statusCode === 401) {
+            errorMessage = 'Invalid Resend API Key. Please verify RESEND_API_KEY in your .env file.';
           }
 
-          return resolve({
+          console.error(`[EMAIL:RESEND] Error ${res.statusCode}:`, errorMessage);
+          const failure = {
             success: false,
             error: 'PROVIDER_REJECTED',
-            providerStatusCode: res.statusCode,
+            provider: 'resend',
+            statusCode: res.statusCode,
             message: errorMessage
-          });
+          };
+          this.lastDeliveryStatus = { ...failure, timestamp: new Date().toISOString(), recipient: cleanTo };
+          resolve(failure);
         });
       });
 
       req.on('timeout', () => {
         req.destroy();
-        console.error(`[EMAIL] Delivery timeout sending to ${cleanTo}`);
-        resolve({
-          success: false,
-          error: 'PROVIDER_TIMEOUT',
-          message: 'Email provider timed out while delivering the verification email.'
-        });
+        const err = { success: false, error: 'TIMEOUT', provider: 'resend', message: 'Resend API connection timed out.' };
+        this.lastDeliveryStatus = { ...err, timestamp: new Date().toISOString(), recipient: cleanTo };
+        resolve(err);
       });
 
       req.on('error', (err) => {
-        console.error(`[EMAIL] HTTPS network error delivering to ${cleanTo}:`, err.message);
-        resolve({
+        console.error(`[EMAIL:RESEND] Network error: ${err.message}`);
+        const result = {
           success: false,
           error: 'NETWORK_ERROR',
-          message: `Network error communicating with email provider: ${err.message}`
-        });
+          provider: 'resend',
+          message: `Network error connecting to Resend: ${err.message}`
+        };
+        this.lastDeliveryStatus = { ...result, timestamp: new Date().toISOString(), recipient: cleanTo };
+        resolve(result);
       });
 
       req.write(payload);
       req.end();
     });
+  }
+
+  // --- 2. BREVO API DELIVERY ---
+  async sendViaBrevo(cleanTo, otp, purpose) {
+    const apiKey = process.env.BREVO_API_KEY.trim();
+    const fromRaw = this.getFromAddress();
+    const fromEmail = fromRaw.includes('<') ? fromRaw.match(/<([^>]+)>/)[1] : fromRaw;
+    const fromName = fromRaw.includes('<') ? fromRaw.split('<')[0].trim() : 'Maneyindha Marukatte';
+
+    const payload = JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: cleanTo }],
+      subject: 'Verify Your Email – Maneyindha Marukatte',
+      htmlContent: this.generateOtpTemplate(otp, cleanTo, purpose)
+    });
+
+    return new Promise((resolve) => {
+      const options = {
+        hostname: 'api.brevo.com',
+        port: 443,
+        path: '/v3/smtp/email',
+        method: 'POST',
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        },
+        timeout: 10000
+      };
+
+      const req = https.request(options, (res) => {
+        let responseBody = '';
+        res.on('data', chunk => responseBody += chunk);
+
+        res.on('end', () => {
+          let parsed = {};
+          try { parsed = JSON.parse(responseBody); } catch (e) { parsed = { message: responseBody }; }
+
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log(`[EMAIL:BREVO] Dispatched email to ${cleanTo}. Brevo Message ID: ${parsed.messageId}`);
+            const result = {
+              success: true,
+              provider: 'brevo',
+              messageId: parsed.messageId,
+              message: `Verification code delivered to ${cleanTo}.`
+            };
+            this.lastDeliveryStatus = { ...result, timestamp: new Date().toISOString(), recipient: cleanTo };
+            return resolve(result);
+          }
+
+          console.error(`[EMAIL:BREVO] Error ${res.statusCode}:`, parsed);
+          const failure = {
+            success: false,
+            error: 'BREVO_ERROR',
+            provider: 'brevo',
+            statusCode: res.statusCode,
+            message: parsed.message || 'Brevo API rejected email dispatch.'
+          };
+          this.lastDeliveryStatus = { ...failure, timestamp: new Date().toISOString(), recipient: cleanTo };
+          resolve(failure);
+        });
+      });
+
+      req.on('error', (err) => {
+        const result = { success: false, error: 'BREVO_NETWORK_ERROR', message: `Brevo connection failed: ${err.message}` };
+        this.lastDeliveryStatus = { ...result, timestamp: new Date().toISOString(), recipient: cleanTo };
+        resolve(result);
+      });
+
+      req.write(payload);
+      req.end();
+    });
+  }
+
+  // --- 3. NATIVE SMTP DELIVERY (e.g. Gmail App Password, Brevo SMTP) ---
+  async sendViaSmtp(cleanTo, otp, purpose) {
+    const host = process.env.SMTP_HOST;
+    const port = parseInt(process.env.SMTP_PORT || '465', 10);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = this.getFromAddress();
+    const subject = 'Verify Your Email – Maneyindha Marukatte';
+    const html = this.generateOtpTemplate(otp, cleanTo, purpose);
+
+    console.log(`[EMAIL:SMTP] Connecting to ${host}:${port} for ${cleanTo}...`);
+    const res = await SmtpClient.sendMail({
+      host,
+      port,
+      user,
+      pass,
+      from,
+      to: cleanTo,
+      subject,
+      html
+    });
+
+    this.lastDeliveryStatus = { ...res, timestamp: new Date().toISOString(), recipient: cleanTo };
+    return res;
   }
 }
 

@@ -122,6 +122,13 @@ class APIClient {
   // =============================================================
   // 1. AUTHENTICATION & ROLE MANAGEMENT MODULE
   // =============================================================
+  async getEmailStatus() {
+    if (this.isOnline) {
+      return await this.request('/auth/email-status');
+    }
+    return { success: false, isConfigured: false, message: 'Backend is offline.' };
+  }
+
   async sendOtp(email, purpose = 'login') {
     if (this.isOnline) {
       return await this.request('/auth/send-otp', {
