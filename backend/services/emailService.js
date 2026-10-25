@@ -19,6 +19,10 @@ class EmailService {
   }
 
   getActiveProvider() {
+    if (process.env.NODE_ENV === 'test') {
+      return 'test';
+    }
+
     const smtpHost = process.env.SMTP_HOST || '';
     if (smtpHost && !smtpHost.includes('your_smtp') && process.env.SMTP_USER) {
       return 'smtp';

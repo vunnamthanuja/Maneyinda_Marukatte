@@ -4,6 +4,7 @@
 ===================================================================== */
 
 process.env.NODE_ENV = 'test';
+process.env.ALLOW_DEMO_OTP = 'true';
 const { EventEmitter } = require('events');
 const server = require('./server');
 

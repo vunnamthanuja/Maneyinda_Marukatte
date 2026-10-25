@@ -64,7 +64,7 @@
         }
       ],
       "emailVerified": true,
-      "emailVerifiedAt": "2026-10-25T15:40:04.681Z"
+      "emailVerifiedAt": "2026-10-25T16:23:35.609Z"
     },
     {
       "id": "cust_02",
@@ -90,7 +90,7 @@
       "wishlist": [],
       "cart": [],
       "emailVerified": true,
-      "emailVerifiedAt": "2026-10-25T15:40:04.758Z"
+      "emailVerifiedAt": "2026-10-25T16:23:35.676Z"
     },
     {
       "id": "cust_03",
@@ -390,7 +390,7 @@
       "name": "Homemade Dutch Chocolate Cake (Eggless)",
       "category": "Bakery & Sweets",
       "price": 450,
-      "stock": 0,
+      "stock": 24,
       "description": "Fresh homemade chocolate cake prepared with premium cocoa and pure butter. Melt-in-the-mouth texture, 100% vegetarian & eggless.",
       "images": [
         "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop&q=80",
@@ -440,11 +440,11 @@
         "instructions": "Please take a photo and keep the cake chilled if requesting replacement."
       },
       "additionalInfo": "Keep refrigerated. Consume within 48 hours for best flavour.",
-      "status": "out_of_stock",
+      "status": "active",
       "rating": 4.8,
       "reviewCount": 235,
       "views": 780,
-      "ordersCount": 256,
+      "ordersCount": 258,
       "reportsCount": 0
     },
     {
@@ -668,6 +668,68 @@
     }
   ],
   "orders": [
+    {
+      "id": "ORD-19092",
+      "date": "Oct 25, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid"
+    },
+    {
+      "id": "ORD-57648",
+      "date": "Oct 25, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 25, 2026"
+    },
     {
       "id": "ORD-23627",
       "date": "Oct 25, 2026",
@@ -1302,6 +1364,58 @@
   ],
   "supportTickets": [
     {
+      "id": "SUP-4868",
+      "date": "Oct 25, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-9451",
+      "date": "Oct 25, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-6705",
+      "date": "Oct 25, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-1199",
+      "date": "Oct 25, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
       "id": "SUP-9955",
       "date": "Oct 25, 2026",
       "status": "Open",
@@ -1429,6 +1543,71 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "act_1792945415672",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945415667",
+      "text": "Support ticket #SUP-4868 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945415660",
+      "text": "Order #ORD-19092 updated to status \"Preparing\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945415653",
+      "text": "Order #ORD-19092 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945415647",
+      "text": "Order #ORD-57648 was cancelled by customer",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945415640",
+      "text": "Order #ORD-57648 updated to status \"Accepted\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945415631",
+      "text": "Order #ORD-57648 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945364633",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945364624",
+      "text": "Support ticket #SUP-9451 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945325458",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945325452",
+      "text": "Support ticket #SUP-6705 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945298316",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792945298309",
+      "text": "Support ticket #SUP-1199 created: \"Damaged item\"",
+      "time": "Just now"
+    },
     {
       "id": "act_1792942804751",
       "text": "Administrator signed in: Platform Administrator",
@@ -1612,71 +1791,6 @@
     {
       "id": "act_1792941950931",
       "text": "Support ticket #SUP-2671 created: \"Damaged item\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941950929",
-      "text": "Order #ORD-68968 updated to status \"Preparing\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941950926",
-      "text": "Order #ORD-68968 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941950923",
-      "text": "Order #ORD-61107 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941950920",
-      "text": "Order #ORD-61107 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941950917",
-      "text": "Order #ORD-61107 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924742",
-      "text": "Administrator signed in: Platform Administrator",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924740",
-      "text": "Support ticket #SUP-7742 created: \"Damaged item\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924735",
-      "text": "Order #ORD-98814 updated to status \"Preparing\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924732",
-      "text": "Order #ORD-98814 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924729",
-      "text": "Order #ORD-94491 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924726",
-      "text": "Order #ORD-94491 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792941924723",
-      "text": "Order #ORD-94491 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792940644961",
-      "text": "Administrator signed in: Platform Administrator",
       "time": "Just now"
     }
   ],
