@@ -94,6 +94,13 @@ const entrepreneurController = {
       status: 'pending' // Enters admin verification queue
     });
 
+    // Link to existing customer account if exists
+    const user = db.findUserByEmail(cleanEmail);
+    if (user) {
+      user.entrepreneurId = newEntrepreneur.id;
+      db.updateUser(user.id, { entrepreneurId: newEntrepreneur.id });
+    }
+
     db.addActivityLog(`New entrepreneur registered: "${newEntrepreneur.businessName}" (${newEntrepreneur.name})`);
 
     return res.status(201).json({

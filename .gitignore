@@ -24,7 +24,11 @@ pnpm-debug.log*
 tmp/
 temp/
 
+# Environment and Secrets (Never commit secrets to GitHub)
+.env
+.env.local
+.env.*.local
+
 # Backend uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
-

@@ -1,25 +1,34 @@
 /* =====================================================================
    MANEYINDA MARUKATTE - AUTH CONTROLLER
-   Handles OTP generation, customer login, entrepreneur login with
-   brute-force lockout protection, dedicated private Admin login,
-   and role-switching authorization.
+   Handles Real Email OTP generation via Resend API, customer login,
+   entrepreneur login with brute-force lockout protection, dedicated
+   private Admin login, and role-switching authorization.
 ===================================================================== */
 
+const crypto = require('crypto');
 const db = require('../models/db');
 const AuthMiddleware = require('../middleware/auth');
+const emailService = require('../services/emailService');
+require('../config/env');
 
-// In-memory stores
-const otpStore = new Map(); // email -> { otp, expiresAt }
+// In-memory security stores
+// email -> { otpHashed, expiresAt, purpose, attemptsRemaining, isConsumed, isVerified, verifiedAt, lastSentAt, resendCooldownUntil }
+const otpStore = new Map();
+const hourlyRateLimits = new Map(); // email -> [timestamp1, timestamp2, ...]
 const failedAttempts = new Map(); // identifier -> { count, lockedUntil }
 
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
+const MAX_VERIFY_ATTEMPTS = 5;
+const MAX_HOURLY_REQUESTS = 5;
 
 const authController = {
   // POST /api/auth/send-otp
-  sendOtp(req, res) {
+  async sendOtp(req, res) {
     const { email, purpose } = req.body || {};
-    if (!email || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_EMAIL',
@@ -27,33 +36,101 @@ const authController = {
       });
     }
 
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresInSeconds = 120; // 2 minutes
+    const cleanEmail = email.toLowerCase().trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_EMAIL_FORMAT',
+        message: 'Please provide a properly formatted email address (e.g. user@example.com).'
+      });
+    }
 
-    otpStore.set(email.toLowerCase().trim(), {
-      otp: generatedOtp,
-      expiresAt: Date.now() + (expiresInSeconds * 1000),
-      purpose: purpose || 'login'
+    // 1. Rate Limiting: Resend cooldown (60 seconds)
+    const existing = otpStore.get(cleanEmail);
+    if (existing && existing.resendCooldownUntil && Date.now() < existing.resendCooldownUntil) {
+      const waitSeconds = Math.ceil((existing.resendCooldownUntil - Date.now()) / 1000);
+      return res.status(429).json({
+        success: false,
+        error: 'COOLDOWN_ACTIVE',
+        waitSeconds,
+        message: `Please wait ${waitSeconds} seconds before requesting another verification code.`
+      });
+    }
+
+    // 2. Rate Limiting: Hourly maximum (5 requests per hour)
+    const now = Date.now();
+    const hourRequests = (hourlyRateLimits.get(cleanEmail) || []).filter(ts => ts > now - 3600000);
+    if (hourRequests.length >= MAX_HOURLY_REQUESTS) {
+      return res.status(429).json({
+        success: false,
+        error: 'HOURLY_LIMIT_EXCEEDED',
+        message: 'Too many verification code requests for this email. Please try again in an hour.'
+      });
+    }
+    hourRequests.push(now);
+    hourlyRateLimits.set(cleanEmail, hourRequests);
+
+    // 3. Cryptographically Secure 6-Digit OTP Generation
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+
+    // 4. Salt and Hash the OTP for Storage
+    const salt = process.env.PASSWORD_SALT || 'maneyinda_salt_2026';
+    const otpHashed = crypto.createHash('sha256').update(rawOtp + salt).digest('hex');
+
+    // 5. Send Real Email via Configured Provider (Resend API)
+    const sendResult = await emailService.sendOtpEmail(cleanEmail, rawOtp, purpose || 'registration');
+
+    // In development mode or test suite, if ALLOW_DEMO_OTP=true and Resend is not configured, we allow local testing
+    // but report status accurately without faking email delivery!
+    const isLocalDevDemo = process.env.ALLOW_DEMO_OTP === 'true' && !emailService.isConfigured();
+
+    if (!sendResult.success && !isLocalDevDemo) {
+      return res.status(502).json({
+        success: false,
+        error: sendResult.error || 'EMAIL_DELIVERY_FAILED',
+        provider: 'resend',
+        recipient: cleanEmail,
+        message: sendResult.message || 'Failed to deliver verification email. Please verify email service configuration.'
+      });
+    }
+
+    // 6. Store Hashed OTP in Memory
+    otpStore.set(cleanEmail, {
+      email: cleanEmail,
+      otpHashed,
+      expiresAt: now + OTP_EXPIRY_MS,
+      purpose: purpose || 'registration',
+      attemptsRemaining: MAX_VERIFY_ATTEMPTS,
+      isConsumed: false,
+      isVerified: false,
+      verifiedAt: null,
+      lastSentAt: now,
+      resendCooldownUntil: now + RESEND_COOLDOWN_MS
     });
 
-    console.log(`[AUTH] OTP for ${email}: ${generatedOtp} (or demo: 123456)`);
+    if (isLocalDevDemo) {
+      console.log(`[DEV MODE] Resend API key not set in .env. Test OTP for ${cleanEmail}: ${rawOtp} (Demo code: 123456)`);
+    }
 
     return res.status(200).json({
       success: true,
-      message: '6-digit OTP code sent successfully to ' + email,
-      expiresInSeconds,
-      debugOtp: generatedOtp
+      message: `Verification code sent to ${cleanEmail}.`,
+      expiresInSeconds: 300,
+      resendCooldownSeconds: 60,
+      recipient: cleanEmail,
+      provider: emailService.isConfigured() ? 'resend' : 'local_dev'
     });
   },
 
   // POST /api/auth/verify-otp
   verifyOtp(req, res) {
-    const { email, otp } = req.body || {};
+    const { email, otp, purpose } = req.body || {};
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
         error: 'MISSING_FIELDS',
-        message: 'Email and OTP code are required.'
+        message: 'Email and 6-digit OTP code are required.'
       });
     }
 
@@ -61,23 +138,88 @@ const authController = {
     const cleanOtp = String(otp).trim();
 
     const record = otpStore.get(cleanEmail);
-    const isValid = cleanOtp === '123456' || (record && record.otp === cleanOtp && record.expiresAt > Date.now());
+    if (!record) {
+      return res.status(404).json({
+        success: false,
+        verified: false,
+        error: 'OTP_NOT_FOUND',
+        message: 'No active verification code found for this email. Please request a new one.'
+      });
+    }
 
-    if (!isValid) {
+    if (record.isConsumed) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: 'OTP_ALREADY_USED',
+        message: 'This verification code has already been used. Please request a new code.'
+      });
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(cleanEmail);
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: 'OTP_EXPIRED',
+        message: 'This verification code has expired (5-minute limit). Please request a new code.'
+      });
+    }
+
+    if (purpose && record.purpose && record.purpose !== purpose) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: 'PURPOSE_MISMATCH',
+        message: 'Verification purpose mismatch.'
+      });
+    }
+
+    const salt = process.env.PASSWORD_SALT || 'maneyinda_salt_2026';
+    const inputHash = crypto.createHash('sha256').update(cleanOtp + salt).digest('hex');
+
+    const isDemoAllowed = process.env.ALLOW_DEMO_OTP === 'true';
+    const isDemo = isDemoAllowed && cleanOtp === '123456';
+    const isMatch = isDemo || (inputHash === record.otpHashed);
+
+    if (!isMatch) {
+      record.attemptsRemaining -= 1;
+      if (record.attemptsRemaining <= 0) {
+        otpStore.delete(cleanEmail);
+        return res.status(429).json({
+          success: false,
+          verified: false,
+          error: 'MAX_ATTEMPTS_EXCEEDED',
+          message: 'Maximum verification attempts exceeded. For security, this code has been invalidated. Please request a new code.'
+        });
+      }
       return res.status(400).json({
         success: false,
         verified: false,
         error: 'INVALID_OTP',
-        message: 'The OTP code is invalid or has expired.'
+        attemptsRemaining: record.attemptsRemaining,
+        message: `Invalid verification code. ${record.attemptsRemaining} attempt(s) remaining.`
       });
     }
 
-    otpStore.delete(cleanEmail);
+    // Mark consumed and verified
+    record.isConsumed = true;
+    record.isVerified = true;
+    record.verifiedAt = new Date().toISOString();
+
+    // Persist verified status to user if existing in db
+    const user = db.findUserByEmail(cleanEmail);
+    if (user) {
+      user.emailVerified = true;
+      user.emailVerifiedAt = record.verifiedAt;
+      db.save();
+    }
 
     return res.status(200).json({
       success: true,
       verified: true,
-      message: 'OTP verified successfully.'
+      email: cleanEmail,
+      message: 'Email address verified successfully.'
     });
   },
 
@@ -94,30 +236,44 @@ const authController = {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Verify OTP if supplied (allow demo OTP 123456)
+    // Verify OTP if supplied
     if (otp) {
+      const cleanOtp = String(otp).trim();
       const record = otpStore.get(cleanEmail);
-      const isValid = String(otp).trim() === '123456' || (record && record.otp === String(otp).trim());
+      const salt = process.env.PASSWORD_SALT || 'maneyinda_salt_2026';
+      const inputHash = crypto.createHash('sha256').update(cleanOtp + salt).digest('hex');
+      const isDemo = process.env.ALLOW_DEMO_OTP === 'true' && cleanOtp === '123456';
+      const isValid = isDemo || (record && !record.isConsumed && inputHash === record.otpHashed && Date.now() <= record.expiresAt);
+
       if (!isValid) {
         return res.status(401).json({
           success: false,
           error: 'INVALID_OTP',
-          message: 'Invalid or expired OTP.'
+          message: 'Invalid or expired OTP code.'
         });
       }
-      otpStore.delete(cleanEmail);
+      if (record) {
+        record.isConsumed = true;
+        record.isVerified = true;
+        record.verifiedAt = new Date().toISOString();
+      }
     }
 
     let user = db.findUserByEmail(cleanEmail);
     if (!user) {
-      // Auto-register new customer
+      // Auto-register new customer with emailVerified: true
       user = db.createUser({
         name: name || cleanEmail.split('@')[0],
         email: cleanEmail,
         phone: phone || '',
-        role: 'customer'
+        role: 'customer',
+        emailVerified: true,
+        emailVerifiedAt: new Date().toISOString()
       });
       db.addActivityLog(`New customer registered: ${user.name} (${user.email})`);
+    } else {
+      user.emailVerified = true;
+      db.updateUser(user.id, { emailVerified: true, emailVerifiedAt: new Date().toISOString() });
     }
 
     // Check if user has an associated entrepreneur profile

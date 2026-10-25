@@ -228,10 +228,11 @@ const AuthModule = {
     `;
   },
 
-  handleSendOtp() {
+  async handleSendOtp() {
     const emailInput = document.getElementById('input-reg-email');
     const termsCheck = document.getElementById('terms-checkbox');
     const errSpan = document.getElementById('email-error-msg');
+    const btn = event && event.target ? event.target.closest('button') : null;
 
     if (!emailInput || !emailInput.value.trim()) {
       errSpan.textContent = 'Email address is required.';
@@ -241,7 +242,7 @@ const AuthModule = {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailInput.value.trim())) {
-      errSpan.textContent = 'Please enter a valid email address.';
+      errSpan.textContent = 'Please enter a valid email address (e.g. name@example.com).';
       errSpan.style.display = 'flex';
       return;
     }
@@ -252,12 +253,37 @@ const AuthModule = {
       return;
     }
 
-    this.regEmail = emailInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
+    this.regEmail = email;
     errSpan.style.display = 'none';
 
-    AppUtils.showToast(`OTP sent to ${this.regEmail}`);
-    this.startResendTimer();
-    AppRouter.navigate('screen-otp-verify');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Sending Code... <span class="material-symbols-rounded" style="font-size:18px;">hourglass_top</span>`;
+    }
+
+    try {
+      const res = await window.apiClient.sendOtp(email, 'registration');
+      if (res && res.success) {
+        AppUtils.showToast(res.message || `Verification code sent to ${email}`);
+        AppRouter.navigate('screen-otp-verify');
+        setTimeout(() => this.startResendTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 60), 50);
+      } else {
+        errSpan.textContent = (res && res.message) || 'Failed to deliver verification email. Please verify email service configuration.';
+        errSpan.style.display = 'flex';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `Send OTP <span class="material-symbols-rounded">send</span>`;
+        }
+      }
+    } catch (e) {
+      errSpan.textContent = 'Network error while requesting verification code.';
+      errSpan.style.display = 'flex';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Send OTP <span class="material-symbols-rounded">send</span>`;
+      }
+    }
   },
 
   // -------------------------------------------------------------
@@ -278,35 +304,40 @@ const AuthModule = {
         <h2 style="font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
           Enter 6-Digit Code
         </h2>
-        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">
+        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px;">
           Enter the verification code sent to <strong style="color:var(--color-primary);">${this.regEmail || 'your email'}</strong>
         </p>
-        <p style="font-size: 11px; color: var(--color-secondary); margin-bottom: 24px;">
-          (Demo hint: use code <strong>123456</strong>)
-        </p>
-
-        <div class="otp-container">
-          <input type="text" maxlength="1" class="otp-box" oninput="AuthModule.onOtpInput(this, 0)" onkeydown="AuthModule.onOtpKeydown(event, 0)">
-          <input type="text" maxlength="1" class="otp-box" oninput="AuthModule.onOtpInput(this, 1)" onkeydown="AuthModule.onOtpKeydown(event, 1)">
-          <input type="text" maxlength="1" class="otp-box" oninput="AuthModule.onOtpInput(this, 2)" onkeydown="AuthModule.onOtpKeydown(event, 2)">
-          <input type="text" maxlength="1" class="otp-box" oninput="AuthModule.onOtpInput(this, 3)" onkeydown="AuthModule.onOtpKeydown(event, 3)">
-          <input type="text" maxlength="1" class="otp-box" oninput="AuthModule.onOtpInput(this, 4)" onkeydown="AuthModule.onOtpKeydown(event, 4)">
-          <input type="text" maxlength="1" class="otp-box" oninput="AuthModule.onOtpInput(this, 5)" onkeydown="AuthModule.onOtpKeydown(event, 5)">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; font-size:12px;">
+          <a href="javascript:void(0)" onclick="AppRouter.navigate('screen-email-verify')" style="color:var(--color-primary); font-weight:600; text-decoration:underline;">
+            ✏️ Change Email
+          </a>
+          <span style="color:var(--color-text-secondary);">
+            ⏱️ Expires in: <strong id="otp-expiry-clock" style="color:#D84315;">05:00</strong>
+          </span>
         </div>
 
-        <div id="otp-error-msg" class="form-error-text" style="display:none; justify-content:center; margin-bottom: 12px;"></div>
+        <div class="otp-container">
+          <input type="text" maxlength="1" class="otp-box reg-otp-box" oninput="AuthModule.onOtpInput(this, 0)" onkeydown="AuthModule.onOtpKeydown(event, 0)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box reg-otp-box" oninput="AuthModule.onOtpInput(this, 1)" onkeydown="AuthModule.onOtpKeydown(event, 1)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box reg-otp-box" oninput="AuthModule.onOtpInput(this, 2)" onkeydown="AuthModule.onOtpKeydown(event, 2)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box reg-otp-box" oninput="AuthModule.onOtpInput(this, 3)" onkeydown="AuthModule.onOtpKeydown(event, 3)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box reg-otp-box" oninput="AuthModule.onOtpInput(this, 4)" onkeydown="AuthModule.onOtpKeydown(event, 4)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box reg-otp-box" oninput="AuthModule.onOtpInput(this, 5)" onkeydown="AuthModule.onOtpKeydown(event, 5)" autocomplete="off">
+        </div>
+
+        <div id="otp-error-msg" class="form-error-text" style="display:none; justify-content:center; margin-bottom: 14px; text-align:center;"></div>
 
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
           <span id="otp-timer-display" style="font-size: 13px; color: var(--color-text-secondary);">
-            Resend OTP in <strong style="color:var(--color-primary);">${this.resendCountdown}s</strong>
+            Resend OTP in <strong style="color:var(--color-primary);">${this.resendCountdown || 60}s</strong>
           </span>
           <button id="btn-resend-otp" class="btn-text" style="display:none; font-size:13px;" onclick="AuthModule.resendOtp()">
-            Resend OTP
+            🔄 Resend Code
           </button>
         </div>
 
-        <button class="btn btn-primary btn-block" onclick="AuthModule.handleVerifyOtp()">
-          Verify OTP
+        <button id="btn-verify-otp" class="btn btn-primary btn-block" onclick="AuthModule.handleVerifyOtp()">
+          Verify Code
           <span class="material-symbols-rounded">verified</span>
         </button>
       </div>
@@ -314,9 +345,10 @@ const AuthModule = {
   },
 
   onOtpInput(el, idx) {
-    if (el.value.length === 1) {
-      const boxes = document.querySelectorAll('.otp-box');
-      if (idx < 5 && boxes[idx + 1]) {
+    if (el.value.length >= 1) {
+      el.value = el.value.replace(/[^0-9]/g, '').slice(0, 1);
+      const boxes = document.querySelectorAll(el.classList.contains('cust-otp') ? '.cust-otp' : '.reg-otp-box');
+      if (idx < 5 && boxes[idx + 1] && el.value) {
         boxes[idx + 1].focus();
       }
     }
@@ -324,62 +356,140 @@ const AuthModule = {
 
   onOtpKeydown(e, idx) {
     if (e.key === 'Backspace') {
-      const boxes = document.querySelectorAll('.otp-box');
+      const boxes = document.querySelectorAll(e.target.classList.contains('cust-otp') ? '.cust-otp' : '.reg-otp-box');
       if (!boxes[idx].value && idx > 0) {
         boxes[idx - 1].focus();
       }
     }
   },
 
-  startResendTimer() {
+  startResendTimer(expirySeconds = 300, cooldownSeconds = 60) {
     clearInterval(this.countdownInterval);
-    this.resendCountdown = 30;
-    this.countdownInterval = setInterval(() => {
-      this.resendCountdown--;
+    this.resendCountdown = cooldownSeconds;
+    this.expiryCountdown = expirySeconds;
+
+    const formatTime = (sec) => {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
+    const updateUI = () => {
       const timerDisplay = document.getElementById('otp-timer-display');
       const resendBtn = document.getElementById('btn-resend-otp');
-      if (timerDisplay) {
-        timerDisplay.innerHTML = `Resend OTP in <strong style="color:var(--color-primary);">${this.resendCountdown}s</strong>`;
+      const expiryClock = document.getElementById('otp-expiry-clock');
+
+      if (expiryClock) {
+        if (this.expiryCountdown > 0) {
+          expiryClock.textContent = formatTime(this.expiryCountdown);
+        } else {
+          expiryClock.innerHTML = '<span style="color:var(--color-error); font-weight:700;">EXPIRED</span>';
+        }
       }
-      if (this.resendCountdown <= 0) {
+
+      if (timerDisplay) {
+        if (this.resendCountdown > 0) {
+          timerDisplay.style.display = 'inline';
+          timerDisplay.innerHTML = `Resend available in <strong style="color:var(--color-primary);">${this.resendCountdown}s</strong>`;
+        } else {
+          timerDisplay.style.display = 'none';
+        }
+      }
+
+      if (resendBtn) {
+        if (this.resendCountdown <= 0) {
+          resendBtn.style.display = 'inline-flex';
+          resendBtn.disabled = false;
+        } else {
+          resendBtn.style.display = 'none';
+        }
+      }
+    };
+
+    updateUI();
+
+    this.countdownInterval = setInterval(() => {
+      if (this.resendCountdown > 0) this.resendCountdown--;
+      if (this.expiryCountdown > 0) this.expiryCountdown--;
+
+      updateUI();
+
+      if (this.resendCountdown <= 0 && this.expiryCountdown <= 0) {
         clearInterval(this.countdownInterval);
-        if (timerDisplay) timerDisplay.style.display = 'none';
-        if (resendBtn) resendBtn.style.display = 'inline-flex';
       }
     }, 1000);
   },
 
-  resendOtp() {
-    AppUtils.showToast('New OTP sent to ' + this.regEmail);
-    const timerDisplay = document.getElementById('otp-timer-display');
+  async resendOtp() {
     const resendBtn = document.getElementById('btn-resend-otp');
-    if (timerDisplay) timerDisplay.style.display = 'inline';
-    if (resendBtn) resendBtn.style.display = 'none';
-    this.startResendTimer();
+    if (resendBtn) {
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Sending...';
+    }
+
+    try {
+      const res = await window.apiClient.sendOtp(this.regEmail, 'registration');
+      if (res && res.success) {
+        AppUtils.showToast(res.message || 'New verification code sent!');
+        this.startResendTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 60);
+      } else {
+        AppUtils.showToast((res && res.message) || 'Failed to resend code.', 3500);
+        if (resendBtn) {
+          resendBtn.disabled = false;
+          resendBtn.textContent = '🔄 Resend Code';
+        }
+      }
+    } catch (e) {
+      AppUtils.showToast('Network error while requesting new code.');
+      if (resendBtn) {
+        resendBtn.disabled = false;
+        resendBtn.textContent = '🔄 Resend Code';
+      }
+    }
   },
 
-  handleVerifyOtp() {
-    const boxes = document.querySelectorAll('.otp-box');
+  async handleVerifyOtp() {
+    const boxes = document.querySelectorAll('.reg-otp-box');
     let code = '';
-    boxes.forEach(b => code += b.value);
+    boxes.forEach(b => code += b.value.trim());
 
     const err = document.getElementById('otp-error-msg');
+    const btn = document.getElementById('btn-verify-otp');
+
     if (code.length < 6) {
-      err.textContent = 'Please enter all 6 digits of your OTP.';
+      err.textContent = 'Please enter all 6 digits of your verification code.';
       err.style.display = 'flex';
       return;
     }
 
-    if (code !== '123456') {
-      err.textContent = 'Incorrect OTP code. Try 123456.';
-      err.style.display = 'flex';
-      return;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Verifying... <span class="material-symbols-rounded">hourglass_top</span>`;
     }
 
-    err.style.display = 'none';
-    clearInterval(this.countdownInterval);
-    AppUtils.showToast('OTP verified successfully!');
-    AppRouter.navigate('screen-basic-info');
+    try {
+      const res = await window.apiClient.verifyOtp(this.regEmail, code, 'registration');
+      if (res && res.success) {
+        err.style.display = 'none';
+        clearInterval(this.countdownInterval);
+        AppUtils.showToast('✅ Email verified successfully!');
+        AppRouter.navigate('screen-basic-info');
+      } else {
+        err.textContent = (res && res.message) || 'Invalid or expired verification code.';
+        err.style.display = 'flex';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `Verify Code <span class="material-symbols-rounded">verified</span>`;
+        }
+      }
+    } catch (e) {
+      err.textContent = 'Network error verifying code. Please try again.';
+      err.style.display = 'flex';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Verify Code <span class="material-symbols-rounded">verified</span>`;
+      }
+    }
   },
 
   // -------------------------------------------------------------
@@ -581,18 +691,48 @@ const AuthModule = {
     `;
   },
 
-  handleCustomerSendOtp() {
+  async handleCustomerSendOtp() {
     const input = document.getElementById('cust-login-email');
     const err = document.getElementById('cust-login-err');
+    const btn = event && event.target ? event.target.closest('button') : null;
+
     if (!input || !input.value.trim()) {
       err.textContent = 'Please enter your registered email address.';
       err.style.display = 'flex';
       return;
     }
-    this.regEmail = input.value.trim();
-    AppUtils.showToast('Login OTP sent (code: 123456)');
-    this.startResendTimer();
-    AppRouter.navigate('screen-customer-otp');
+
+    const email = input.value.trim().toLowerCase();
+    this.regEmail = email;
+    err.style.display = 'none';
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Sending Code... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    try {
+      const res = await window.apiClient.sendOtp(email, 'login');
+      if (res && res.success) {
+        AppUtils.showToast(res.message || `Login code sent to ${email}`);
+        AppRouter.navigate('screen-customer-otp');
+        setTimeout(() => this.startResendTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 60), 50);
+      } else {
+        err.textContent = (res && res.message) || 'Failed to deliver login code. Please check email configuration.';
+        err.style.display = 'flex';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `Send OTP <span class="material-symbols-rounded">arrow_forward</span>`;
+        }
+      }
+    } catch (e) {
+      err.textContent = 'Network error while requesting login code.';
+      err.style.display = 'flex';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Send OTP <span class="material-symbols-rounded">arrow_forward</span>`;
+      }
+    }
   },
 
   renderCustomerOtp() {
@@ -610,25 +750,39 @@ const AuthModule = {
         <h2 style="font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
           Enter Login OTP
         </h2>
-        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">
-          Enter the code sent to <strong>${this.regEmail || 'thanuja@example.com'}</strong>
+        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px;">
+          Enter the verification code sent to <strong style="color:var(--color-primary);">${this.regEmail || 'thanuja@example.com'}</strong>
         </p>
-        <p style="font-size: 11px; color: var(--color-secondary); margin-bottom: 24px;">
-          (Demo hint: code <strong>123456</strong>)
-        </p>
-
-        <div class="otp-container">
-          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 0)" onkeydown="AuthModule.onOtpKeydown(event, 0)">
-          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 1)" onkeydown="AuthModule.onOtpKeydown(event, 1)">
-          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 2)" onkeydown="AuthModule.onOtpKeydown(event, 2)">
-          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 3)" onkeydown="AuthModule.onOtpKeydown(event, 3)">
-          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 4)" onkeydown="AuthModule.onOtpKeydown(event, 4)">
-          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 5)" onkeydown="AuthModule.onOtpKeydown(event, 5)">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; font-size:12px;">
+          <a href="javascript:void(0)" onclick="AppRouter.navigate('screen-customer-login')" style="color:var(--color-primary); font-weight:600; text-decoration:underline;">
+            ✏️ Change Email
+          </a>
+          <span style="color:var(--color-text-secondary);">
+            ⏱️ Expires in: <strong id="otp-expiry-clock" style="color:#D84315;">05:00</strong>
+          </span>
         </div>
 
-        <div id="cust-otp-err" class="form-error-text" style="display:none; justify-content:center; margin-bottom: 14px;"></div>
+        <div class="otp-container">
+          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 0)" onkeydown="AuthModule.onOtpKeydown(event, 0)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 1)" onkeydown="AuthModule.onOtpKeydown(event, 1)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 2)" onkeydown="AuthModule.onOtpKeydown(event, 2)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 3)" onkeydown="AuthModule.onOtpKeydown(event, 3)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 4)" onkeydown="AuthModule.onOtpKeydown(event, 4)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box cust-otp" oninput="AuthModule.onOtpInput(this, 5)" onkeydown="AuthModule.onOtpKeydown(event, 5)" autocomplete="off">
+        </div>
 
-        <button class="btn btn-primary btn-block" onclick="AuthModule.handleCustomerVerifyLogin()">
+        <div id="cust-otp-err" class="form-error-text" style="display:none; justify-content:center; margin-bottom: 14px; text-align:center;"></div>
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
+          <span id="otp-timer-display" style="font-size: 13px; color: var(--color-text-secondary);">
+            Resend OTP in <strong style="color:var(--color-primary);">${this.resendCountdown || 60}s</strong>
+          </span>
+          <button id="btn-resend-otp" class="btn-text" style="display:none; font-size:13px;" onclick="AuthModule.resendOtp()">
+            🔄 Resend Code
+          </button>
+        </div>
+
+        <button id="btn-cust-login" class="btn btn-primary btn-block" onclick="AuthModule.handleCustomerVerifyLogin()">
           Login to Customer Dashboard
           <span class="material-symbols-rounded">login</span>
         </button>
@@ -636,21 +790,48 @@ const AuthModule = {
     `;
   },
 
-  handleCustomerVerifyLogin() {
+  async handleCustomerVerifyLogin() {
     const boxes = document.querySelectorAll('.cust-otp');
     let code = '';
-    boxes.forEach(b => code += b.value);
+    boxes.forEach(b => code += b.value.trim());
 
     const err = document.getElementById('cust-otp-err');
-    if (code.length < 6 || code !== '123456') {
-      err.textContent = 'Invalid code. Please enter 123456.';
+    const btn = document.getElementById('btn-cust-login');
+
+    if (code.length < 6) {
+      err.textContent = 'Please enter all 6 digits of your OTP code.';
       err.style.display = 'flex';
       return;
     }
 
-    store.setRole('customer');
-    AppUtils.showToast('Logged in successfully!');
-    AppRouter.navigate('screen-customer-home');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Signing in... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    try {
+      const res = await window.apiClient.loginCustomer(this.regEmail, code);
+      if (res && res.success) {
+        clearInterval(this.countdownInterval);
+        store.setRole('customer');
+        AppUtils.showToast('✅ Logged in successfully!');
+        AppRouter.navigate('screen-customer-home');
+      } else {
+        err.textContent = (res && res.message) || 'Invalid or expired OTP code.';
+        err.style.display = 'flex';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `Login to Customer Dashboard <span class="material-symbols-rounded">login</span>`;
+        }
+      }
+    } catch (e) {
+      err.textContent = 'Network error during sign-in.';
+      err.style.display = 'flex';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Login to Customer Dashboard <span class="material-symbols-rounded">login</span>`;
+      }
+    }
   },
 
   // -------------------------------------------------------------

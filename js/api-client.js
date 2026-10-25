@@ -124,25 +124,30 @@ class APIClient {
   // =============================================================
   async sendOtp(email, purpose = 'login') {
     if (this.isOnline) {
-      const res = await this.request('/auth/send-otp', {
+      return await this.request('/auth/send-otp', {
         method: 'POST',
         body: JSON.stringify({ email, purpose })
       });
-      if (res.success) return res;
     }
-    return { success: true, message: 'OTP sent (Demo code: 123456)', debugOtp: '123456' };
+    return {
+      success: false,
+      error: 'BACKEND_OFFLINE',
+      message: 'Backend API is currently offline. Please run start-server.bat on port 5000 to send real OTPs.'
+    };
   }
 
-  async verifyOtp(email, otp) {
+  async verifyOtp(email, otp, purpose) {
     if (this.isOnline) {
-      const res = await this.request('/auth/verify-otp', {
+      return await this.request('/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ email, otp })
+        body: JSON.stringify({ email, otp, purpose })
       });
-      if (res.success) return res;
     }
-    const cleanOtp = String(otp || '').trim();
-    return { success: cleanOtp === '123456', verified: cleanOtp === '123456' };
+    return {
+      success: false,
+      error: 'BACKEND_OFFLINE',
+      message: 'Backend API is offline. Start the backend server to verify OTP.'
+    };
   }
 
   async loginCustomer(email, otp, name, phone) {

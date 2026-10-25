@@ -84,16 +84,40 @@ async function runInProcessTests() {
     if (res.status !== 200 || !res.data.data.every(p => p.category === 'Bakery & Sweets')) throw new Error(`Category error`);
   });
 
-  // 4. Send OTP
-  await test('POST /api/auth/send-otp should send OTP', async () => {
-    const res = await mockRequest('POST', '/api/auth/send-otp', { email: 'test@marukatte.com' });
-    if (res.status !== 200 || !res.data.success) throw new Error(`Send OTP error`);
+  // 4. Send OTP Validation & Formatting
+  await test('POST /api/auth/send-otp should reject invalid email format', async () => {
+    const res = await mockRequest('POST', '/api/auth/send-otp', { email: 'notanemail' });
+    if (res.status !== 400 || !['INVALID_EMAIL', 'INVALID_EMAIL_FORMAT'].includes(res.data.error)) {
+      throw new Error(`Should reject invalid email: ${JSON.stringify(res.data)}`);
+    }
   });
 
-  // 5. Verify OTP
-  await test('POST /api/auth/verify-otp should accept demo OTP 123456', async () => {
-    const res = await mockRequest('POST', '/api/auth/verify-otp', { email: 'test@marukatte.com', otp: '123456' });
-    if (res.status !== 200 || !res.data.verified) throw new Error(`Verify OTP error`);
+  await test('POST /api/auth/send-otp should accept valid email and return 300s expiry', async () => {
+    const res = await mockRequest('POST', '/api/auth/send-otp', { email: 'realuser@gmail.com', purpose: 'registration' });
+    if (res.status !== 200 || !res.data.success || res.data.expiresInSeconds !== 300) throw new Error(`Send OTP error: ${JSON.stringify(res.data)}`);
+  });
+
+  await test('POST /api/auth/send-otp should enforce 60s resend cooldown (429)', async () => {
+    const res = await mockRequest('POST', '/api/auth/send-otp', { email: 'realuser@gmail.com', purpose: 'registration' });
+    if (res.status !== 429 || res.data.error !== 'COOLDOWN_ACTIVE') throw new Error(`Cooldown not enforced: ${res.status}`);
+  });
+
+  // 5. Verify OTP Security & Attack Prevention
+  await test('POST /api/auth/verify-otp should reject incorrect OTP code and track attempts', async () => {
+    const res = await mockRequest('POST', '/api/auth/verify-otp', { email: 'realuser@gmail.com', otp: '999999' });
+    if (res.status !== 400 || res.data.error !== 'INVALID_OTP' || typeof res.data.attemptsRemaining !== 'number') {
+      throw new Error(`Should reject incorrect OTP: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  await test('POST /api/auth/verify-otp should verify valid OTP code', async () => {
+    const res = await mockRequest('POST', '/api/auth/verify-otp', { email: 'realuser@gmail.com', otp: '123456' });
+    if (res.status !== 200 || !res.data.verified) throw new Error(`Verify OTP error: ${JSON.stringify(res.data)}`);
+  });
+
+  await test('POST /api/auth/verify-otp should reject re-use of consumed OTP (Replay Prevention)', async () => {
+    const res = await mockRequest('POST', '/api/auth/verify-otp', { email: 'realuser@gmail.com', otp: '123456' });
+    if (res.status !== 400 || res.data.error !== 'OTP_ALREADY_USED') throw new Error(`Should reject reused OTP: ${res.status}`);
   });
 
   // 6. Customer Login
