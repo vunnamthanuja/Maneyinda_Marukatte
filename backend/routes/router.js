@@ -37,6 +37,30 @@ class Router {
   }
 
   initRoutes() {
+    // Root & API Welcome Index
+    const indexHandler = (req, res) => {
+      return res.status(200).json({
+        success: true,
+        service: 'Maneyinda Marukatte (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ) REST API',
+        version: '1.0.0',
+        status: 'UP',
+        message: 'Welcome to the Maneyinda Marukatte API. Below are the primary endpoints.',
+        endpoints: {
+          health: '/api/health',
+          products: '/api/products',
+          categories: '/api/admin/categories',
+          orders: '/api/orders',
+          entrepreneurs: '/api/entrepreneurs',
+          aiTrends: '/api/admin/ai-trends',
+          verificationQueue: '/api/admin/verification-queue'
+        },
+        documentation: 'Refer to API_CONTRACT.md for the full specification'
+      });
+    };
+
+    this.add('GET', '/', indexHandler);
+    this.add('GET', '/api', indexHandler);
+
     // Health check
     this.add('GET', '/api/health', (req, res) => {
       return res.status(200).json({
