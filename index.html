@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Maneyinda Marukatte - Hyperlocal Women Entrepreneurs Marketplace</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+
+  <!-- Design System CSS (Material Design 3 & Android 390x844 px) -->
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/screens.css">
+</head>
+<body>
+
+  <!-- Desktop Preview Host Wrapper -->
+  <div class="desktop-preview-host">
+    
+    <!-- Top Interactive Helper & Role Switcher Bar -->
+    <div class="demo-role-bar">
+      <div class="brand-badge">
+        <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">spa</span>
+        <span>Maneyinda Marukatte</span>
+      </div>
+
+      <div class="role-pills">
+        <button id="pill-role-customer" class="role-pill-btn active" onclick="AppRouter.switchDemoRole('customer')">
+          <span class="material-symbols-rounded" style="font-size:16px;">shopping_basket</span>
+          Customer
+        </button>
+        <button id="pill-role-entrepreneur" class="role-pill-btn" onclick="AppRouter.switchDemoRole('entrepreneur')">
+          <span class="material-symbols-rounded" style="font-size:16px;">storefront</span>
+          Entrepreneur
+        </button>
+        <button id="pill-role-admin" class="role-pill-btn" onclick="AppRouter.switchDemoRole('admin')">
+          <span class="material-symbols-rounded" style="font-size:16px;">shield_person</span>
+          Admin
+        </button>
+      </div>
+
+      <div class="demo-tools">
+        <button class="tool-icon-btn" onclick="AppRouter.toggleViewportMode()" title="Toggle Viewport Frame">
+          <span class="material-symbols-rounded" style="font-size:15px;">devices</span>
+          Viewport
+        </button>
+        <button class="tool-icon-btn" onclick="store.resetToSeed()" title="Reset to Initial Demo State">
+          <span class="material-symbols-rounded" style="font-size:15px;">restart_alt</span>
+          Reset Demo
+        </button>
+      </div>
+    </div>
+
+    <!-- Android 390 x 844 Mobile Device Shell -->
+    <div id="device-shell" class="mobile-device-shell">
+      
+      <!-- Android Status Bar -->
+      <div class="android-status-bar">
+        <div id="status-bar-clock">12:45</div>
+        <div class="status-bar-notch">
+          <div class="notch-speaker"></div>
+          <div class="notch-camera"></div>
+        </div>
+        <div class="status-bar-icons">
+          <span class="material-symbols-rounded" style="font-size:16px;">signal_cellular_alt</span>
+          <span class="material-symbols-rounded" style="font-size:16px;">wifi</span>
+          <span class="material-symbols-rounded" style="font-size:18px;">battery_5_bar</span>
+        </div>
+      </div>
+
+      <!-- App Screen Viewport -->
+      <div id="app-viewport" class="app-screen-container">
+        <!-- Rendered dynamically by AppRouter -->
+      </div>
+
+      <!-- Android Home Navigation Pill Indicator -->
+      <div class="android-home-pill"></div>
+
+      <!-- Global Reusable Bottom Sheet Modal -->
+      <div id="global-bottom-sheet" class="bottom-sheet-overlay">
+        <div class="bottom-sheet-card">
+          <div class="sheet-drag-handle"></div>
+          <div id="bottom-sheet-content"></div>
+        </div>
+      </div>
+
+      <!-- Global Notification / Toast Snackbar -->
+      <div id="global-snackbar" class="app-snackbar">
+        <span id="snackbar-text">Notification message</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Application Logic Modules -->
+  <script src="assets/illustrations.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/entrepreneur-reg.js"></script>
+  <script src="js/entrepreneur.js"></script>
+  <script src="js/customer.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

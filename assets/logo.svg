@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4C7C2D" />
+      <stop offset="100%" stop-color="#365B1F" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F7D36D" />
+      <stop offset="100%" stop-color="#E9B949" />
+    </linearGradient>
+    <filter id="softGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#365B1F" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- Circular Outer Halo -->
+  <circle cx="100" cy="100" r="92" fill="#FFFDF5" stroke="#E9B949" stroke-width="3" stroke-dasharray="6,4" />
+  
+  <!-- Handmade Earthen Pot / Basket Base -->
+  <path d="M 60 120 C 58 150, 142 150, 140 120 Z" fill="#8C5024" filter="url(#softGlow)" />
+  <ellipse cx="100" cy="120" rx="40" ry="10" fill="#A86230" />
+  
+  <!-- Basket Weave Texture Accents -->
+  <path d="M 75 125 C 80 142, 120 142, 125 125" fill="none" stroke="#663A1A" stroke-width="2" stroke-linecap="round" />
+  <path d="M 85 128 C 90 145, 110 145, 115 128" fill="none" stroke="#663A1A" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Market Awning Canopy (Empowering Home Commerce) -->
+  <path d="M 50 82 Q 100 68 150 82 L 142 98 Q 100 88 58 98 Z" fill="url(#goldGrad)" />
+  <path d="M 58 98 Q 72 106 86 98 Q 100 106 114 98 Q 128 106 142 98" fill="none" stroke="#365B1F" stroke-width="3" />
+
+  <!-- Sprouting Twin Leaves (Growth, Organic, Local) -->
+  <path d="M 100 115 C 85 95, 65 85, 72 65 C 88 62, 100 85, 100 115 Z" fill="url(#leafGrad)" />
+  <path d="M 100 115 C 115 95, 135 85, 128 65 C 112 62, 100 85, 100 115 Z" fill="#6E8A2F" />
+  
+  <!-- Central Leaf Vein -->
+  <path d="M 100 115 Q 92 88 84 72" fill="none" stroke="#FFF3A6" stroke-width="1.8" stroke-linecap="round" />
+  <path d="M 100 115 Q 108 88 116 72" fill="none" stroke="#FFF3A6" stroke-width="1.8" stroke-linecap="round" />
+
+  <!-- Sun Rays / Diya Flame of Prosperity -->
+  <circle cx="100" cy="50" r="7" fill="#E9B949" />
+  <circle cx="100" cy="50" r="4" fill="#FFF3A6" />
+</svg>
