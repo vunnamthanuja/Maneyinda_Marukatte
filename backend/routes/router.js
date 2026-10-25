@@ -1,6 +1,7 @@
 /* =====================================================================
    MANEYINDA MARUKATTE - REST API ROUTER
    High-performance zero-dependency path pattern matcher & request dispatcher
+   with Role-Based Access Control and Protected Admin Guards.
 ===================================================================== */
 
 const authController = require('../controllers/authController');
@@ -11,6 +12,7 @@ const reviewController = require('../controllers/reviewController');
 const supportController = require('../controllers/supportController');
 const adminController = require('../controllers/adminController');
 const uploadController = require('../controllers/uploadController');
+const AuthMiddleware = require('../middleware/auth');
 
 class Router {
   constructor() {
@@ -19,7 +21,6 @@ class Router {
   }
 
   add(method, pathPattern, handler) {
-    // Convert path pattern like "/api/products/:id" to Regex & parameter names
     const paramNames = [];
     const regexPath = pathPattern.replace(/:([a-zA-Z0-9_]+)/g, (_, paramName) => {
       paramNames.push(paramName);
@@ -51,8 +52,7 @@ class Router {
           categories: '/api/admin/categories',
           orders: '/api/orders',
           entrepreneurs: '/api/entrepreneurs',
-          aiTrends: '/api/admin/ai-trends',
-          verificationQueue: '/api/admin/verification-queue'
+          aiTrends: '/api/admin/ai-trends'
         },
         documentation: 'Refer to API_CONTRACT.md for the full specification'
       });
@@ -71,11 +71,14 @@ class Router {
       });
     });
 
-    // --- Authentication ---
+    // --- Authentication & Session Security ---
     this.add('POST', '/api/auth/send-otp', authController.sendOtp);
     this.add('POST', '/api/auth/verify-otp', authController.verifyOtp);
     this.add('POST', '/api/auth/login-customer', authController.loginCustomer);
     this.add('POST', '/api/auth/login-entrepreneur', authController.loginEntrepreneur);
+    this.add('POST', '/api/auth/login-admin', authController.loginAdmin);
+    this.add('GET', '/api/auth/me', authController.getCurrentUser);
+    this.add('POST', '/api/auth/switch-role', authController.switchRole);
     this.add('POST', '/api/auth/reset-password', authController.resetPassword);
 
     // --- Products ---
@@ -112,17 +115,22 @@ class Router {
     this.add('POST', '/api/support/tickets', supportController.createTicket);
     this.add('PATCH', '/api/support/tickets/:id/resolve', supportController.resolveTicket);
 
-    // --- Admin & Platform ---
-    this.add('GET', '/api/admin/verification-queue', adminController.getVerificationQueue);
-    this.add('POST', '/api/admin/verify/:id', adminController.verifyEntrepreneur);
-    this.add('POST', '/api/admin/assign-badge/:id', adminController.assignBadge);
-    this.add('GET', '/api/admin/ai-trends', adminController.getAiTrends);
-    this.add('GET', '/api/admin/categories', adminController.getCategories);
-    this.add('POST', '/api/admin/categories', adminController.createCategory);
-    this.add('PATCH', '/api/admin/categories/:id/toggle', adminController.toggleCategory);
-    this.add('GET', '/api/admin/logs', adminController.getActivityLogs);
-    this.add('GET', '/api/admin/reports', adminController.getReportedProducts);
-    this.add('POST', '/api/admin/reports/:index/dismiss', adminController.dismissReport);
+    // --- Admin & Platform (STRICT SERVER-SIDE AUTHORIZATION GUARD) ---
+    // Every admin endpoint strictly checks cryptographic admin signature
+    const adminGuard = (handler) => (req, res) => {
+      AuthMiddleware.requireAdmin(req, res, () => handler(req, res));
+    };
+
+    this.add('GET', '/api/admin/verification-queue', adminGuard(adminController.getVerificationQueue));
+    this.add('POST', '/api/admin/verify/:id', adminGuard(adminController.verifyEntrepreneur));
+    this.add('POST', '/api/admin/assign-badge/:id', adminGuard(adminController.assignBadge));
+    this.add('GET', '/api/admin/ai-trends', adminGuard(adminController.getAiTrends));
+    this.add('GET', '/api/admin/categories', adminGuard(adminController.getCategories));
+    this.add('POST', '/api/admin/categories', adminGuard(adminController.createCategory));
+    this.add('PATCH', '/api/admin/categories/:id/toggle', adminGuard(adminController.toggleCategory));
+    this.add('GET', '/api/admin/logs', adminGuard(adminController.getActivityLogs));
+    this.add('GET', '/api/admin/reports', adminGuard(adminController.getReportedProducts));
+    this.add('POST', '/api/admin/reports/:index/dismiss', adminGuard(adminController.dismissReport));
 
     // --- Media Upload ---
     this.add('POST', '/api/upload', uploadController.handleUpload);

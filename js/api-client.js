@@ -1,13 +1,16 @@
 /* =====================================================================
    MANEYINDA MARUKATTE - REST API CLIENT
    Connects the Frontend UI to the Node.js REST Backend (Port 5000)
-   Includes zero-crash offline fallback to local store.
+   Includes Cryptographic Token Management, Role Authorization Guards,
+   and Zero-Crash Local Offline Fallback.
 ===================================================================== */
 
 class APIClient {
   constructor(baseUrl = 'http://localhost:5000/api') {
     this.baseUrl = baseUrl;
     this.isOnline = false;
+    this.token = localStorage.getItem('AUTH_TOKEN') || '';
+    this.adminToken = sessionStorage.getItem('ADMIN_TOKEN') || '';
     this.checkHealth();
   }
 
@@ -20,7 +23,6 @@ class APIClient {
         this.isOnline = json.status === 'UP';
         this.updateConnectionUI(true);
         console.log('[API] Connected to backend on port 5000');
-        // Initial sync of live products and categories from backend
         this.syncInitialData();
         return true;
       }
@@ -56,7 +58,10 @@ class APIClient {
         }
       }
 
-      const catRes = await fetch(`${this.baseUrl}/admin/categories`);
+      // Sync categories using admin token if available
+      const catHeaders = {};
+      if (this.adminToken) catHeaders['Authorization'] = `Bearer ${this.adminToken}`;
+      const catRes = await fetch(`${this.baseUrl}/admin/categories`, { headers: catHeaders });
       if (catRes.ok) {
         const json = await catRes.json();
         if (json.data && Array.isArray(json.data) && json.data.length > 0) {
@@ -69,13 +74,22 @@ class APIClient {
     }
   }
 
-  // --- HTTP HELPER ---
+  // --- HTTP HELPER WITH AUTOMATIC BEARER AUTHORIZATION ---
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       ...((options && options.headers) || {})
     };
+
+    // Attach proper role-based Bearer authorization header
+    if (endpoint.startsWith('/admin')) {
+      if (this.adminToken) {
+        headers['Authorization'] = `Bearer ${this.adminToken}`;
+      }
+    } else if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
 
     try {
       const res = await fetch(url, { ...options, headers });
@@ -106,7 +120,7 @@ class APIClient {
   }
 
   // =============================================================
-  // 1. AUTHENTICATION MODULE
+  // 1. AUTHENTICATION & ROLE MANAGEMENT MODULE
   // =============================================================
   async sendOtp(email, purpose = 'login') {
     if (this.isOnline) {
@@ -116,7 +130,6 @@ class APIClient {
       });
       if (res.success) return res;
     }
-    // Fallback
     return { success: true, message: 'OTP sent (Demo code: 123456)', debugOtp: '123456' };
   }
 
@@ -138,8 +151,11 @@ class APIClient {
         method: 'POST',
         body: JSON.stringify({ email, otp, name, phone })
       });
-      if (res.success) {
+      if (res.success && res.token) {
+        this.token = res.token;
+        localStorage.setItem('AUTH_TOKEN', res.token);
         store.data.currentUser = { ...store.data.currentUser, ...res.user };
+        store.data.currentRole = 'customer';
         store.saveData();
         return res;
       }
@@ -155,8 +171,9 @@ class APIClient {
         role: 'customer'
       };
       store.data.currentUser = user;
-      store.saveData();
     }
+    store.data.currentRole = 'customer';
+    store.saveData();
     return { success: true, user };
   }
 
@@ -166,14 +183,96 @@ class APIClient {
         method: 'POST',
         body: JSON.stringify({ username, password })
       });
-      if (res.success || res.status === 429) return res;
+      if (res.success && res.token) {
+        this.token = res.token;
+        localStorage.setItem('AUTH_TOKEN', res.token);
+        store.data.currentRole = 'entrepreneur';
+        store.saveData();
+        return res;
+      } else if (res.status === 429) {
+        return res;
+      }
     }
     // Fallback
     const ent = (store.data.entrepreneurs || []).find(e => 
       e.username === username || e.email === username
     );
     if (!ent) return { success: false, message: 'Entrepreneur not found.' };
+    store.data.currentRole = 'entrepreneur';
+    store.saveData();
     return { success: true, entrepreneur: ent };
+  }
+
+  // DEDICATED PRIVATE ADMIN LOGIN
+  async loginAdmin(email, password) {
+    if (this.isOnline) {
+      const res = await this.request('/auth/login-admin', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      if (res.success && res.token) {
+        this.adminToken = res.token;
+        sessionStorage.setItem('ADMIN_TOKEN', res.token);
+        store.data.currentRole = 'admin';
+        store.saveData();
+        return res;
+      }
+      return res;
+    }
+    // Standalone fallback
+    if (email === 'admin@marukatte.internal' && password === 'Admin@Marukatte2026!') {
+      this.adminToken = 'mock_admin_token_' + Date.now();
+      sessionStorage.setItem('ADMIN_TOKEN', this.adminToken);
+      store.data.currentRole = 'admin';
+      store.saveData();
+      return { success: true, token: this.adminToken, user: { role: 'admin', email } };
+    }
+    return { success: false, error: 'INVALID_CREDENTIALS', message: 'Invalid administrator credentials.' };
+  }
+
+  hasAdminAuth() {
+    return !!(this.adminToken || sessionStorage.getItem('ADMIN_TOKEN'));
+  }
+
+  logoutAdmin() {
+    this.adminToken = '';
+    sessionStorage.removeItem('ADMIN_TOKEN');
+    store.data.currentRole = 'customer';
+    store.saveData();
+  }
+
+  // PROFILE-BASED ROLE SWITCHING (CUSTOMER <-> ENTREPRENEUR)
+  async switchRole(targetRole) {
+    if (this.isOnline && this.token) {
+      const res = await this.request('/auth/switch-role', {
+        method: 'POST',
+        body: JSON.stringify({ targetRole })
+      });
+      if (res.success && res.token) {
+        this.token = res.token;
+        localStorage.setItem('AUTH_TOKEN', res.token);
+        store.data.currentRole = targetRole;
+        store.saveData();
+        return res;
+      } else if (res.status === 403) {
+        return res;
+      }
+    }
+    // Local fallback with permission validation
+    if (targetRole === 'entrepreneur') {
+      const user = store.getUser();
+      const ent = user.entrepreneurId ? store.getEntrepreneurById(user.entrepreneurId) : null;
+      if (!ent || ent.status !== 'approved') {
+        return {
+          success: false,
+          error: 'ENTREPRENEUR_NOT_APPROVED',
+          message: ent ? `Your entrepreneur application status is '${ent.status}'. Selling features unlock after approval.` : 'You have not registered as an entrepreneur yet.'
+        };
+      }
+    }
+    store.data.currentRole = targetRole;
+    store.saveData();
+    return { success: true, activeRole: targetRole };
   }
 
   // =============================================================
@@ -190,7 +289,6 @@ class APIClient {
         return res.data;
       }
     }
-    // Fallback: local store
     return store.getProducts({
       category: category && category !== 'All' ? category : null,
       search: search || null
@@ -208,7 +306,6 @@ class APIClient {
         return res;
       }
     }
-    // Fallback
     const newProd = store.createProduct(productData);
     return { success: true, data: newProd };
   }
@@ -250,7 +347,6 @@ class APIClient {
         body: JSON.stringify(orderPayload)
       });
       if (res.success && res.data) {
-        // Also reflect in local store
         store.data.orders.unshift(res.data);
         store.data.currentUser.cart = [];
         store.saveData();
@@ -259,7 +355,6 @@ class APIClient {
         return res;
       }
     }
-    // Fallback: create in local store
     const localOrder = store.createOrder(orderPayload);
     return { success: true, data: localOrder };
   }
@@ -309,7 +404,6 @@ class APIClient {
         return res;
       }
     }
-    // Fallback
     const ent = {
       id: 'ent_' + Date.now(),
       status: 'pending',
@@ -356,7 +450,7 @@ class APIClient {
   }
 
   // =============================================================
-  // 6. ADMIN & PLATFORM MODULE
+  // 6. ADMIN & PLATFORM MODULE (PROTECTED ENDPOINTS)
   // =============================================================
   async getVerificationQueue() {
     if (this.isOnline) {
@@ -398,7 +492,6 @@ class APIClient {
         return res.data;
       }
     }
-    // Fallback: compute trend locally
     const prods = store.getProducts();
     const ranked = prods.map(p => ({
       id: p.id,

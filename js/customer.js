@@ -2045,7 +2045,16 @@ const CustomerModule = {
   // -------------------------------------------------------------
   renderProfile() {
     const user = store.getUser();
-    const isBoth = user.role === 'both';
+    let ent = null;
+    if (user.entrepreneurId) {
+      ent = store.getEntrepreneurById(user.entrepreneurId);
+    } else {
+      ent = (store.data.entrepreneurs || []).find(e => e.email === user.email);
+    }
+
+    const isApproved = ent && ent.status === 'approved';
+    const isPending = ent && ent.status === 'pending';
+    const isRejected = ent && ent.status === 'rejected';
 
     return `
       <div class="top-app-bar">
@@ -2058,6 +2067,12 @@ const CustomerModule = {
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        <!-- Current Portal Mode Indicator -->
+        <div style="background:#E8F5E9; border:1px solid #C8E6C9; border-radius:var(--radius-md); padding:8px 12px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:18px;">shopping_basket</span>
+          <span style="font-size:12px; font-weight:700; color:var(--color-primary);">Current Mode: Customer Shopping Portal</span>
+        </div>
+
         <!-- Header Info -->
         <div class="card" style="display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:16px;">
           <div style="width:64px; height:64px; border-radius:50%; background:#E8F5E9; color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
@@ -2096,30 +2111,50 @@ const CustomerModule = {
             <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
           </div>
 
-          <!-- ROLE SWITCHING RULE:
-               Case 1: Customer-only -> "Become an Entrepreneur" -> Entrepreneur Registration
-               Case 2: Customer+Entrepreneur -> "Switch to Entrepreneur" -> Entrepreneur Login -->
-          ${isBoth ? `
-            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#FAF7EC;" onclick="AppRouter.navigate('screen-ent-login')">
+          <!-- DYNAMIC PROFILE ROLE SWITCHING (ZERO-LOGOUT PERMISSION CHECKED) -->
+          ${isApproved ? `
+            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#FAF7EC;" onclick="AppRouter.switchActiveRole('entrepreneur')">
               <div style="display:flex; align-items:center; gap:10px;">
-                <span class="material-symbols-rounded" style="color:var(--color-primary);">sync_alt</span>
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:22px;">sync_alt</span>
                 <div>
                   <div style="font-size:13px; font-weight:700; color:var(--color-primary);">🔄 Switch to Entrepreneur</div>
-                  <span style="font-size:11px; color:var(--color-text-secondary);">Manage Anita's Bakery</span>
+                  <span style="font-size:11px; color:var(--color-text-secondary);">Manage ${ent.businessName}</span>
                 </div>
               </div>
-              <span class="material-symbols-rounded" style="color:var(--color-primary);">chevron_right</span>
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">arrow_forward</span>
+            </div>
+          ` : isPending ? `
+            <div style="padding:14px; border-top:1px solid #F0EEE4; background:#FFFDE7;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <span class="material-symbols-rounded" style="color:#F57F17; font-size:18px;">hourglass_top</span>
+                <span style="font-size:12px; font-weight:700; color:#E65100;">Entrepreneur Application Under Review</span>
+              </div>
+              <p style="font-size:11px; color:var(--color-text-secondary); margin:0 0 8px 0; line-height:1.4;">
+                Your application for <strong>${ent.businessName}</strong> is pending administrative verification. Selling features will unlock immediately upon approval.
+              </p>
+              <button class="btn btn-sm btn-outline" onclick="AppRouter.navigate('screen-ent-reg-status')">Check Application Status</button>
+            </div>
+          ` : isRejected ? `
+            <div style="padding:14px; border-top:1px solid #F0EEE4; background:#FFEBEE;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <span class="material-symbols-rounded" style="color:#C62828; font-size:18px;">error</span>
+                <span style="font-size:12px; font-weight:700; color:#C62828;">Application Needs Revision</span>
+              </div>
+              <p style="font-size:11px; color:var(--color-text-secondary); margin:0 0 8px 0;">
+                ${ent.rejectionReason || 'Please update your verification documents.'}
+              </p>
+              <button class="btn btn-sm btn-danger-outline" onclick="AppRouter.navigate('screen-ent-rejected-correctable')">Update Documents</button>
             </div>
           ` : `
-            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#F4F8EE;" onclick="AppRouter.navigate('screen-ent-reg-1')">
+            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#F4F8EE;" onclick="AppRouter.navigate('screen-ent-reg-1')">
               <div style="display:flex; align-items:center; gap:10px;">
-                <span class="material-symbols-rounded" style="color:var(--color-primary);">storefront</span>
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:22px;">storefront</span>
                 <div>
-                  <div style="font-size:13px; font-weight:700; color:var(--color-primary);">🔄 Become an Entrepreneur</div>
-                  <span style="font-size:11px; color:var(--color-text-secondary);">Start selling your handmade products</span>
+                  <div style="font-size:13px; font-weight:700; color:var(--color-primary);">✨ Become an Entrepreneur</div>
+                  <span style="font-size:11px; color:var(--color-text-secondary);">Start selling your homemade & handmade creations</span>
                 </div>
               </div>
-              <span class="material-symbols-rounded" style="color:var(--color-primary);">chevron_right</span>
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">arrow_forward</span>
             </div>
           `}
 

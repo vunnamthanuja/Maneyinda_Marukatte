@@ -1123,6 +1123,12 @@ const EntrepreneurModule = {
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        <!-- Current Portal Mode Indicator -->
+        <div style="background:#FFF9C4; border:1px solid #FFF176; border-radius:var(--radius-md); padding:8px 12px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-rounded" style="color:#F57F17; font-size:18px;">storefront</span>
+          <span style="font-size:12px; font-weight:700; color:#E65100;">Current Mode: Entrepreneur Business Portal</span>
+        </div>
+
         <!-- Profile Banner -->
         <div class="card" style="display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:16px;">
           <div style="width:64px; height:64px; border-radius:50%; background:#E8F5E9; color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
@@ -1185,16 +1191,17 @@ const EntrepreneurModule = {
             <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
           </div>
 
-          <!-- Switch to Customer if user is Both -->
-          ${store.getUser().role === 'both' ? `
-            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#F5F9EE;" onclick="store.setRole('customer'); AppRouter.navigate('screen-customer-home');">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <span class="material-symbols-rounded" style="color:var(--color-primary);">sync_alt</span>
-                <span style="font-size:13px; font-weight:700; color:var(--color-primary);">🔄 Switch to Customer View</span>
+          <!-- ROLE SWITCHING: Switch to Customer without logout -->
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#F5F9EE;" onclick="AppRouter.switchActiveRole('customer')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:22px;">shopping_bag</span>
+              <div>
+                <div style="font-size:13px; font-weight:700; color:var(--color-primary);">Switch to Customer</div>
+                <span style="font-size:11px; color:var(--color-text-secondary);">Return to shopping interface</span>
               </div>
-              <span class="material-symbols-rounded" style="color:var(--color-primary);">chevron_right</span>
             </div>
-          ` : ''}
+            <span class="material-symbols-rounded" style="color:var(--color-primary);">arrow_forward</span>
+          </div>
 
           <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="EntrepreneurModule.confirmLogout()">
             <div style="display:flex; align-items:center; gap:10px;">

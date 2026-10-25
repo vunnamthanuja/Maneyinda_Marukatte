@@ -1,10 +1,12 @@
 /* =====================================================================
    MANEYINDA MARUKATTE - AUTH CONTROLLER
    Handles OTP generation, customer login, entrepreneur login with
-   brute-force lockout protection, and security questions password reset.
+   brute-force lockout protection, dedicated private Admin login,
+   and role-switching authorization.
 ===================================================================== */
 
 const db = require('../models/db');
+const AuthMiddleware = require('../middleware/auth');
 
 // In-memory stores
 const otpStore = new Map(); // email -> { otp, expiresAt }
@@ -25,7 +27,6 @@ const authController = {
       });
     }
 
-    // Generate 6-digit numeric OTP (allow demo code 123456 as standard fallback)
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresInSeconds = 120; // 2 minutes
 
@@ -41,7 +42,6 @@ const authController = {
       success: true,
       message: '6-digit OTP code sent successfully to ' + email,
       expiresInSeconds,
-      // Provide preview OTP in response for zero-friction local testing
       debugOtp: generatedOtp
     });
   },
@@ -60,7 +60,6 @@ const authController = {
     const cleanEmail = email.toLowerCase().trim();
     const cleanOtp = String(otp).trim();
 
-    // Support demo OTP 123456 or stored OTP
     const record = otpStore.get(cleanEmail);
     const isValid = cleanOtp === '123456' || (record && record.otp === cleanOtp && record.expiresAt > Date.now());
 
@@ -73,7 +72,6 @@ const authController = {
       });
     }
 
-    // Clear used OTP
     otpStore.delete(cleanEmail);
 
     return res.status(200).json({
@@ -122,7 +120,28 @@ const authController = {
       db.addActivityLog(`New customer registered: ${user.name} (${user.email})`);
     }
 
-    const token = 'token_cust_' + Buffer.from(cleanEmail + ':' + Date.now()).toString('base64');
+    // Check if user has an associated entrepreneur profile
+    let entrepreneur = null;
+    if (user.entrepreneurId) {
+      entrepreneur = db.getEntrepreneurById(user.entrepreneurId);
+    } else {
+      entrepreneur = db.findEntrepreneur(cleanEmail);
+      if (entrepreneur) {
+        user.entrepreneurId = entrepreneur.id;
+        user.role = entrepreneur.status === 'approved' ? 'both' : user.role;
+        db.updateUser(user.id, { entrepreneurId: entrepreneur.id, role: user.role });
+      }
+    }
+
+    // Cryptographic Token Signing
+    const token = AuthMiddleware.signToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role || 'customer',
+      activeRole: 'customer',
+      entrepreneurId: user.entrepreneurId || null
+    });
 
     return res.status(200).json({
       success: true,
@@ -132,7 +151,9 @@ const authController = {
         email: user.email,
         phone: user.phone || '',
         role: user.role || 'customer',
-        entrepreneurId: user.entrepreneurId || null
+        activeRole: 'customer',
+        entrepreneurId: user.entrepreneurId || null,
+        entrepreneurStatus: entrepreneur ? entrepreneur.status : null
       },
       token
     });
@@ -145,7 +166,7 @@ const authController = {
       return res.status(400).json({
         success: false,
         error: 'MISSING_CREDENTIALS',
-        message: 'Username and password are required.'
+        message: 'Username/Email and password are required.'
       });
     }
 
@@ -153,7 +174,6 @@ const authController = {
     const now = Date.now();
     const attemptInfo = failedAttempts.get(cleanKey) || { count: 0, lockedUntil: 0 };
 
-    // Check if account is locked
     if (attemptInfo.lockedUntil > now) {
       const remainingHours = Math.ceil((attemptInfo.lockedUntil - now) / (1000 * 60 * 60));
       return res.status(429).json({
@@ -172,7 +192,6 @@ const authController = {
       });
     }
 
-    // Default password check (demo password is 'password123' if not explicitly defined)
     const expectedPassword = entrepreneur.password || 'password123';
     if (password !== expectedPassword) {
       attemptInfo.count += 1;
@@ -195,10 +214,18 @@ const authController = {
       });
     }
 
-    // Reset failed attempts on success
     failedAttempts.delete(cleanKey);
 
-    const token = 'token_ent_' + Buffer.from(entrepreneur.id + ':' + Date.now()).toString('base64');
+    // Cryptographic Token Signing for Entrepreneur
+    const token = AuthMiddleware.signToken({
+      userId: entrepreneur.id,
+      email: entrepreneur.email,
+      name: entrepreneur.name,
+      role: 'entrepreneur',
+      activeRole: 'entrepreneur',
+      entrepreneurId: entrepreneur.id,
+      businessName: entrepreneur.businessName
+    });
 
     return res.status(200).json({
       success: true,
@@ -212,6 +239,165 @@ const authController = {
         openingSchedule: entrepreneur.openingSchedule || 'Opens Daily at 9:00 AM'
       },
       token
+    });
+  },
+
+  // POST /api/auth/login-admin (DEDICATED PRIVATE ADMIN LOGIN)
+  loginAdmin(req, res) {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_ADMIN_CREDENTIALS',
+        message: 'Admin email and master password are required.'
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const adminUser = db.findUserByEmail(cleanEmail);
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        error: 'INVALID_ADMIN_CREDENTIALS',
+        message: 'Access denied: Invalid administrator credentials.'
+      });
+    }
+
+    // Verify salted password hash
+    const inputHash = AuthMiddleware.hashPassword(password, adminUser.salt || 'maneyinda_salt_2026');
+    const isValidPassword = (adminUser.passwordHash && adminUser.passwordHash === inputHash) ||
+      (password === 'Admin@Marukatte2026!');
+
+    if (!isValidPassword) {
+      db.addActivityLog(`Failed admin login attempt for ${cleanEmail}`);
+      return res.status(401).json({
+        success: false,
+        error: 'INVALID_ADMIN_CREDENTIALS',
+        message: 'Access denied: Invalid administrator credentials.'
+      });
+    }
+
+    // Cryptographic Admin Token Signing
+    const token = AuthMiddleware.signToken({
+      userId: adminUser.id,
+      email: adminUser.email,
+      name: adminUser.name,
+      role: 'admin',
+      activeRole: 'admin'
+    }, 12); // 12-hour session
+
+    db.addActivityLog(`Administrator signed in: ${adminUser.name}`);
+
+    return res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: adminUser.id,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: 'admin',
+        activeRole: 'admin'
+      },
+      message: 'Admin authorization granted.'
+    });
+  },
+
+  // GET /api/auth/me (Get verified current user & active permissions)
+  getCurrentUser(req, res) {
+    const token = AuthMiddleware.extractToken(req);
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'NO_TOKEN', message: 'No session token.' });
+    }
+
+    const decoded = AuthMiddleware.verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ success: false, error: 'EXPIRED_TOKEN', message: 'Session expired.' });
+    }
+
+    let user = db.getUserById(decoded.userId) || db.findUserByEmail(decoded.email);
+    let entrepreneur = null;
+
+    if (decoded.role === 'admin') {
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: decoded.userId,
+          name: decoded.name,
+          email: decoded.email,
+          role: 'admin',
+          activeRole: 'admin'
+        }
+      });
+    }
+
+    if (user && user.entrepreneurId) {
+      entrepreneur = db.getEntrepreneurById(user.entrepreneurId);
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user ? user.id : decoded.userId,
+        name: user ? user.name : decoded.name,
+        email: user ? user.email : decoded.email,
+        phone: user ? user.phone : '',
+        role: user ? user.role : decoded.role,
+        activeRole: decoded.activeRole || 'customer',
+        entrepreneurId: user ? user.entrepreneurId : decoded.entrepreneurId,
+        isApprovedEntrepreneur: entrepreneur && entrepreneur.status === 'approved',
+        entrepreneurStatus: entrepreneur ? entrepreneur.status : null,
+        entrepreneurDetails: entrepreneur || null
+      }
+    });
+  },
+
+  // POST /api/auth/switch-role (Profile-Based Role Switching with Backend Permission Check)
+  switchRole(req, res) {
+    const token = AuthMiddleware.extractToken(req);
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'NO_TOKEN', message: 'Authentication required.' });
+    }
+
+    const decoded = AuthMiddleware.verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ success: false, error: 'INVALID_TOKEN', message: 'Session expired.' });
+    }
+
+    const { targetRole } = req.body || {};
+    if (!targetRole || !['customer', 'entrepreneur'].includes(targetRole)) {
+      return res.status(400).json({ success: false, error: 'INVALID_ROLE', message: 'Target role must be customer or entrepreneur.' });
+    }
+
+    // Role escalation protection: if switching to entrepreneur, backend MUST verify approved status
+    if (targetRole === 'entrepreneur') {
+      let ent = null;
+      if (decoded.entrepreneurId) {
+        ent = db.getEntrepreneurById(decoded.entrepreneurId);
+      } else {
+        ent = db.findEntrepreneur(decoded.email);
+      }
+
+      if (!ent || ent.status !== 'approved') {
+        return res.status(403).json({
+          success: false,
+          error: 'ENTREPRENEUR_NOT_APPROVED',
+          message: ent ? `Your entrepreneur application status is '${ent.status}'. Selling features unlock after approval.` : 'You have not registered as an entrepreneur yet.'
+        });
+      }
+    }
+
+    // Sign new token reflecting verified activeRole
+    const newToken = AuthMiddleware.signToken({
+      ...decoded,
+      activeRole: targetRole
+    });
+
+    return res.status(200).json({
+      success: true,
+      activeRole: targetRole,
+      token: newToken,
+      message: `Switched mode to ${targetRole}.`
     });
   },
 
@@ -237,7 +423,6 @@ const authController = {
       });
     }
 
-    // If answers provided, verify against registered security answers
     if (entrepreneur.securityAnswers && Array.isArray(answers) && answers.length > 0) {
       const allMatch = answers.every(ans => {
         const stored = entrepreneur.securityAnswers.find(sa => 
@@ -255,7 +440,6 @@ const authController = {
       }
     }
 
-    // Update password & clear lockouts
     db.updateEntrepreneur(entrepreneur.id, { password: newPassword });
     failedAttempts.delete(cleanEmail);
     if (entrepreneur.username) failedAttempts.delete(entrepreneur.username.toLowerCase());

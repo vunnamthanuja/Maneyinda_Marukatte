@@ -36,6 +36,30 @@ const AppRouter = {
   },
 
   navigate(screenId, params = {}, pushToHistory = true) {
+    // 1. SECURITY GUARD: Private Admin Portal Access Control
+    if (screenId.startsWith('screen-admin-') && screenId !== 'screen-admin-login') {
+      const hasAdminAuth = (window.apiClient && window.apiClient.hasAdminAuth()) ||
+                           sessionStorage.getItem('ADMIN_TOKEN');
+      if (!hasAdminAuth) {
+        AppUtils.showToast('🔒 Administrator login required.');
+        screenId = 'screen-admin-login';
+      }
+    }
+
+    // 2. SECURITY GUARD: Entrepreneur Access Control
+    if (screenId.startsWith('screen-ent-') &&
+        !['screen-ent-login', 'screen-ent-reg-1', 'screen-ent-reg-2', 'screen-ent-reg-3',
+          'screen-ent-reg-submitted', 'screen-ent-reg-status', 'screen-ent-rejected-correctable',
+          'screen-ent-rejected-perm', 'screen-ent-approved', 'screen-ent-account-setup',
+          'screen-ent-security-questions'].includes(screenId)) {
+      const user = store.getUser();
+      const ent = user.entrepreneurId ? store.getEntrepreneurById(user.entrepreneurId) : null;
+      if (!ent || ent.status !== 'approved') {
+        AppUtils.showToast('⚠️ Entrepreneur approval required to access selling features.');
+        screenId = 'screen-customer-home';
+      }
+    }
+
     if (pushToHistory && this.currentScreenId !== screenId) {
       this.historyStack.push({ screenId: this.currentScreenId, params: this.currentParams });
     }
@@ -165,16 +189,27 @@ const AppRouter = {
     if (pAdm) pAdm.classList.toggle('active', activeRole === 'admin');
   },
 
-  switchDemoRole(role) {
-    store.setRole(role);
-    if (role === 'customer') {
-      this.navigate('screen-customer-home');
-    } else if (role === 'entrepreneur') {
-      this.navigate('screen-ent-dashboard');
-    } else if (role === 'admin') {
-      this.navigate('screen-admin-dashboard');
+  async switchActiveRole(targetRole) {
+    if (window.apiClient) {
+      const res = await window.apiClient.switchRole(targetRole);
+      if (!res.success && res.error === 'ENTREPRENEUR_NOT_APPROVED') {
+        AppUtils.showToast(res.message);
+        return;
+      }
     }
-    AppUtils.showToast(`Switched active view to ${role.toUpperCase()}`);
+    store.setRole(targetRole);
+    this.syncDemoRolePills();
+    if (targetRole === 'entrepreneur') {
+      this.navigate('screen-ent-dashboard');
+      AppUtils.showToast('🏪 Switched to Entrepreneur Portal');
+    } else {
+      this.navigate('screen-customer-home');
+      AppUtils.showToast('🛒 Switched to Customer Shopping Portal');
+    }
+  },
+
+  switchDemoRole(role) {
+    this.switchActiveRole(role);
   },
 
   toggleViewportMode() {

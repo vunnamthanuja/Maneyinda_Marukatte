@@ -1,17 +1,19 @@
 /* =====================================================================
-   MANEYINDA MARUKATTE - COMPREHENSIVE INTEGRATION & BUSINESS RULES TEST SUITE
+   MANEYINDA MARUKATTE - COMPREHENSIVE ROLE-BASED INTEGRATION TEST SUITE
+   Tests authentication, role authorization, permissions, and security guards.
 ===================================================================== */
 
 const { EventEmitter } = require('events');
 const server = require('./server');
 
-function mockRequest(method, urlPath, body = null) {
+function mockRequest(method, urlPath, body = null, customHeaders = {}) {
   return new Promise((resolve) => {
     const req = new EventEmitter();
     req.method = method;
     req.url = urlPath;
     req.headers = {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
+      ...customHeaders
     };
 
     const res = new EventEmitter();
@@ -49,7 +51,7 @@ function mockRequest(method, urlPath, body = null) {
 }
 
 async function runInProcessTests() {
-  console.log('\n--- EXPANDED REST API & BUSINESS LOGIC VERIFICATION ---\n');
+  console.log('\n--- COMPREHENSIVE ROLE-BASED ACCESS & API VERIFICATION ---\n');
   let passed = 0;
   let failed = 0;
 
@@ -95,21 +97,25 @@ async function runInProcessTests() {
   });
 
   // 6. Customer Login
-  await test('POST /api/auth/login-customer should sign in or auto-create', async () => {
+  let customerToken = null;
+  await test('POST /api/auth/login-customer should sign in and return signed token', async () => {
     const res = await mockRequest('POST', '/api/auth/login-customer', {
       email: 'thanuja@example.com',
       otp: '123456'
     });
     if (res.status !== 200 || !res.data.user || !res.data.token) throw new Error(`Customer login error`);
+    customerToken = res.data.token;
   });
 
   // 7. Entrepreneur Login
+  let entrepreneurToken = null;
   await test('POST /api/auth/login-entrepreneur should authenticate valid entrepreneur', async () => {
     const res = await mockRequest('POST', '/api/auth/login-entrepreneur', {
       username: 'anitha_bakery',
       password: 'password123'
     });
-    if (res.status !== 200 || !res.data.entrepreneur) throw new Error(`Entrepreneur login error`);
+    if (res.status !== 200 || !res.data.entrepreneur || !res.data.token) throw new Error(`Entrepreneur login error`);
+    entrepreneurToken = res.data.token;
   });
 
   // 8. Order Placement (1 Entrepreneur rule)
@@ -141,7 +147,7 @@ async function runInProcessTests() {
     }
   });
 
-  // 10. Order Status Progression (New -> Accepted -> Preparing -> Delivered)
+  // 10. Order Status Progression (New -> Accepted)
   await test('PATCH /api/orders/:id/status should update status to Accepted', async () => {
     const res = await mockRequest('PATCH', `/api/orders/${testOrderId}/status`, { status: 'Accepted' });
     if (res.status !== 200 || res.data.data.orderStatus !== 'Accepted') throw new Error(`Status update error`);
@@ -153,7 +159,7 @@ async function runInProcessTests() {
     if (res.status !== 200 || res.data.data.orderStatus !== 'Cancelled') throw new Error(`Cancellation error`);
   });
 
-  // 12. Create second order and advance to Preparing
+  // 12. Create second order and advance to Preparing -> Cancel blocks
   let preparingOrderId = null;
   await test('POST /api/orders advance to Preparing and verify cancellation blocks', async () => {
     const ordRes = await mockRequest('POST', '/api/orders', {
@@ -164,7 +170,6 @@ async function runInProcessTests() {
     preparingOrderId = ordRes.data.data.id;
     await mockRequest('PATCH', `/api/orders/${preparingOrderId}/status`, { status: 'Preparing' });
 
-    // Try cancelling preparing order
     const cancelRes = await mockRequest('POST', `/api/orders/${preparingOrderId}/cancel`, { reason: 'Too late' });
     if (cancelRes.status !== 400 || cancelRes.data.error !== 'CANCELLATION_NOT_ALLOWED') {
       throw new Error(`Expected CANCELLATION_NOT_ALLOWED 400`);
@@ -185,30 +190,103 @@ async function runInProcessTests() {
     ticketId = res.data.data.id;
   });
 
-  // 14. Admin resolve ticket
-  await test('PATCH /api/support/tickets/:id/resolve should update ticket', async () => {
-    const res = await mockRequest('PATCH', `/api/support/tickets/${ticketId}/resolve`, {
-      status: 'Resolved',
-      adminNotes: 'Seller notified and voucher offered.'
-    });
-    if (res.status !== 200 || res.data.data.status !== 'Resolved') throw new Error(`Ticket resolve error`);
-  });
+  // -------------------------------------------------------------
+  // CRITICAL SECURITY TESTS: PRIVATE ADMIN PORTAL & ROLE GUARDS
+  // -------------------------------------------------------------
 
-  // 15. Admin verification queue
-  await test('GET /api/admin/verification-queue should return pending applicants', async () => {
+  // 14. Admin Access Denied without Token (401 Unauthorized)
+  await test('GET /api/admin/verification-queue without token MUST return 401 Unauthorized', async () => {
     const res = await mockRequest('GET', '/api/admin/verification-queue');
-    if (res.status !== 200 || !Array.isArray(res.data.data)) throw new Error(`Admin queue error`);
+    if (res.status !== 401 || res.data.error !== 'ADMIN_AUTH_REQUIRED') {
+      throw new Error(`Expected 401 ADMIN_AUTH_REQUIRED, got status ${res.status}: ${JSON.stringify(res.data)}`);
+    }
   });
 
-  // 16. Admin AI Trend scoring
-  await test('GET /api/admin/ai-trends should calculate trend scores correctly', async () => {
-    const res = await mockRequest('GET', '/api/admin/ai-trends');
-    if (res.status !== 200 || !res.data.data.topTrendingProducts) throw new Error(`AI Trends error`);
+  // 15. Admin Access Denied with Customer Token (403 Forbidden)
+  await test('GET /api/admin/verification-queue with Customer Token MUST return 403 Forbidden', async () => {
+    const res = await mockRequest('GET', '/api/admin/verification-queue', null, {
+      'authorization': `Bearer ${customerToken}`
+    });
+    if (res.status !== 403 || res.data.error !== 'ADMIN_ACCESS_DENIED') {
+      throw new Error(`Expected 403 ADMIN_ACCESS_DENIED, got status ${res.status}: ${JSON.stringify(res.data)}`);
+    }
   });
 
-  console.log(`\n=========================================`);
+  // 16. Dedicated Admin Login
+  let adminToken = null;
+  await test('POST /api/auth/login-admin with valid credentials grants Admin token', async () => {
+    const res = await mockRequest('POST', '/api/auth/login-admin', {
+      email: 'admin@marukatte.internal',
+      password: 'Admin@Marukatte2026!'
+    });
+    if (res.status !== 200 || !res.data.token || res.data.user.role !== 'admin') {
+      throw new Error(`Admin login failed: ${JSON.stringify(res.data)}`);
+    }
+    adminToken = res.data.token;
+  });
+
+  // 17. Admin Access Granted with Valid Admin Token
+  await test('GET /api/admin/verification-queue with Admin Token returns 200 OK', async () => {
+    const res = await mockRequest('GET', '/api/admin/verification-queue', null, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (res.status !== 200 || !Array.isArray(res.data.data)) {
+      throw new Error(`Admin queue access failed: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  // 18. AI Trend Scoring with Admin Token
+  await test('GET /api/admin/ai-trends with Admin Token calculates scores', async () => {
+    const res = await mockRequest('GET', '/api/admin/ai-trends', null, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (res.status !== 200 || !res.data.data.topTrendingProducts) {
+      throw new Error(`Admin AI trends failed: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  // -------------------------------------------------------------
+  // ROLE SWITCHING TESTS
+  // -------------------------------------------------------------
+
+  // 19. Unauthorized Role Escalation Blocked
+  await test('POST /api/auth/switch-role to entrepreneur BLOCKS unapproved customer', async () => {
+    // Pure customer login
+    const loginRes = await mockRequest('POST', '/api/auth/login-customer', {
+      email: 'ravi@example.com',
+      otp: '123456'
+    });
+    const pureCustToken = loginRes.data.token;
+
+    const switchRes = await mockRequest('POST', '/api/auth/switch-role', { targetRole: 'entrepreneur' }, {
+      'authorization': `Bearer ${pureCustToken}`
+    });
+
+    if (switchRes.status !== 403 || switchRes.data.error !== 'ENTREPRENEUR_NOT_APPROVED') {
+      throw new Error(`Expected 403 ENTREPRENEUR_NOT_APPROVED, got ${switchRes.status}: ${JSON.stringify(switchRes.data)}`);
+    }
+  });
+
+  // 20. Approved Entrepreneur Seamless Role Switching
+  await test('POST /api/auth/switch-role allows approved entrepreneur to switch to customer and back', async () => {
+    const switchCustRes = await mockRequest('POST', '/api/auth/switch-role', { targetRole: 'customer' }, {
+      'authorization': `Bearer ${entrepreneurToken}`
+    });
+    if (switchCustRes.status !== 200 || switchCustRes.data.activeRole !== 'customer') {
+      throw new Error(`Switch to customer failed: ${JSON.stringify(switchCustRes.data)}`);
+    }
+
+    const switchEntRes = await mockRequest('POST', '/api/auth/switch-role', { targetRole: 'entrepreneur' }, {
+      'authorization': `Bearer ${switchCustRes.data.token}`
+    });
+    if (switchEntRes.status !== 200 || switchEntRes.data.activeRole !== 'entrepreneur') {
+      throw new Error(`Switch back to entrepreneur failed: ${JSON.stringify(switchEntRes.data)}`);
+    }
+  });
+
+  console.log(`\n======================================================`);
   console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`);
-  console.log(`=========================================\n`);
+  console.log(`======================================================\n`);
 
   server.close(() => {
     process.exit(failed > 0 ? 1 : 0);

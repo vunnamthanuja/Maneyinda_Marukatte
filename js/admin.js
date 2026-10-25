@@ -28,9 +28,9 @@ const AdminModule = {
           <div style="width:64px; height:64px; border-radius:50%; background:#EDE8D5; color:var(--color-primary); display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;">
             <span class="material-symbols-rounded" style="font-size:36px;">admin_panel_settings</span>
           </div>
-          <h2 style="font-size:20px; font-weight:700; color:var(--color-primary);">Admin Login</h2>
+          <h2 style="font-size:20px; font-weight:700; color:var(--color-primary);">Admin Portal Login</h2>
           <p style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">
-            Authorized institutional administrators only
+            Authorized platform administrators only • Backend verified
           </p>
         </div>
 
@@ -38,30 +38,25 @@ const AdminModule = {
           <label class="form-label">Admin Email <span class="req">*</span></label>
           <div class="input-with-icon">
             <span class="material-symbols-rounded input-icon-left">mail</span>
-            <input type="email" id="admin-email" class="form-input" placeholder="admin@maneyinda.com" value="admin@maneyinda.com">
+            <input type="email" id="admin-email" class="form-input" placeholder="admin@marukatte.internal" value="admin@marukatte.internal">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Password <span class="req">*</span></label>
+          <label class="form-label">Master Password <span class="req">*</span></label>
           <div class="input-with-icon">
             <span class="material-symbols-rounded input-icon-left">lock</span>
-            <input type="password" id="admin-pass" class="form-input" placeholder="••••••••" value="admin123">
+            <input type="password" id="admin-pass" class="form-input" placeholder="••••••••" value="Admin@Marukatte2026!">
             <button type="button" class="input-icon-right" onclick="AuthModule.togglePasswordVisibility('admin-pass', this)">
               <span class="material-symbols-rounded">visibility</span>
             </button>
           </div>
-          <div style="display:flex; justify-content:flex-end; margin-top:6px;">
-            <a href="javascript:void(0)" onclick="AdminModule.openForgotPasswordModal()" style="font-size:12px; color:var(--color-primary); font-weight:600; text-decoration:none;">
-              Forgot Password?
-            </a>
-          </div>
-          <span id="admin-login-err" class="form-error-text" style="display:none;"></span>
+          <span id="admin-login-err" class="form-error-text" style="display:none; color:var(--color-error); font-size:12px; margin-top:6px;"></span>
         </div>
 
         <div style="margin-top:24px;">
           <button class="btn btn-primary btn-block" onclick="AdminModule.handleAdminLogin()">
-            Login to Admin Console
+            Authenticate Administrator
             <span class="material-symbols-rounded">login</span>
           </button>
         </div>
@@ -69,20 +64,48 @@ const AdminModule = {
     `;
   },
 
-  handleAdminLogin() {
+  async handleAdminLogin() {
     const email = document.getElementById('admin-email').value.trim();
     const pass = document.getElementById('admin-pass').value.trim();
     const err = document.getElementById('admin-login-err');
 
-    if (email === 'admin@maneyinda.com' && (pass === 'admin123' || pass === 'password123')) {
-      store.setRole('admin');
-      store.addActivityLog('Admin logged in');
-      AppUtils.showToast('Welcome, Administrator!');
-      AppRouter.navigate('screen-admin-dashboard');
-    } else {
-      err.textContent = 'Invalid administrator credentials.';
-      err.style.display = 'flex';
+    if (!email || !pass) {
+      err.textContent = 'Admin email and master password are required.';
+      err.style.display = 'block';
+      return;
     }
+
+    if (window.apiClient) {
+      const res = await window.apiClient.loginAdmin(email, pass);
+      if (res.success) {
+        store.setRole('admin');
+        store.addActivityLog(`Admin authenticated: ${email}`);
+        AppUtils.showToast('✅ Administrator authorization verified.');
+        AppRouter.navigate('screen-admin-dashboard');
+      } else {
+        err.textContent = res.message || 'Access denied: Invalid administrator credentials.';
+        err.style.display = 'block';
+      }
+    } else {
+      if (email === 'admin@marukatte.internal' && pass === 'Admin@Marukatte2026!') {
+        store.setRole('admin');
+        AppUtils.showToast('Welcome, Administrator!');
+        AppRouter.navigate('screen-admin-dashboard');
+      } else {
+        err.textContent = 'Access denied: Invalid administrator credentials.';
+        err.style.display = 'block';
+      }
+    }
+  },
+
+  handleAdminLogout() {
+    if (window.apiClient) {
+      window.apiClient.logoutAdmin();
+    }
+    sessionStorage.removeItem('ADMIN_TOKEN');
+    store.setRole('customer');
+    AppUtils.showToast('Administrator session ended.');
+    AppRouter.navigate('screen-customer-home');
   },
 
   openForgotPasswordModal() {
@@ -1075,7 +1098,7 @@ const AdminModule = {
           🔒 Change Admin Password
         </button>
 
-        <button class="btn btn-danger-outline btn-block" onclick="store.setRole('customer'); AppRouter.navigate('screen-welcome');">
+        <button class="btn btn-danger-outline btn-block" onclick="AdminModule.handleAdminLogout()">
           🚪 Logout of Admin Console
         </button>
       </div>
