@@ -8,6 +8,7 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+require('./config/env');
 const router = require('./routes/router');
 
 const PORT = process.env.PORT || 5000;
@@ -161,12 +162,12 @@ const server = http.createServer((req, res) => {
 
 if (require.main === module) {
   server.listen(PORT, () => {
-  console.log(`\n======================================================`);
-  console.log(`🌿 MANEYINDA MARUKATTE (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ) REST API`);
-  console.log(`🚀 Server successfully running on: http://localhost:${PORT}`);
-  console.log(`📡 Base API URL: http://localhost:${PORT}/api`);
-  console.log(`📄 API Contract: API_CONTRACT.md`);
-  console.log(`======================================================\n`);
+    console.log(`\n======================================================`);
+    console.log(`🌿 MANEYINDA MARUKATTE (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ) REST API`);
+    console.log(`🚀 Server successfully running on: http://localhost:${PORT}`);
+    console.log(`📡 Base API URL: http://localhost:${PORT}/api`);
+    console.log(`📄 API Contract: API_CONTRACT.md`);
+    console.log(`======================================================\n`);
   });
 }
 
