@@ -111,6 +111,7 @@ const server = http.createServer((req, res) => {
 
   req.on('end', () => {
     const rawBody = Buffer.concat(bodyBuffer).toString();
+    req.rawBody = rawBody;
 
     const contentType = (req.headers['content-type'] || '').toLowerCase();
     if (contentType.includes('application/json') && rawBody.trim().length > 0) {

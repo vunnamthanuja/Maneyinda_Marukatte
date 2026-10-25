@@ -141,6 +141,9 @@ class Router {
     this.add('GET', '/api/payments/status', paymentController.getPaymentConfigStatus);
     this.add('POST', '/api/payments/create-order', paymentController.createRazorpayOrder);
     this.add('POST', '/api/payments/verify', paymentController.verifyPaymentSignature);
+    this.add('POST', '/api/payments/webhook', paymentController.handleWebhook);
+    this.add('GET', '/api/admin/payments', adminGuard(paymentController.getAllTransactions));
+    this.add('POST', '/api/admin/payments/:orderId/refund', adminGuard(paymentController.processRefund));
   }
 
   match(method, pathname) {

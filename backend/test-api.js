@@ -372,6 +372,252 @@ async function runInProcessTests() {
     }
   });
 
+
+  // 24. Backend Calculates Exact Total from DB Products (Never Trust Frontend)
+  await test('POST /api/payments/create-order calculates total on backend from DB prices', async () => {
+    const res = await mockRequest('POST', '/api/payments/create-order', {
+      customerId: 'cust_01',
+      items: [{ productId: 'prod_01', qty: 1 }],
+      deliveryMethod: 'Home Delivery'
+    });
+
+    if (res.status !== 200 || !res.data.success || !res.data.orderId) {
+      throw new Error(`Order creation failed: ${JSON.stringify(res.data)}`);
+    }
+
+    // Verify calculated amount in paise: prod_01 (450) + delivery (30) = 480 INR -> 48000 paise
+    if (res.data.amount !== 48000) {
+      throw new Error(`Expected backend-calculated 48000 paise, got ${res.data.amount}`);
+    }
+
+    // Verify internal pending order status in DB
+    const db = require('./models/db');
+    const order = db.getOrderById(res.data.orderId);
+    if (!order || order.paymentStatus !== 'Pending' || order.orderStatus !== 'Pending Payment') {
+      throw new Error(`Expected Pending Payment state in DB, got: ${order && order.paymentStatus} / ${order && order.orderStatus}`);
+    }
+  });
+
+  // 25. Order Becomes Paid & Accepted Only After Successful Verification
+  await test('Order transitions to Paid and Accepted upon signature verification', async () => {
+    const db = require('./models/db');
+    const crypto = require('crypto');
+    const testSecret = 'rzp_sec_test_order_verification_999';
+    const originalSecret = process.env.RAZORPAY_KEY_SECRET;
+    process.env.RAZORPAY_KEY_SECRET = testSecret;
+
+    try {
+      // 1. Create order
+      const createRes = await mockRequest('POST', '/api/payments/create-order', {
+        customerId: 'cust_01',
+        items: [{ productId: 'prod_01', qty: 1 }],
+        deliveryMethod: 'Home Delivery'
+      });
+      const orderId = createRes.data.orderId;
+      const rzpOrderId = createRes.data.razorpayOrderId;
+      const rzpPaymentId = 'pay_real_test_' + Date.now();
+
+      const validSig = crypto
+        .createHmac('sha256', testSecret)
+        .update(`${rzpOrderId}|${rzpPaymentId}`)
+        .digest('hex');
+
+      // 2. Verify payment
+      const verifyRes = await mockRequest('POST', '/api/payments/verify', {
+        razorpay_order_id: rzpOrderId,
+        razorpay_payment_id: rzpPaymentId,
+        razorpay_signature: validSig,
+        orderId
+      });
+
+      if (verifyRes.status !== 200 || !verifyRes.data.verified) {
+        throw new Error(`Verification failed: ${JSON.stringify(verifyRes.data)}`);
+      }
+
+      // 3. Confirm in DB
+      const verifiedOrder = db.getOrderById(orderId);
+      if (verifiedOrder.paymentStatus !== 'Paid' || verifiedOrder.orderStatus !== 'Accepted') {
+        throw new Error(`Order was not marked Paid / Accepted: ${verifiedOrder.paymentStatus}`);
+      }
+    } finally {
+      process.env.RAZORPAY_KEY_SECRET = originalSecret;
+    }
+  });
+
+  // 26. Webhook Signature Verification, Event Processing & Idempotency
+  await test('POST /api/payments/webhook verifies signature and handles duplicate events safely', async () => {
+    const db = require('./models/db');
+    const crypto = require('crypto');
+    const webhookSecret = 'test_whsec_marukatte_2026';
+    process.env.RAZORPAY_WEBHOOK_SECRET = webhookSecret;
+
+    try {
+      // Create pending order
+      const order = db.createOrder({
+        customerId: 'cust_01',
+        storeName: "Anita's Bakery",
+        items: [{ productId: 'prod_01', qty: 1 }],
+        totalAmount: 480,
+        razorpayOrderId: 'order_webhook_test_111',
+        paymentStatus: 'Pending',
+        orderStatus: 'Pending Payment'
+      });
+
+      const eventPayload = {
+        id: 'evt_test_unique_id_' + Date.now(),
+        event: 'payment.captured',
+        payload: {
+          payment: {
+            entity: {
+              id: 'pay_webhook_captured_999',
+              order_id: 'order_webhook_test_111',
+              status: 'captured',
+              amount: 48000
+            }
+          }
+        }
+      };
+      const rawJson = JSON.stringify(eventPayload);
+      const validSig = crypto.createHmac('sha256', webhookSecret).update(rawJson).digest('hex');
+
+      // Valid webhook delivery
+      const res = await mockRequest('POST', '/api/payments/webhook', eventPayload, {
+        'x-razorpay-signature': validSig
+      });
+
+      if (res.status !== 200 || !res.data.success) {
+        throw new Error(`Webhook delivery failed: ${JSON.stringify(res.data)}`);
+      }
+
+      // Confirm DB update
+      const updatedOrder = db.getOrderById(order.id);
+      if (updatedOrder.paymentStatus !== 'Paid') {
+        throw new Error(`Order was not marked Paid by webhook: ${updatedOrder.paymentStatus}`);
+      }
+
+      // Idempotency: Send exact same event ID again
+      const dupRes = await mockRequest('POST', '/api/payments/webhook', eventPayload, {
+        'x-razorpay-signature': validSig
+      });
+      if (dupRes.status !== 200 || !dupRes.data.message.includes('already processed')) {
+        throw new Error(`Idempotency failed on duplicate event: ${JSON.stringify(dupRes.data)}`);
+      }
+
+      // Invalid signature rejection
+      const invalidRes = await mockRequest('POST', '/api/payments/webhook', eventPayload, {
+        'x-razorpay-signature': 'tampered_invalid_signature'
+      });
+      if (invalidRes.status !== 400 || invalidRes.data.error !== 'INVALID_WEBHOOK_SIGNATURE') {
+        throw new Error(`Expected 400 INVALID_WEBHOOK_SIGNATURE, got ${invalidRes.status}`);
+      }
+    } finally {
+      process.env.RAZORPAY_WEBHOOK_SECRET = '';
+    }
+  });
+
+  // 27. Security Isolation: Customers Cannot Access Other Customers' Orders
+  await test('GET /api/orders/:id blocks customer from accessing another customer\'s order', async () => {
+    const cust1Login = await mockRequest('POST', '/api/auth/login-customer', {
+      email: 'ravi@example.com',
+      otp: '123456'
+    });
+    const cust1Token = cust1Login.data.token;
+
+    // cust_02 order access attempt by cust_01
+    const res = await mockRequest('GET', '/api/orders/ORD-53137', null, {
+      'authorization': `Bearer ${cust1Token}`
+    });
+
+    if (res.status !== 403 || res.data.error !== 'ACCESS_DENIED') {
+      throw new Error(`Expected 403 ACCESS_DENIED, got ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  // 28. Security: Entrepreneurs Cannot Modify Payment Status
+  await test('PATCH /api/orders/:id/status rejects modification of paymentStatus', async () => {
+    const res = await mockRequest('PATCH', '/api/orders/ORD-53137/status', {
+      status: 'Accepted',
+      paymentStatus: 'Paid'
+    });
+
+    if (res.status !== 403 || res.data.error !== 'PAYMENT_STATUS_IMMUTABLE') {
+      throw new Error(`Expected 403 PAYMENT_STATUS_IMMUTABLE, got ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  // 29. Security: Unauthorized Users Cannot Access Admin Payment Controls
+  await test('GET /api/admin/payments strictly requires Admin token', async () => {
+    // 1. Without token -> 401
+    const unauthRes = await mockRequest('GET', '/api/admin/payments');
+    if (unauthRes.status !== 401) {
+      throw new Error(`Expected 401, got ${unauthRes.status}`);
+    }
+
+    // 2. With Customer token -> 403
+    const custLogin = await mockRequest('POST', '/api/auth/login-customer', {
+      email: 'ravi@example.com',
+      otp: '123456'
+    });
+    const custRes = await mockRequest('GET', '/api/admin/payments', null, {
+      'authorization': `Bearer ${custLogin.data.token}`
+    });
+    if (custRes.status !== 403) {
+      throw new Error(`Expected 403 for customer, got ${custRes.status}`);
+    }
+
+    // 3. With Admin token -> 200 OK
+    const adminRes = await mockRequest('GET', '/api/admin/payments', null, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (adminRes.status !== 200 || !adminRes.data.success || !Array.isArray(adminRes.data.data)) {
+      throw new Error(`Admin payment transactions list failed: ${JSON.stringify(adminRes.data)}`);
+    }
+  });
+
+  // 30. Admin Refund Processing & Stock Restoration
+  await test('POST /api/admin/payments/:orderId/refund processes refund and restores inventory stock', async () => {
+    const db = require('./models/db');
+    const initialStock = db.getProductById('prod_01').stock;
+
+    // Create a paid order
+    const order = db.createOrder({
+      customerId: 'cust_01',
+      items: [{ productId: 'prod_01', qty: 2 }],
+      totalAmount: 930,
+      paymentStatus: 'Paid',
+      orderStatus: 'Accepted',
+      razorpayPaymentId: 'pay_sim_refund_test_123'
+    });
+
+    const stockAfterOrder = db.getProductById('prod_01').stock;
+    if (stockAfterOrder !== initialStock - 2) {
+      throw new Error(`Stock deduction failed: expected ${initialStock - 2}, got ${stockAfterOrder}`);
+    }
+
+    // Process refund via Admin endpoint
+    const refundRes = await mockRequest('POST', `/api/admin/payments/${order.id}/refund`, {
+      reason: 'Customer requested refund'
+    }, {
+      'authorization': `Bearer ${adminToken}`
+    });
+
+    if (refundRes.status !== 200 || !refundRes.data.success) {
+      throw new Error(`Refund request failed: ${JSON.stringify(refundRes.data)}`);
+    }
+
+    // Verify order status in DB
+    const refundedOrder = db.getOrderById(order.id);
+    if (refundedOrder.paymentStatus !== 'Refunded' || refundedOrder.orderStatus !== 'Cancelled') {
+      throw new Error(`Expected Refunded status, got: ${refundedOrder.paymentStatus}`);
+    }
+
+    // Verify stock restoration
+    const restoredStock = db.getProductById('prod_01').stock;
+    if (restoredStock !== initialStock) {
+      throw new Error(`Stock was not restored: expected ${initialStock}, got ${restoredStock}`);
+    }
+  });
+
   console.log(`\n======================================================`);
   console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`);
   console.log(`======================================================\n`);

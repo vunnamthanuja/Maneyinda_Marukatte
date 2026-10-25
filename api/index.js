@@ -65,6 +65,7 @@ module.exports = async (req, res) => {
     await new Promise((resolve) => {
       req.on('data', chunk => { rawBody += chunk; });
       req.on('end', () => {
+        req.rawBody = rawBody;
         try {
           req.body = JSON.parse(rawBody);
         } catch (e) {
@@ -74,6 +75,8 @@ module.exports = async (req, res) => {
       });
       req.on('error', () => resolve());
     });
+  } else if (!req.rawBody && req.body) {
+    req.rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
   }
 
   try {

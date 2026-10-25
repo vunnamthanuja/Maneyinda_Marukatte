@@ -229,6 +229,24 @@ const AdminModule = {
           </div>
         </div>
 
+        <!-- 4. Payment Gateway & Transaction Audit -->
+        <div class="card card-clickable" style="padding:14px; margin-bottom:10px; border-left:4px solid var(--color-primary); cursor:pointer;" onclick="AppRouter.navigate('screen-admin-payments')">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:26px;">payments</span>
+              <div>
+                <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary);">
+                  💳 Payments & Transactions (Razorpay)
+                </h4>
+                <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">
+                  Audit live/test Razorpay payments, signatures, and process refunds
+                </p>
+              </div>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-secondary);">chevron_right</span>
+          </div>
+        </div>
+
         <!-- 3. Active Complaints / Moderation -->
         <div class="card card-clickable" style="padding:14px; margin-bottom:10px; border-left:4px solid var(--color-error); cursor:pointer;" onclick="AppRouter.navigate('screen-admin-moderation')">
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1105,6 +1123,195 @@ const AdminModule = {
 
       ${this.renderBottomNav('profile')}
     `;
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: ADMIN PAYMENT & TRANSACTION AUDIT (RAZORPAY)
+  // -------------------------------------------------------------
+  renderPayments() {
+    const orders = store.data.orders || [];
+    const paidOrders = orders.filter(o => o.paymentStatus === 'Paid');
+    const refundedOrders = orders.filter(o => o.paymentStatus === 'Refunded');
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-dashboard')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Payments & Gateway Audit</span>
+        </div>
+        <div class="bar-trailing">
+          <button class="icon-action-btn" onclick="AdminModule.refreshPaymentsList()" title="Refresh">
+            <span class="material-symbols-rounded">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 75px;">
+        <div class="stat-card-grid" style="margin-bottom:14px;">
+          <div class="stat-card">
+            <div class="stat-icon-wrap" style="background:#E8F5E9; color:var(--color-primary);">
+              <span class="material-symbols-rounded">payments</span>
+            </div>
+            <div class="stat-value">₹${totalRevenue}</div>
+            <div class="stat-label">Verified Revenue</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap" style="background:#E1F5FE; color:var(--color-info);">
+              <span class="material-symbols-rounded">check_circle</span>
+            </div>
+            <div class="stat-value">${paidOrders.length}</div>
+            <div class="stat-label">Paid Orders</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrap" style="background:#EDE7F6; color:#5E35B1;">
+              <span class="material-symbols-rounded">currency_exchange</span>
+            </div>
+            <div class="stat-value">${refundedOrders.length}</div>
+            <div class="stat-label">Refunded</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; color:var(--color-text-tertiary); text-transform:uppercase; margin-bottom:8px;">
+          💳 Transaction Ledger (${orders.length})
+        </div>
+
+        ${orders.length === 0 ? `
+          <div class="empty-state-card" style="padding:30px 16px;">
+            <span class="material-symbols-rounded" style="font-size:40px; color:var(--color-text-tertiary);">receipt_long</span>
+            <p style="font-size:13px; color:var(--color-text-secondary); margin-top:6px;">No transactions recorded yet.</p>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${orders.map(o => {
+              const status = o.paymentStatus || (o.paymentMethod === 'Cash on Delivery' ? 'Pending' : 'Paid');
+              let statusChipColor = 'var(--color-text-secondary)';
+              let statusBg = '#F5F5F5';
+              if (status === 'Paid') { statusChipColor = '#2E7D32'; statusBg = '#E8F5E9'; }
+              else if (status === 'Pending') { statusChipColor = '#E65100'; statusBg = '#FFF3E0'; }
+              else if (status === 'Failed') { statusChipColor = '#C62828'; statusBg = '#FFEBEE'; }
+              else if (status === 'Refunded') { statusChipColor = '#5E35B1'; statusBg = '#EDE7F6'; }
+
+              const rzpId = o.razorpayPaymentId || (o.paymentDetails && o.paymentDetails.paymentId) || 'N/A';
+              const rzpOrder = o.razorpayOrderId || (o.paymentDetails && o.paymentDetails.orderId) || 'N/A';
+
+              return `
+                <div class="card" style="padding:14px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                    <div>
+                      <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);">Order #${o.id}</div>
+                      <div style="font-size:11px; color:var(--color-text-secondary);">${o.date || 'Recent'} • Customer: ${o.customerName || 'Valued Customer'}</div>
+                    </div>
+                    <span style="display:inline-block; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:${statusBg}; color:${statusChipColor};">
+                      ${status}
+                    </span>
+                  </div>
+
+                  <div style="background:#FAFAFA; border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; font-size:11px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:3px;">
+                    <div style="display:flex; justify-content:space-between;">
+                      <span>Method:</span>
+                      <strong style="color:var(--color-text-primary);">${o.paymentMethod || 'Online'}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                      <span>Store:</span>
+                      <strong style="color:var(--color-text-primary);">${o.storeName || 'Local Artisan'}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                      <span>Razorpay Txn:</span>
+                      <span style="font-family:monospace; color:var(--color-primary);">${rzpId}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                      <span>Razorpay Order:</span>
+                      <span style="font-family:monospace; color:var(--color-text-secondary);">${rzpOrder}</span>
+                    </div>
+                    ${o.refundDetails ? `
+                      <div style="display:flex; justify-content:space-between; color:#5E35B1; margin-top:2px;">
+                        <span>Refund Txn:</span>
+                        <strong style="font-family:monospace;">${o.refundDetails.refundId}</strong>
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:15px; font-weight:700; color:var(--color-primary);">₹${o.totalAmount}</div>
+                    ${status === 'Paid' ? `
+                      <button class="btn btn-secondary" style="padding:5px 12px; font-size:12px; height:auto; color:var(--color-error); border-color:var(--color-error);" onclick="AdminModule.confirmRefund('${o.id}', ${o.totalAmount})">
+                        <span class="material-symbols-rounded" style="font-size:14px; margin-right:4px;">undo</span>
+                        Refund Order
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+      ${this.renderBottomNav('dashboard')}
+    `;
+  },
+
+  confirmRefund(orderId, amount) {
+    AppUtils.showBottomSheet(`
+      <div style="padding:10px 0;">
+        <h3 style="font-size:16px; font-weight:700; color:var(--color-text-primary); margin-bottom:6px;">Confirm Payment Refund</h3>
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:14px;">
+          This will issue a refund of <strong>₹${amount}</strong> for Order <strong>#${orderId}</strong> and restore item stock.
+        </p>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Refund Reason</label>
+          <input type="text" id="admin-refund-reason" class="form-input" placeholder="e.g. Customer cancellation / Product defect" value="Customer requested refund">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="AppUtils.closeBottomSheet()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1; background:var(--color-error); border-color:var(--color-error);" onclick="AdminModule.executeRefund('${orderId}')">
+            Confirm & Issue Refund
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  async executeRefund(orderId) {
+    const reasonEl = document.getElementById('admin-refund-reason');
+    const reason = reasonEl ? reasonEl.value : 'Admin approved refund';
+    AppUtils.closeBottomSheet();
+
+    AppUtils.showToast('Initiating refund...');
+    const res = await window.apiClient.processRefund(orderId, reason);
+    if (res.success) {
+      AppUtils.showToast('✅ ' + (res.message || 'Refund issued successfully and stock restored.'));
+      const o = store.getOrderById(orderId);
+      if (o) {
+        o.paymentStatus = 'Refunded';
+        o.orderStatus = 'Cancelled';
+        store.saveData();
+      }
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast('❌ ' + (res.message || 'Could not issue refund.'));
+    }
+  },
+
+  async refreshPaymentsList() {
+    AppUtils.showToast('Syncing payment transactions...');
+    const transactions = await window.apiClient.getAdminTransactions();
+    if (transactions && Array.isArray(transactions) && transactions.length > 0) {
+      transactions.forEach(t => {
+        const local = store.getOrderById(t.orderId);
+        if (local) {
+          local.paymentStatus = t.paymentStatus;
+          local.razorpayPaymentId = t.razorpayPaymentId;
+          local.razorpayOrderId = t.razorpayOrderId;
+        }
+      });
+      store.saveData();
+    }
+    AppRouter.renderActiveScreen();
   },
 
   renderBottomNav(activeItem) {

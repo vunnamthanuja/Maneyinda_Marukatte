@@ -131,6 +131,7 @@ const AppRouter = {
       case 'screen-customer-cart': html = CustomerModule.renderCart(); break;
       case 'screen-customer-checkout': html = CustomerModule.renderCheckout(params); break;
       case 'screen-order-success': html = CustomerModule.renderOrderSuccess(params); break;
+      case 'screen-payment-failure': html = CustomerModule.renderPaymentFailure(params); break;
       case 'screen-customer-orders': html = CustomerModule.renderMyOrders(); break;
       case 'screen-customer-order-details': html = CustomerModule.renderCustomerOrderDetails(params); break;
       case 'screen-customer-rate-review': html = CustomerModule.renderRateReview(params); break;
@@ -164,6 +165,7 @@ const AppRouter = {
       case 'screen-admin-support': html = AdminModule.renderSupportCenter(); break;
       case 'screen-admin-analytics': html = AdminModule.renderAnalytics(); break;
       case 'screen-admin-profile': html = AdminModule.renderProfile(); break;
+      case 'screen-admin-payments': html = AdminModule.renderPayments(); break;
 
       default:
         html = CustomerModule.renderHome();

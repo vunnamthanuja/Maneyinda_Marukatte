@@ -1304,9 +1304,9 @@ const CustomerModule = {
 
       <!-- Sticky Place Order Button -->
       <div class="fixed-bottom-action">
-        <button class="btn btn-primary btn-block" onclick="CustomerModule.handleExecuteOrder('${firstProduct.entrepreneurId}', ${subtotal}, ${deliveryCharge})">
-          Place Order (₹<span id="btn-total-val">${grandTotal}</span>)
-          <span class="material-symbols-rounded">verified</span>
+        <button id="checkout-place-btn" class="btn btn-primary btn-block" onclick="CustomerModule.handleExecuteOrder('${firstProduct.entrepreneurId}', ${subtotal}, ${deliveryCharge})">
+          <span class="material-symbols-rounded" style="font-size:18px;">lock</span>
+          Pay Now • ₹<span id="btn-total-val">${grandTotal}</span>
         </button>
       </div>
     `;
@@ -1348,12 +1348,45 @@ const CustomerModule = {
       return;
     }
 
+    // Anti-duplicate protection: Disable submit button during processing
+    const placeBtn = document.getElementById('checkout-place-btn');
+    if (placeBtn) {
+      placeBtn.disabled = true;
+      placeBtn.innerHTML = '<span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:8px;"></span> Securing Order...';
+    }
+
+    const restoreButton = () => {
+      if (placeBtn) {
+        placeBtn.disabled = false;
+        placeBtn.innerHTML = `<span class="material-symbols-rounded" style="font-size:18px;">lock</span> Pay Now • ₹<span id="btn-total-val">${grandTotal}</span>`;
+      }
+    };
+
+    // Build items payload from cart for server-side trusted price calculation
+    const cart = store.getCart();
+    const itemsPayload = [];
+    cart.forEach(item => {
+      const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+      if (CustomerModule.selectedCartItemKeys.includes(key)) {
+        itemsPayload.push({
+          productId: item.productId,
+          qty: item.qty,
+          customization: item.customization || null
+        });
+      }
+    });
+
+    if (itemsPayload.length === 0) {
+      AppUtils.showToast('No items selected in cart.');
+      restoreButton();
+      return;
+    }
+
     if (isOnline) {
-      // Check if backend is live and Razorpay is configured
+      // 1. Online Payment via Razorpay
       if (window.apiClient && window.apiClient.isOnline && typeof window.Razorpay !== 'undefined') {
         const configRes = await window.apiClient.getPaymentConfig();
         if (configRes && configRes.isConfigured) {
-          // Real Razorpay Checkout flow
           AppUtils.showBottomSheet(`
             <div style="text-align:center; padding:20px 0;">
               <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
@@ -1362,21 +1395,28 @@ const CustomerModule = {
             </div>
           `);
 
-          const orderRes = await window.apiClient.createPaymentOrder(grandTotal, `rcpt_${Date.now()}`, {
-            entrepreneurId,
-            customerId: user.id
+          // Server-side order creation (amount calculated strictly on backend from DB)
+          const orderRes = await window.apiClient.createPaymentOrder({
+            items: itemsPayload,
+            customerId: user.id,
+            customerName: user.name,
+            customerPhone: user.phone,
+            deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
+            deliveryAddress: selAddr,
+            orderNote: note,
+            entrepreneurId
           });
 
           AppUtils.closeBottomSheet();
 
-          if (orderRes && orderRes.success && orderRes.orderId) {
+          if (orderRes && orderRes.success && orderRes.razorpayOrderId) {
             const options = {
               key: orderRes.keyId,
               amount: orderRes.amount,
               currency: orderRes.currency || 'INR',
               name: 'Maneyindha Marukatte',
-              description: `Order from ${ent.businessName || 'Local Artisan'}`,
-              order_id: orderRes.orderId,
+              description: `Order from ${orderRes.storeName || ent.businessName || 'Local Artisan'}`,
+              order_id: orderRes.razorpayOrderId,
               prefill: {
                 name: user.name || 'Valued Customer',
                 email: user.email || '',
@@ -1389,68 +1429,72 @@ const CustomerModule = {
                 AppUtils.showBottomSheet(`
                   <div style="text-align:center; padding:20px 0;">
                     <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
-                    <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Verifying Payment...</h4>
-                    <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Verifying cryptographic signature with server</p>
+                    <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Verifying Payment Signature...</h4>
+                    <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Cryptographically confirming transaction with backend</p>
                   </div>
                 `);
 
                 const verifyRes = await window.apiClient.verifyPaymentSignature({
                   razorpay_order_id: rzpResp.razorpay_order_id,
                   razorpay_payment_id: rzpResp.razorpay_payment_id,
-                  razorpay_signature: rzpResp.razorpay_signature
+                  razorpay_signature: rzpResp.razorpay_signature,
+                  orderId: orderRes.orderId
                 });
 
                 AppUtils.closeBottomSheet();
 
                 if (verifyRes && verifyRes.success && verifyRes.verified) {
                   AppUtils.showToast('Payment verified successfully!');
-                  this.completeOrderCreation({
-                    entrepreneurId,
-                    subtotal,
-                    deliveryCharge,
-                    grandTotal,
-                    deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
-                    deliveryAddress: selAddr,
-                    orderNote: note,
-                    paymentMethod: 'Razorpay UPI / Online',
-                    paymentStatus: 'Paid',
-                    paymentDetails: {
-                      provider: 'razorpay',
-                      paymentId: rzpResp.razorpay_payment_id,
-                      orderId: rzpResp.razorpay_order_id,
-                      signature: rzpResp.razorpay_signature
-                    }
+                  CustomerModule.selectedCartItemKeys = [];
+                  itemsPayload.forEach(it => {
+                    store.removeFromCart(it.productId, it.customization);
                   });
+                  AppRouter.navigate('screen-order-success', { orderId: orderRes.orderId });
                 } else {
-                  AppUtils.showToast(verifyRes.message || 'Payment signature verification failed.');
+                  restoreButton();
+                  AppRouter.navigate('screen-payment-failure', {
+                    orderId: orderRes.orderId,
+                    reason: (verifyRes && verifyRes.message) || 'Signature verification failed.',
+                    subtotal,
+                    baseDeliveryCharge,
+                    entrepreneurId
+                  });
                 }
               },
               modal: {
                 ondismiss: () => {
-                  AppUtils.showToast('Payment cancelled. Your cart is preserved.');
+                  restoreButton();
+                  AppUtils.showToast('Payment window closed. Your cart is preserved.');
                 }
               }
             };
 
             const rzp = new window.Razorpay(options);
             rzp.on('payment.failed', (resp) => {
-              AppUtils.showToast(`Payment failed: ${(resp.error && resp.error.description) || 'Payment declined'}`);
+              restoreButton();
+              AppRouter.navigate('screen-payment-failure', {
+                orderId: orderRes.orderId,
+                reason: (resp.error && resp.error.description) || 'Payment was declined or timed out.',
+                subtotal,
+                baseDeliveryCharge,
+                entrepreneurId
+              });
             });
             rzp.open();
             return;
           } else {
             console.warn('[PAYMENT] Razorpay order creation failed, falling back:', orderRes);
-            AppUtils.showToast(orderRes.message || 'Razorpay order creation failed. Falling back to test simulation.');
+            AppUtils.showToast(orderRes.message || 'Payment order creation failed. Falling back to test simulation.');
           }
         }
       }
 
-      // Fallback: Simulated online payment processing dialog (when keys are pending or offline)
+      // Fallback: Test simulation mode (when keys are pending or offline)
       AppUtils.showBottomSheet(`
         <div style="text-align:center; padding:20px 0;">
           <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
           <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Processing Payment...</h4>
-          <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Connecting to Secure UPI Payment Gateway</p>
+          <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Connecting to Secure UPI Payment Gateway (Test Mode)</p>
         </div>
       `);
 
@@ -1469,6 +1513,7 @@ const CustomerModule = {
         });
       }, 1500);
     } else {
+      // Cash on Delivery
       this.completeOrderCreation({
         entrepreneurId,
         subtotal,
@@ -1483,7 +1528,7 @@ const CustomerModule = {
     }
   },
 
-  completeOrderCreation(orderPayload) {
+    completeOrderCreation(orderPayload) {
     const user = store.getUser();
     const ent = store.getEntrepreneurById(orderPayload.entrepreneurId);
 
@@ -1543,6 +1588,61 @@ const CustomerModule = {
   // -------------------------------------------------------------
   // SCREEN: ORDER PLACED SUCCESSFULLY
   // -------------------------------------------------------------
+  renderPaymentFailure(params) {
+    const orderId = (params && params.orderId) || '';
+    const reason = (params && params.reason) || 'The payment was not completed or was declined by the bank.';
+    const subtotal = (params && params.subtotal) || 0;
+    const baseDeliveryCharge = (params && params.baseDeliveryCharge) || 0;
+    const entrepreneurId = (params && params.entrepreneurId) || '';
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-checkout')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Payment Unsuccessful</span>
+        </div>
+      </div>
+
+      <div class="screen-content content-centered" style="padding-top: 30px;">
+        <div style="width:72px; height:72px; border-radius:50%; background:#FFEBEE; color:var(--color-error); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;">
+          <span class="material-symbols-rounded" style="font-size:44px;">error</span>
+        </div>
+
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--color-error); margin-bottom: 6px;">
+          Payment Incomplete
+        </h2>
+        <p style="font-size: 13px; color: var(--color-text-secondary); max-width: 300px; line-height: 1.45; margin-bottom: 20px;">
+          ${reason}
+        </p>
+
+        <div class="card" style="width: 100%; max-width: 320px; padding: 14px; margin-bottom: 20px; text-align: left;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size: 11px; color: var(--color-text-secondary); text-transform:uppercase;">Reference Order</div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-top: 2px;">#${orderId || 'PENDING'}</div>
+            </div>
+            <span class="chip-pending" style="font-size:11px; font-weight:700;">Unpaid</span>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 8px; line-height:1.4;">
+            Your cart is safe and preserved. No money was debited. You can retry with Razorpay (UPI, Card, NetBanking) or choose Cash on Delivery.
+          </p>
+        </div>
+
+        <div style="width: 100%; max-width: 320px; display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-customer-checkout')">
+            <span class="material-symbols-rounded">refresh</span>
+            Retry Payment
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="AppRouter.navigate('screen-customer-cart')">
+            Return to Cart
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
   renderOrderSuccess(params) {
     const o = store.getOrderById(params.orderId) || store.getOrders()[0];
     return `

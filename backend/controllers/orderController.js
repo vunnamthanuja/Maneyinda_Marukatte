@@ -38,6 +38,19 @@ const orderController = {
       });
     }
 
+    const AuthMiddleware = require('../middleware/auth');
+    const token = AuthMiddleware.extractToken(req);
+    if (token) {
+      const decoded = AuthMiddleware.verifyToken(token);
+      if (decoded && decoded.role === 'customer' && decoded.id !== order.customerId) {
+        return res.status(403).json({
+          success: false,
+          error: 'ACCESS_DENIED',
+          message: 'Forbidden: Customers cannot access orders belonging to other accounts.'
+        });
+      }
+    }
+
     return res.status(200).json({
       success: true,
       data: order
@@ -145,6 +158,14 @@ const orderController = {
     const { id } = req.params;
     const { status } = req.body || {};
 
+    if (typeof (req.body && req.body.paymentStatus) !== 'undefined') {
+      return res.status(403).json({
+        success: false,
+        error: 'PAYMENT_STATUS_IMMUTABLE',
+        message: 'Payment status cannot be modified via order status update. Payment transitions are strictly governed by the payment gateway.'
+      });
+    }
+
     if (!status) {
       return res.status(400).json({
         success: false,
@@ -205,7 +226,7 @@ const orderController = {
     }
 
     // Cancellation window: strictly permitted only if New or Accepted
-    const cancellableStatuses = ['New', 'Accepted'];
+    const cancellableStatuses = ['Pending Payment', 'New', 'Accepted'];
     if (!cancellableStatuses.includes(order.orderStatus)) {
       return res.status(400).json({
         success: false,

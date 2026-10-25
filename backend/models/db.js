@@ -45,6 +45,10 @@ class Database {
     }
   }
 
+  save(dataToSave = null) {
+    return this.persist(dataToSave);
+  }
+
   persist(dataToSave = null) {
     if (dataToSave) this.data = dataToSave;
     try {
@@ -310,6 +314,16 @@ class Database {
       return this.data.orders[idx];
     }
     return null;
+  }
+
+  getOrderByRazorpayOrderId(rzpOrderId) {
+    if (!rzpOrderId) return null;
+    return (this.data.orders || []).find(o => o.razorpayOrderId === rzpOrderId || (o.paymentDetails && o.paymentDetails.orderId === rzpOrderId)) || null;
+  }
+
+  getOrderByRazorpayPaymentId(rzpPaymentId) {
+    if (!rzpPaymentId) return null;
+    return (this.data.orders || []).find(o => o.razorpayPaymentId === rzpPaymentId || (o.paymentDetails && o.paymentDetails.paymentId === rzpPaymentId)) || null;
   }
 
   // -------------------------------------------------------------
