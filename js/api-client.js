@@ -6,8 +6,16 @@
 ===================================================================== */
 
 class APIClient {
-  constructor(baseUrl = 'http://localhost:5000/api') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl) {
+    if (!baseUrl) {
+      if (typeof window !== 'undefined' && window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        this.baseUrl = `${window.location.origin}/api`;
+      } else {
+        this.baseUrl = 'http://localhost:5000/api';
+      }
+    } else {
+      this.baseUrl = baseUrl;
+    }
     this.isOnline = false;
     this.token = localStorage.getItem('AUTH_TOKEN') || '';
     this.adminToken = sessionStorage.getItem('ADMIN_TOKEN') || '';
