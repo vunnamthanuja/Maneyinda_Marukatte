@@ -131,7 +131,8 @@ class SmtpClient {
             // Waiting for 334 Password prompt
             if (code === 334) {
               step = 4;
-              sendCommand(Buffer.from(pass).toString('base64'));
+              const cleanPass = String(pass || '').replace(/\s+/g, '');
+              sendCommand(Buffer.from(cleanPass).toString('base64'));
             } else {
               cleanup();
               return resolve({ success: false, error: 'USER_REJECTED', message: `Username rejected: ${line}` });

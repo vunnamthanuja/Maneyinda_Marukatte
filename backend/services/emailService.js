@@ -19,6 +19,11 @@ class EmailService {
   }
 
   getActiveProvider() {
+    const smtpHost = process.env.SMTP_HOST || '';
+    if (smtpHost && !smtpHost.includes('your_smtp') && process.env.SMTP_USER) {
+      return 'smtp';
+    }
+
     const resendKey = process.env.RESEND_API_KEY || '';
     if (resendKey && resendKey.startsWith('re_') && !resendKey.includes('your_api_key')) {
       return 'resend';
@@ -27,11 +32,6 @@ class EmailService {
     const brevoKey = process.env.BREVO_API_KEY || '';
     if (brevoKey && (brevoKey.startsWith('xkeysib-') || brevoKey.length > 20) && !brevoKey.includes('your_api_key')) {
       return 'brevo';
-    }
-
-    const smtpHost = process.env.SMTP_HOST || '';
-    if (smtpHost && !smtpHost.includes('your_smtp')) {
-      return 'smtp';
     }
 
     if (process.env.NODE_ENV === 'test') {
