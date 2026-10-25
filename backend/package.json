@@ -1,0 +1,24 @@
+{
+  "name": "maneyinda-marukatte-backend",
+  "version": "1.0.0",
+  "description": "Backend REST API server for Maneyinda Marukatte Hyperlocal Marketplace",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "hyperlocal",
+    "marketplace",
+    "women-entrepreneurs",
+    "rest-api",
+    "nodejs"
+  ],
+  "author": "Maneyinda Marukatte Engineering Team",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
