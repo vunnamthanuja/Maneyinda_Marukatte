@@ -908,9 +908,20 @@ const EntrepreneurModule = {
   },
 
   transitionOrderStatus(orderId, nextStatus) {
-    store.updateOrderStatus(orderId, nextStatus);
-    AppUtils.showToast(`Order status updated to "${nextStatus}"`);
-    AppRouter.renderActiveScreen();
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.updateOrderStatus(orderId, nextStatus).then(() => {
+        AppUtils.showToast(`Order status updated to "${nextStatus}"`);
+        AppRouter.renderActiveScreen();
+      }).catch(() => {
+        store.updateOrderStatus(orderId, nextStatus);
+        AppUtils.showToast(`Order status updated to "${nextStatus}"`);
+        AppRouter.renderActiveScreen();
+      });
+    } else {
+      store.updateOrderStatus(orderId, nextStatus);
+      AppUtils.showToast(`Order status updated to "${nextStatus}"`);
+      AppRouter.renderActiveScreen();
+    }
   },
 
   showAfterSalesRequests() {

@@ -657,3 +657,30 @@
   color: #fff;
   font-weight: 600;
 }
+
+/* -------------------------------------------------------------
+   API STATUS PILL (Backend Live / Offline Indicator)
+------------------------------------------------------------- */
+.api-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+.api-status-pill.online {
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid #A5D6A7;
+}
+.api-status-pill.offline {
+  background: #FFF8E1;
+  color: #F57F17;
+  border: 1px solid #FFE082;
+}
+

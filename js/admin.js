@@ -321,6 +321,10 @@ const AdminModule = {
     const e = store.getEntrepreneurById(entId);
     if (!e) return;
 
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.verifyApplicant(entId, decision);
+    }
+
     if (decision === 'approve') {
       e.status = 'approved';
       e.badge = 'Rising Star';

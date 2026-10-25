@@ -1410,7 +1410,7 @@ const CustomerModule = {
       }
     });
 
-    const newOrder = store.createOrder({
+    const payload = {
       customerId: user.id,
       customerName: user.name,
       customerPhone: user.phone,
@@ -1419,10 +1419,27 @@ const CustomerModule = {
       items,
       expectedDelivery: 'Today before 6:30 PM',
       ...orderPayload
-    });
+    };
 
-    CustomerModule.selectedCartItemKeys = [];
-    AppRouter.navigate('screen-order-success', { orderId: newOrder.id });
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.createOrder(payload).then(res => {
+        if (!res.success) {
+          AppUtils.showToast(res.message || 'Could not place order.');
+          return;
+        }
+        CustomerModule.selectedCartItemKeys = [];
+        const orderId = (res.data && res.data.id) ? res.data.id : 'ORD-1001';
+        AppRouter.navigate('screen-order-success', { orderId });
+      }).catch(() => {
+        const newOrder = store.createOrder(payload);
+        CustomerModule.selectedCartItemKeys = [];
+        AppRouter.navigate('screen-order-success', { orderId: newOrder.id });
+      });
+    } else {
+      const newOrder = store.createOrder(payload);
+      CustomerModule.selectedCartItemKeys = [];
+      AppRouter.navigate('screen-order-success', { orderId: newOrder.id });
+    }
   },
 
   // -------------------------------------------------------------
@@ -1707,14 +1724,31 @@ const CustomerModule = {
   },
 
   executeCancelOrder(orderId) {
-    store.updateOrderStatus(orderId, 'Cancelled');
-    const o = store.getOrderById(orderId);
-    if (o && o.paymentMethod === 'Online Payment') {
-      o.paymentStatus = 'Refund Completed';
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.cancelOrder(orderId).then(res => {
+        if (!res.success) {
+          AppUtils.showToast(res.message || 'Cannot cancel this order.');
+          return;
+        }
+        AppUtils.closeBottomSheet();
+        AppUtils.showToast('Order cancelled and stock restored.');
+        AppRouter.renderActiveScreen();
+      }).catch(() => {
+        store.updateOrderStatus(orderId, 'Cancelled');
+        AppUtils.closeBottomSheet();
+        AppUtils.showToast('Order cancelled.');
+        AppRouter.renderActiveScreen();
+      });
+    } else {
+      store.updateOrderStatus(orderId, 'Cancelled');
+      const o = store.getOrderById(orderId);
+      if (o && o.paymentMethod === 'Online Payment') {
+        o.paymentStatus = 'Refund Completed';
+      }
+      AppUtils.closeBottomSheet();
+      AppUtils.showToast('Order cancelled.');
+      AppRouter.renderActiveScreen();
     }
-    AppUtils.closeBottomSheet();
-    AppUtils.showToast('Order cancelled.');
-    AppRouter.renderActiveScreen();
   },
 
   openAfterSalesForm(orderId, type) {

@@ -1,0 +1,421 @@
+/* =====================================================================
+   MANEYINDA MARUKATTE - REST API CLIENT
+   Connects the Frontend UI to the Node.js REST Backend (Port 5000)
+   Includes zero-crash offline fallback to local store.
+===================================================================== */
+
+class APIClient {
+  constructor(baseUrl = 'http://localhost:5000/api') {
+    this.baseUrl = baseUrl;
+    this.isOnline = false;
+    this.checkHealth();
+  }
+
+  // --- HEALTH & STATUS ---
+  async checkHealth() {
+    try {
+      const res = await fetch(`${this.baseUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(1500) });
+      if (res.ok) {
+        const json = await res.json();
+        this.isOnline = json.status === 'UP';
+        this.updateConnectionUI(true);
+        console.log('[API] Connected to backend on port 5000');
+        // Initial sync of live products and categories from backend
+        this.syncInitialData();
+        return true;
+      }
+    } catch (e) {
+      this.isOnline = false;
+      this.updateConnectionUI(false);
+      console.log('[API] Backend offline. Running in local standalone mode.');
+    }
+    return false;
+  }
+
+  updateConnectionUI(online) {
+    const badge = document.getElementById('api-status-badge');
+    if (badge) {
+      if (online) {
+        badge.innerHTML = '🟢 API Live (5000)';
+        badge.className = 'api-status-pill online';
+      } else {
+        badge.innerHTML = '⚡ Local Mode';
+        badge.className = 'api-status-pill offline';
+      }
+    }
+  }
+
+  async syncInitialData() {
+    try {
+      const prodRes = await fetch(`${this.baseUrl}/products?status=all`);
+      if (prodRes.ok) {
+        const json = await prodRes.json();
+        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+          store.data.products = json.data;
+          store.saveData();
+        }
+      }
+
+      const catRes = await fetch(`${this.baseUrl}/admin/categories`);
+      if (catRes.ok) {
+        const json = await catRes.json();
+        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+          store.data.categories = json.data;
+          store.saveData();
+        }
+      }
+    } catch (err) {
+      console.warn('[API SYNC] Could not complete initial sync:', err);
+    }
+  }
+
+  // --- HTTP HELPER ---
+  async request(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      ...((options && options.headers) || {})
+    };
+
+    try {
+      const res = await fetch(url, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        return {
+          success: false,
+          status: res.status,
+          error: data.error || 'API_ERROR',
+          message: data.message || `Request failed with status ${res.status}`
+        };
+      }
+
+      this.isOnline = true;
+      this.updateConnectionUI(true);
+      return data;
+    } catch (err) {
+      this.isOnline = false;
+      this.updateConnectionUI(false);
+      return {
+        success: false,
+        error: 'NETWORK_ERROR',
+        message: err.message,
+        fallback: true
+      };
+    }
+  }
+
+  // =============================================================
+  // 1. AUTHENTICATION MODULE
+  // =============================================================
+  async sendOtp(email, purpose = 'login') {
+    if (this.isOnline) {
+      const res = await this.request('/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, purpose })
+      });
+      if (res.success) return res;
+    }
+    // Fallback
+    return { success: true, message: 'OTP sent (Demo code: 123456)', debugOtp: '123456' };
+  }
+
+  async verifyOtp(email, otp) {
+    if (this.isOnline) {
+      const res = await this.request('/auth/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp })
+      });
+      if (res.success) return res;
+    }
+    const cleanOtp = String(otp || '').trim();
+    return { success: cleanOtp === '123456', verified: cleanOtp === '123456' };
+  }
+
+  async loginCustomer(email, otp, name, phone) {
+    if (this.isOnline) {
+      const res = await this.request('/auth/login-customer', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp, name, phone })
+      });
+      if (res.success) {
+        store.data.currentUser = { ...store.data.currentUser, ...res.user };
+        store.saveData();
+        return res;
+      }
+    }
+    // Fallback: local sign in
+    let user = store.getUser();
+    if (!user || user.email !== email) {
+      user = {
+        id: 'cust_' + Date.now(),
+        name: name || email.split('@')[0],
+        email: email,
+        phone: phone || '',
+        role: 'customer'
+      };
+      store.data.currentUser = user;
+      store.saveData();
+    }
+    return { success: true, user };
+  }
+
+  async loginEntrepreneur(username, password) {
+    if (this.isOnline) {
+      const res = await this.request('/auth/login-entrepreneur', {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+      });
+      if (res.success || res.status === 429) return res;
+    }
+    // Fallback
+    const ent = (store.data.entrepreneurs || []).find(e => 
+      e.username === username || e.email === username
+    );
+    if (!ent) return { success: false, message: 'Entrepreneur not found.' };
+    return { success: true, entrepreneur: ent };
+  }
+
+  // =============================================================
+  // 2. PRODUCTS MODULE
+  // =============================================================
+  async getProducts(category = null, search = null) {
+    if (this.isOnline) {
+      let query = '?status=all';
+      if (category && category !== 'All') query += `&category=${encodeURIComponent(category)}`;
+      if (search) query += `&search=${encodeURIComponent(search)}`;
+
+      const res = await this.request(`/products${query}`);
+      if (res.success && Array.isArray(res.data)) {
+        return res.data;
+      }
+    }
+    // Fallback: local store
+    return store.getProducts({
+      category: category && category !== 'All' ? category : null,
+      search: search || null
+    });
+  }
+
+  async createProduct(productData) {
+    if (this.isOnline) {
+      const res = await this.request('/products', {
+        method: 'POST',
+        body: JSON.stringify(productData)
+      });
+      if (res.success && res.data) {
+        store.createProduct(res.data);
+        return res;
+      }
+    }
+    // Fallback
+    const newProd = store.createProduct(productData);
+    return { success: true, data: newProd };
+  }
+
+  async updateStock(productId, stock) {
+    if (this.isOnline) {
+      const res = await this.request(`/products/${productId}/stock`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stock })
+      });
+      if (res.success) {
+        store.updateProduct(productId, { stock });
+        return res;
+      }
+    }
+    const updated = store.updateProduct(productId, { stock });
+    return { success: true, data: updated };
+  }
+
+  async deleteProduct(productId) {
+    if (this.isOnline) {
+      const res = await this.request(`/products/${productId}`, { method: 'DELETE' });
+      if (res.success) {
+        store.deleteProduct(productId);
+        return res;
+      }
+    }
+    store.deleteProduct(productId);
+    return { success: true };
+  }
+
+  // =============================================================
+  // 3. ORDERS MODULE
+  // =============================================================
+  async createOrder(orderPayload) {
+    if (this.isOnline) {
+      const res = await this.request('/orders', {
+        method: 'POST',
+        body: JSON.stringify(orderPayload)
+      });
+      if (res.success && res.data) {
+        // Also reflect in local store
+        store.data.orders.unshift(res.data);
+        store.data.currentUser.cart = [];
+        store.saveData();
+        return res;
+      } else if (res.error === 'MULTI_ENTREPRENEUR_ORDER_NOT_ALLOWED') {
+        return res;
+      }
+    }
+    // Fallback: create in local store
+    const localOrder = store.createOrder(orderPayload);
+    return { success: true, data: localOrder };
+  }
+
+  async updateOrderStatus(orderId, status) {
+    if (this.isOnline) {
+      const res = await this.request(`/orders/${orderId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+      if (res.success) {
+        store.updateOrderStatus(orderId, status);
+        return res;
+      }
+    }
+    const updated = store.updateOrderStatus(orderId, status);
+    return { success: true, data: updated };
+  }
+
+  async cancelOrder(orderId, reason = 'Customer request') {
+    if (this.isOnline) {
+      const res = await this.request(`/orders/${orderId}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      });
+      if (res.success || res.error === 'CANCELLATION_NOT_ALLOWED') {
+        if (res.success) store.updateOrderStatus(orderId, 'Cancelled');
+        return res;
+      }
+    }
+    const updated = store.updateOrderStatus(orderId, 'Cancelled');
+    return { success: true, data: updated };
+  }
+
+  // =============================================================
+  // 4. ENTREPRENEURS MODULE
+  // =============================================================
+  async registerEntrepreneur(payload) {
+    if (this.isOnline) {
+      const res = await this.request('/entrepreneurs/register', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (res.success && res.data) {
+        store.data.entrepreneurs.push(res.data);
+        store.saveData();
+        return res;
+      }
+    }
+    // Fallback
+    const ent = {
+      id: 'ent_' + Date.now(),
+      status: 'pending',
+      badge: 'Verified',
+      isStoreOpen: true,
+      ...payload
+    };
+    store.data.entrepreneurs.push(ent);
+    store.saveData();
+    return { success: true, data: ent };
+  }
+
+  async updateAvailability(entrepreneurId, isStoreOpen, openingSchedule) {
+    if (this.isOnline) {
+      const res = await this.request(`/entrepreneurs/${entrepreneurId}/availability`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isStoreOpen, openingSchedule })
+      });
+      if (res.success) {
+        store.updateEntrepreneur(entrepreneurId, { isStoreOpen, openingSchedule });
+        return res;
+      }
+    }
+    const updated = store.updateEntrepreneur(entrepreneurId, { isStoreOpen, openingSchedule });
+    return { success: true, data: updated };
+  }
+
+  // =============================================================
+  // 5. REVIEWS MODULE
+  // =============================================================
+  async submitReview(payload) {
+    if (this.isOnline) {
+      const res = await this.request('/reviews', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (res.success && res.data) {
+        store.addReview(res.data);
+        return res;
+      }
+    }
+    const newRev = store.addReview(payload);
+    return { success: true, data: newRev };
+  }
+
+  // =============================================================
+  // 6. ADMIN & PLATFORM MODULE
+  // =============================================================
+  async getVerificationQueue() {
+    if (this.isOnline) {
+      const res = await this.request('/admin/verification-queue');
+      if (res.success && Array.isArray(res.data)) {
+        return res.data;
+      }
+    }
+    return (store.data.entrepreneurs || []).filter(e => e.status === 'pending');
+  }
+
+  async verifyApplicant(entrepreneurId, decision, reason = '') {
+    if (this.isOnline) {
+      const res = await this.request(`/admin/verify/${entrepreneurId}`, {
+        method: 'POST',
+        body: JSON.stringify({ decision, reason })
+      });
+      if (res.success) {
+        const ent = store.getEntrepreneurById(entrepreneurId);
+        if (ent) {
+          ent.status = decision === 'approve' ? 'approved' : 'rejected';
+          store.saveData();
+        }
+        return res;
+      }
+    }
+    const ent = store.getEntrepreneurById(entrepreneurId);
+    if (ent) {
+      ent.status = decision === 'approve' ? 'approved' : 'rejected';
+      store.saveData();
+    }
+    return { success: true };
+  }
+
+  async getAiTrends() {
+    if (this.isOnline) {
+      const res = await this.request('/admin/ai-trends');
+      if (res.success && res.data) {
+        return res.data;
+      }
+    }
+    // Fallback: compute trend locally
+    const prods = store.getProducts();
+    const ranked = prods.map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      storeName: p.storeName,
+      ordersCount: p.ordersCount || 0,
+      rating: p.rating || 5.0,
+      trendScore: parseFloat(((p.ordersCount || 0) * 0.6 + (p.rating || 5.0) * 0.3).toFixed(2))
+    })).sort((a, b) => b.trendScore - a.trendScore);
+
+    return {
+      topTrendingProducts: ranked.slice(0, 5),
+      topEntrepreneurs: store.data.entrepreneurs.slice(0, 3)
+    };
+  }
+}
+
+// Global Singleton Instance
+window.apiClient = new APIClient();
