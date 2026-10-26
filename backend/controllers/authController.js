@@ -93,8 +93,8 @@ const authController = {
       });
     }
 
-    // 6. Store Hashed OTP in Memory
-    otpStore.set(cleanEmail, {
+    // 6. Store Hashed OTP in Memory and DB (stateless serverless persistence)
+    const otpRecord = {
       email: cleanEmail,
       otpHashed,
       expiresAt: now + OTP_EXPIRY_MS,
@@ -105,7 +105,9 @@ const authController = {
       verifiedAt: null,
       lastSentAt: now,
       resendCooldownUntil: now + RESEND_COOLDOWN_MS
-    });
+    };
+    otpStore.set(cleanEmail, otpRecord);
+    if (db.setOtp) db.setOtp(cleanEmail, otpRecord);
 
     return res.status(200).json({
       success: true,
@@ -140,7 +142,7 @@ const authController = {
     const cleanEmail = email.toLowerCase().trim();
     const cleanOtp = String(otp).trim();
 
-    const record = otpStore.get(cleanEmail);
+    const record = otpStore.get(cleanEmail) || (db.getOtp ? db.getOtp(cleanEmail) : null);
     if (!record) {
       return res.status(404).json({
         success: false,
@@ -161,6 +163,7 @@ const authController = {
 
     if (Date.now() > record.expiresAt) {
       otpStore.delete(cleanEmail);
+      if (db.deleteOtp) db.deleteOtp(cleanEmail);
       return res.status(400).json({
         success: false,
         verified: false,
@@ -187,8 +190,10 @@ const authController = {
 
     if (!isMatch) {
       record.attemptsRemaining -= 1;
+      if (db.setOtp) db.setOtp(cleanEmail, record);
       if (record.attemptsRemaining <= 0) {
         otpStore.delete(cleanEmail);
+        if (db.deleteOtp) db.deleteOtp(cleanEmail);
         return res.status(429).json({
           success: false,
           verified: false,
@@ -209,6 +214,7 @@ const authController = {
     record.isConsumed = true;
     record.isVerified = true;
     record.verifiedAt = new Date().toISOString();
+    if (db.deleteOtp) db.deleteOtp(cleanEmail);
 
     // Persist verified status to user if existing in db
     const user = db.findUserByEmail(cleanEmail);

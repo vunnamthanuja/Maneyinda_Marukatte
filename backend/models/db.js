@@ -77,6 +77,27 @@ class Database {
   }
 
   // -------------------------------------------------------------
+  // ACTIVE OTP STORAGE (Persisted across serverless invocations)
+  // -------------------------------------------------------------
+  getOtp(email) {
+    if (!this.data.otps) this.data.otps = {};
+    return this.data.otps[String(email).toLowerCase().trim()] || null;
+  }
+
+  setOtp(email, record) {
+    if (!this.data.otps) this.data.otps = {};
+    this.data.otps[String(email).toLowerCase().trim()] = record;
+    this.persist();
+  }
+
+  deleteOtp(email) {
+    if (this.data.otps && this.data.otps[String(email).toLowerCase().trim()]) {
+      delete this.data.otps[String(email).toLowerCase().trim()];
+      this.persist();
+    }
+  }
+
+  // -------------------------------------------------------------
   // USERS
   // -------------------------------------------------------------
   findUserByEmail(email) {

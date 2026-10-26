@@ -49,7 +49,14 @@ class EmailService {
     return this.getActiveProvider() !== 'none';
   }
 
-  getFromAddress() {
+  getFromAddress(provider = 'resend') {
+    if (provider === 'resend') {
+      if (process.env.RESEND_FROM && !process.env.RESEND_FROM.includes('verified_sender')) {
+        return process.env.RESEND_FROM;
+      }
+      return 'Maneyindha Marukatte <onboarding@resend.dev>';
+    }
+
     if (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('verified_sender')) {
       return process.env.EMAIL_FROM;
     }
@@ -169,6 +176,7 @@ class EmailService {
 
   /**
    * Main dispatch method - sends to user's real email using configured provider
+   * Includes smart cloud environment detection and automatic fallback cascade.
    */
   async sendOtpEmail(toEmail, otp, purpose = 'registration') {
     const cleanTo = String(toEmail).toLowerCase().trim();
@@ -179,7 +187,7 @@ class EmailService {
         success: false,
         error: 'EMAIL_PROVIDER_NOT_CONFIGURED',
         provider: 'none',
-        message: 'No email delivery provider is configured. Please add RESEND_API_KEY, BREVO_API_KEY, or SMTP credentials in your .env file.'
+        message: 'No email delivery provider is configured. Please add RESEND_API_KEY or SMTP credentials in your .env file.'
       };
       this.lastDeliveryStatus = { ...err, timestamp: new Date().toISOString(), recipient: cleanTo };
       console.warn(`[EMAIL] Delivery failed: No email provider configured in .env for ${cleanTo}`);
@@ -196,23 +204,48 @@ class EmailService {
       };
     }
 
-    if (provider === 'resend') {
+    const isVercel = Boolean(process.env.VERCEL);
+    const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
+    const hasResend = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_'));
+    const hasBrevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.length > 20);
+
+    // On Vercel / serverless: outgoing raw TCP socket port 465 is blocked by AWS/Vercel firewall.
+    // Therefore, prefer Resend HTTPS REST API first on Vercel.
+    if (isVercel && hasResend) {
+      console.log(`[EMAIL] Running on Vercel serverless. Dispathing via Resend HTTPS API to ${cleanTo}...`);
+      const resendResult = await this.sendViaResend(cleanTo, otp, purpose);
+      if (resendResult.success) return resendResult;
+      console.warn(`[EMAIL] Resend API reported (${resendResult.message}), checking fallbacks...`);
+      if (hasBrevo) return await this.sendViaBrevo(cleanTo, otp, purpose);
+      if (hasSmtp) return await this.sendViaSmtp(cleanTo, otp, purpose);
+      return resendResult;
+    }
+
+    // When running locally: prefer direct SMTP (can send to ANY email address via Gmail App Password)
+    if (hasSmtp) {
+      console.log(`[EMAIL] Dispatching via SMTP (TLS port 465) to ${cleanTo}...`);
+      const smtpResult = await this.sendViaSmtp(cleanTo, otp, purpose);
+      if (smtpResult.success) return smtpResult;
+      console.warn(`[EMAIL] SMTP failed (${smtpResult.message}), attempting Resend fallback...`);
+      if (hasResend) {
+        return await this.sendViaResend(cleanTo, otp, purpose);
+      }
+      return smtpResult;
+    }
+
+    if (hasResend) {
       return await this.sendViaResend(cleanTo, otp, purpose);
     }
 
-    if (provider === 'brevo') {
+    if (hasBrevo) {
       return await this.sendViaBrevo(cleanTo, otp, purpose);
-    }
-
-    if (provider === 'smtp') {
-      return await this.sendViaSmtp(cleanTo, otp, purpose);
     }
   }
 
   // --- 1. RESEND API DELIVERY ---
   async sendViaResend(cleanTo, otp, purpose) {
     const apiKey = process.env.RESEND_API_KEY.trim();
-    const from = this.getFromAddress();
+    const from = this.getFromAddress('resend');
     const payload = JSON.stringify({
       from,
       to: [cleanTo],
