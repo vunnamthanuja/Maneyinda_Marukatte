@@ -419,7 +419,27 @@ const authController = {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const adminUser = db.findUserByEmail(cleanEmail);
+    let adminUser = db.findUserByEmail(cleanEmail);
+
+    const envAdminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    const envAdminPass = (process.env.ADMIN_INITIAL_PASSWORD || '').trim();
+
+    const isEnvAdmin = Boolean(envAdminEmail && cleanEmail === envAdminEmail);
+
+    if (!adminUser && isEnvAdmin) {
+      adminUser = {
+        id: 'admin_env',
+        name: 'Platform Administrator',
+        email: envAdminEmail,
+        phone: '9800000001',
+        role: 'admin',
+        salt: process.env.PASSWORD_SALT || 'maneyinda_salt_2026',
+        savedAddresses: [],
+        wishlist: [],
+        cart: []
+      };
+      if (db.addUser) db.addUser(adminUser);
+    }
 
     if (!adminUser || adminUser.role !== 'admin') {
       return res.status(401).json({
@@ -430,8 +450,9 @@ const authController = {
     }
 
     // Verify salted password hash
-    const inputHash = AuthMiddleware.hashPassword(password, adminUser.salt || 'maneyinda_salt_2026');
+    const inputHash = AuthMiddleware.hashPassword(password, adminUser.salt || process.env.PASSWORD_SALT || 'maneyinda_salt_2026');
     const isValidPassword = (adminUser.passwordHash && adminUser.passwordHash === inputHash) ||
+      (envAdminPass && password === envAdminPass) ||
       (password === 'Admin@Marukatte2026!');
 
     if (!isValidPassword) {
