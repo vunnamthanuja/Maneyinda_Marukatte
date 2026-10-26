@@ -69,6 +69,22 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, baseUrl);
   const pathname = parsedUrl.pathname;
 
+  const ROOT_DIR = path.join(__dirname, '..');
+
+  // Serve static frontend files (index.html, css, js, assets)
+  if (!pathname.startsWith('/api') && pathname !== '/api') {
+    let relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+    const safePath = path.normalize(path.join(ROOT_DIR, relativePath));
+
+    if (safePath.startsWith(ROOT_DIR) && fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
+      const ext = path.extname(safePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': contentType });
+      fs.createReadStream(safePath).pipe(res);
+      return;
+    }
+  }
+
   // 2. Serve static uploads (/uploads/*)
   if (pathname.startsWith('/uploads/')) {
     const filename = path.basename(pathname);

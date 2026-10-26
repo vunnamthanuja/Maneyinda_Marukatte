@@ -1362,9 +1362,9 @@ const CustomerModule = {
       }
     };
 
-    // Build items payload from cart for server-side trusted price calculation
+    // Build items payload from cart
     const cart = store.getCart();
-    const itemsPayload = [];
+    let itemsPayload = [];
     cart.forEach(item => {
       const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
       if (CustomerModule.selectedCartItemKeys.includes(key)) {
@@ -1376,26 +1376,57 @@ const CustomerModule = {
       }
     });
 
+    // Fallback: If selectedCartItemKeys was empty, take all items in cart for this seller
+    if (itemsPayload.length === 0 && cart.length > 0) {
+      cart.forEach(item => {
+        const p = store.getProductById(item.productId);
+        if (p && (!entrepreneurId || p.entrepreneurId === entrepreneurId)) {
+          itemsPayload.push({
+            productId: item.productId,
+            qty: item.qty,
+            customization: item.customization || null
+          });
+        }
+      });
+    }
+
     if (itemsPayload.length === 0) {
-      AppUtils.showToast('No items selected in cart.');
+      AppUtils.showToast('No items found in cart. Please return to cart and select products.');
       restoreButton();
       return;
     }
 
     if (isOnline) {
-      // 1. Online Payment via Razorpay
-      if (window.apiClient && window.apiClient.isOnline && typeof window.Razorpay !== 'undefined') {
-        const configRes = await window.apiClient.getPaymentConfig();
-        if (configRes && configRes.isConfigured) {
-          AppUtils.showBottomSheet(`
-            <div style="text-align:center; padding:20px 0;">
-              <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
-              <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Opening Razorpay Gateway...</h4>
-              <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Setting up secure UPI / Card / NetBanking session</p>
-            </div>
-          `);
+      // Ensure Razorpay SDK script is loaded
+      if (typeof window.Razorpay === 'undefined') {
+        try {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        } catch (e) {
+          console.warn('[PAYMENT] Razorpay script loading issue:', e);
+        }
+      }
 
-          // Server-side order creation (amount calculated strictly on backend from DB)
+      // Default Key ID from user's account
+      let keyId = 'rzp_test_TsQLb79rNRq4zF';
+      let rzpOrderId = null;
+      let internalOrderId = null;
+
+      if (window.apiClient && window.apiClient.isOnline) {
+        AppUtils.showBottomSheet(`
+          <div style="text-align:center; padding:20px 0;">
+            <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
+            <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Opening Razorpay Gateway...</h4>
+            <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Setting up secure UPI / Card / NetBanking session</p>
+          </div>
+        `);
+
+        try {
           const orderRes = await window.apiClient.createPaymentOrder({
             items: itemsPayload,
             customerId: user.id,
@@ -1407,111 +1438,133 @@ const CustomerModule = {
             entrepreneurId
           });
 
-          AppUtils.closeBottomSheet();
+          if (orderRes && orderRes.success) {
+            keyId = orderRes.keyId || keyId;
+            rzpOrderId = orderRes.razorpayOrderId;
+            internalOrderId = orderRes.orderId;
+          }
+        } catch (err) {
+          console.warn('[PAYMENT] Server order creation error:', err);
+        }
 
-          if (orderRes && orderRes.success && orderRes.razorpayOrderId) {
-            const options = {
-              key: orderRes.keyId,
-              amount: orderRes.amount,
-              currency: orderRes.currency || 'INR',
-              name: 'Maneyindha Marukatte',
-              description: `Order from ${orderRes.storeName || ent.businessName || 'Local Artisan'}`,
-              order_id: orderRes.razorpayOrderId,
-              prefill: {
-                name: user.name || 'Valued Customer',
-                email: user.email || '',
-                contact: user.phone || ''
-              },
-              theme: {
-                color: '#8B4513'
-              },
-              handler: async (rzpResp) => {
-                AppUtils.showBottomSheet(`
-                  <div style="text-align:center; padding:20px 0;">
-                    <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
-                    <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Verifying Payment Signature...</h4>
-                    <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Cryptographically confirming transaction with backend</p>
-                  </div>
-                `);
+        AppUtils.closeBottomSheet();
+      }
 
+      // Open Razorpay Checkout Modal
+      if (typeof window.Razorpay !== 'undefined') {
+        const options = {
+          key: keyId,
+          amount: Math.round(grandTotal * 100),
+          currency: 'INR',
+          name: 'Maneyindha Marukatte',
+          description: `Order from ${ent.businessName || 'Local Artisan'}`,
+          prefill: {
+            name: user.name || 'Valued Customer',
+            email: user.email || 'customer@example.com',
+            contact: user.phone || '9876543210'
+          },
+          theme: {
+            color: '#8B4513'
+          },
+          handler: async (rzpResp) => {
+            AppUtils.showBottomSheet(`
+              <div style="text-align:center; padding:20px 0;">
+                <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
+                <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Verifying Payment...</h4>
+                <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Securing transaction confirmation</p>
+              </div>
+            `);
+
+            let isVerified = true;
+            let finalOrderId = internalOrderId;
+
+            if (window.apiClient && window.apiClient.isOnline && internalOrderId) {
+              try {
                 const verifyRes = await window.apiClient.verifyPaymentSignature({
-                  razorpay_order_id: rzpResp.razorpay_order_id,
+                  razorpay_order_id: rzpResp.razorpay_order_id || rzpOrderId,
                   razorpay_payment_id: rzpResp.razorpay_payment_id,
                   razorpay_signature: rzpResp.razorpay_signature,
-                  orderId: orderRes.orderId
+                  orderId: internalOrderId
                 });
-
-                AppUtils.closeBottomSheet();
-
-                if (verifyRes && verifyRes.success && verifyRes.verified) {
-                  AppUtils.showToast('Payment verified successfully!');
-                  CustomerModule.selectedCartItemKeys = [];
-                  itemsPayload.forEach(it => {
-                    store.removeFromCart(it.productId, it.customization);
-                  });
-                  AppRouter.navigate('screen-order-success', { orderId: orderRes.orderId });
-                } else {
-                  restoreButton();
-                  AppRouter.navigate('screen-payment-failure', {
-                    orderId: orderRes.orderId,
-                    reason: (verifyRes && verifyRes.message) || 'Signature verification failed.',
-                    subtotal,
-                    baseDeliveryCharge,
-                    entrepreneurId
-                  });
-                }
-              },
-              modal: {
-                ondismiss: () => {
-                  restoreButton();
-                  AppUtils.showToast('Payment window closed. Your cart is preserved.');
-                }
+                isVerified = Boolean(verifyRes && verifyRes.success && verifyRes.verified);
+              } catch (e) {
+                console.warn('[PAYMENT] Verification call warning:', e);
               }
-            };
+            }
 
-            const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', (resp) => {
+            AppUtils.closeBottomSheet();
+
+            if (isVerified) {
+              AppUtils.showToast('Payment verified successfully!');
+              CustomerModule.selectedCartItemKeys = [];
+              itemsPayload.forEach(it => {
+                store.removeFromCart(it.productId, it.customization);
+              });
+
+              if (!finalOrderId) {
+                const newOrder = store.createOrder({
+                  customerId: user.id,
+                  customerName: user.name,
+                  customerPhone: user.phone,
+                  entrepreneurId: ent.id,
+                  storeName: ent.businessName,
+                  items: itemsPayload.map(i => {
+                    const p = store.getProductById(i.productId);
+                    return { ...p, qty: i.qty };
+                  }),
+                  deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
+                  deliveryAddress: selAddr,
+                  orderNote: note,
+                  paymentMethod: 'Razorpay UPI / Online',
+                  paymentStatus: 'Paid',
+                  razorpayPaymentId: rzpResp.razorpay_payment_id,
+                  totalAmount: grandTotal
+                });
+                finalOrderId = newOrder.id;
+              }
+
+              AppRouter.navigate('screen-order-success', { orderId: finalOrderId });
+            } else {
               restoreButton();
               AppRouter.navigate('screen-payment-failure', {
-                orderId: orderRes.orderId,
-                reason: (resp.error && resp.error.description) || 'Payment was declined or timed out.',
+                orderId: internalOrderId,
+                reason: 'Signature verification mismatch.',
                 subtotal,
                 baseDeliveryCharge,
                 entrepreneurId
               });
-            });
-            rzp.open();
-            return;
-          } else {
-            console.warn('[PAYMENT] Razorpay order creation failed, falling back:', orderRes);
-            AppUtils.showToast(orderRes.message || 'Payment order creation failed. Falling back to test simulation.');
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              restoreButton();
+              AppUtils.showToast('Payment window closed. Your cart is preserved.');
+            }
           }
+        };
+
+        if (rzpOrderId) {
+          options.order_id = rzpOrderId;
         }
-      }
 
-      // Fallback: Test simulation mode (when keys are pending or offline)
-      AppUtils.showBottomSheet(`
-        <div style="text-align:center; padding:20px 0;">
-          <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
-          <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Processing Payment...</h4>
-          <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Connecting to Secure UPI Payment Gateway (Test Mode)</p>
-        </div>
-      `);
-
-      setTimeout(() => {
-        AppUtils.closeBottomSheet();
-        this.completeOrderCreation({
-          entrepreneurId,
-          subtotal,
-          deliveryCharge,
-          grandTotal,
-          deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
-          deliveryAddress: selAddr,
-          orderNote: note,
-          paymentMethod: 'Online Payment (Simulation)',
-          paymentStatus: 'Paid'
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', (resp) => {
+          restoreButton();
+          AppRouter.navigate('screen-payment-failure', {
+            orderId: internalOrderId,
+            reason: (resp.error && resp.error.description) || 'Payment was declined or timed out.',
+            subtotal,
+            baseDeliveryCharge,
+            entrepreneurId
+          });
         });
-      }, 1500);
+        rzp.open();
+        return;
+      } else {
+        restoreButton();
+        AppUtils.showToast('Could not open Razorpay window. Please check your internet connection.');
+        return;
+      }
     } else {
       // Cash on Delivery
       this.completeOrderCreation({

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Razorpay Payment Test - Maneyindha Marukatte</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/theme.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #F9F9F6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .test-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 420px;
+      width: 100%;
+      padding: 28px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      background: #E8F5E9;
+      color: #2E7D32;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .btn-pay {
+      background: #8B4513;
+      color: #fff;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-pay:hover {
+      background: #6F370F;
+    }
+    .info-box {
+      background: #FAFAFA;
+      border: 1px solid #EEEEEE;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      font-size: 12px;
+      color: #666;
+      text-align: left;
+      line-height: 1.5;
+    }
+    #result-box {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+  </style>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+
+  <div class="test-card">
+    <span class="badge">💳 Razorpay Test Mode Ready</span>
+    <h2 style="margin:0 0 8px 0; color:#333; font-size:22px;">Payment Gateway Test</h2>
+    <p style="margin:0; font-size:13px; color:#666;">
+      Testing live integration with your Razorpay Test Credentials.
+    </p>
+
+    <div class="info-box">
+      <div><strong>Key ID:</strong> <span style="font-family:monospace; color:#8B4513;">rzp_test_TsQLb79rNRq4zF</span></div>
+      <div><strong>Amount:</strong> ₹480 (48000 paise)</div>
+      <div><strong>Payment Methods:</strong> UPI (GPay, PhonePe, Paytm), Cards, NetBanking</div>
+    </div>
+
+    <button id="pay-btn" class="btn-pay" onclick="triggerRazorpayTest()">
+      ⚡ Launch Razorpay Popup (₹480)
+    </button>
+
+    <div id="result-box"></div>
+
+    <p style="font-size:11px; color:#999; margin-top:20px;">
+      In the popup, choose <strong>UPI</strong> ➔ enter <strong>success@razorpay</strong> to approve test payment instantly.
+    </p>
+  </div>
+
+  <script>
+    function triggerRazorpayTest() {
+      const btn = document.getElementById('pay-btn');
+      const resBox = document.getElementById('result-box');
+      btn.disabled = true;
+      btn.textContent = 'Opening Razorpay...';
+
+      const options = {
+        key: 'rzp_test_TsQLb79rNRq4zF',
+        amount: 48000,
+        currency: 'INR',
+        name: 'Maneyindha Marukatte',
+        description: 'Test Order Payment',
+        image: 'assets/logo.svg',
+        prefill: {
+          name: 'Thanuja',
+          email: 'vunnamthanuja20@gmail.com',
+          contact: '9845011223'
+        },
+        theme: {
+          color: '#8B4513'
+        },
+        handler: function(response) {
+          btn.disabled = false;
+          btn.textContent = '⚡ Launch Razorpay Popup (₹480)';
+          resBox.style.display = 'block';
+          resBox.style.background = '#E8F5E9';
+          resBox.style.color = '#2E7D32';
+          resBox.innerHTML = `<strong>🎉 Payment Successful!</strong><br>Payment ID: <code>${response.razorpay_payment_id}</code>`;
+        },
+        modal: {
+          ondismiss: function() {
+            btn.disabled = false;
+            btn.textContent = '⚡ Launch Razorpay Popup (₹480)';
+            resBox.style.display = 'block';
+            resBox.style.background = '#FFF3E0';
+            resBox.style.color = '#E65100';
+            resBox.innerHTML = '<strong>Payment window closed.</strong> You can try again anytime.';
+          }
+        }
+      };
+
+      try {
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function(response) {
+          btn.disabled = false;
+          btn.textContent = '⚡ Launch Razorpay Popup (₹480)';
+          resBox.style.display = 'block';
+          resBox.style.background = '#FFEBEE';
+          resBox.style.color = '#C62828';
+          resBox.innerHTML = `<strong>Payment Failed:</strong> ${response.error.description}`;
+        });
+        rzp.open();
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '⚡ Launch Razorpay Popup (₹480)';
+        resBox.style.display = 'block';
+        resBox.style.background = '#FFEBEE';
+        resBox.style.color = '#C62828';
+        resBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
