@@ -1,8 +1,7 @@
 /* =====================================================================
    MANEYINDA MARUKATTE - VERCEL SERVERLESS FUNCTION ENTRYPOINT
    Adapts incoming Vercel Serverless HTTP requests directly to the
-   built-in backend router with CORS, query, and path resolution.
-   Includes universal static file serving for root, CSS, JS, and assets.
+   built-in backend router with CORS, query, static uploads, and path resolution.
 ===================================================================== */
 
 const fs = require('fs');
@@ -11,43 +10,18 @@ const router = require('../backend/routes/router');
 require('../backend/config/env');
 
 const MIME_TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'application/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
-  '.ico': 'image/x-icon',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm'
 };
 
-function tryServeStatic(pathname, res) {
-  let relative = (pathname === '/' || pathname === '' || pathname === '/index.html') ? 'index.html' : pathname.replace(/^\/+/, '');
-  const searchRoots = [
-    process.cwd(),
-    path.join(__dirname, '..'),
-    path.join(process.cwd(), 'public')
-  ];
-
-  for (const root of searchRoots) {
-    const fullPath = path.normalize(path.join(root, relative));
-    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-      const ext = path.extname(fullPath).toLowerCase();
-      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
-      res.end(fs.readFileSync(fullPath));
-      return true;
-    }
-  }
-  return false;
-}
-
 module.exports = async (req, res) => {
-  // CORS headers
+  // 1. CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
@@ -74,32 +48,26 @@ module.exports = async (req, res) => {
   }
 
   const host = req.headers.host || 'localhost';
-  const rawUrl = req.headers['x-vercel-original-url'] || req.headers['x-forwarded-uri'] || req.headers['x-matched-path'] || req.url;
-  const parsedUrl = new URL(rawUrl, `https://${host}`);
+  const parsedUrl = new URL(req.url, `https://${host}`);
   let pathname = parsedUrl.pathname;
 
-  // Extract query parameters
-  const query = {};
-  parsedUrl.searchParams.forEach((val, key) => {
-    query[key] = val;
-  });
-  if (req.query && typeof req.query === 'object') {
-    Object.assign(query, req.query);
-  }
+  // Handle static uploads (/uploads/*) on Vercel
+  if (pathname.startsWith('/uploads/')) {
+    const filename = path.basename(pathname);
+    const UPLOADS_DIR = path.join(__dirname, '..', 'backend', 'uploads');
+    const TMP_UPLOADS = path.join('/tmp', 'uploads');
+    let filePath = path.join(UPLOADS_DIR, filename);
 
-  // 1. Static file fallback: If not an /api route, serve static file directly (index.html, CSS, JS, etc.)
-  if (!pathname.startsWith('/api/') && pathname !== '/api') {
-    if (tryServeStatic(pathname, res)) {
-      return;
+    if (!fs.existsSync(filePath) && fs.existsSync(path.join(TMP_UPLOADS, filename))) {
+      filePath = path.join(TMP_UPLOADS, filename);
     }
-  }
 
-  // Support /api/index.js?path=...
-  if (pathname === '/api/index.js' || pathname === '/api/index' || pathname === '/api/' || pathname === '/api') {
-    if (query.path) {
-      pathname = '/api/' + query.path.replace(/^\/+/, '');
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath).toLowerCase();
+      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+      return fs.createReadStream(filePath).pipe(res);
     } else {
-      pathname = '/api';
+      return res.status(404).json({ success: false, error: 'FILE_NOT_FOUND', message: 'Requested upload not found.' });
     }
   }
 
@@ -116,10 +84,15 @@ module.exports = async (req, res) => {
       message: `Cannot ${req.method} ${pathname}`
     });
   }
+
+  const query = {};
+  parsedUrl.searchParams.forEach((val, key) => {
+    query[key] = val;
+  });
   req.query = req.query || query;
   req.params = match.params || {};
 
-  // Body parsing for POST/PUT/PATCH
+  // Safeguard: Ensure body is parsed on Vercel serverless functions
   if (!req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
     let rawBody = '';
     await new Promise((resolve) => {

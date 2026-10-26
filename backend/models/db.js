@@ -6,8 +6,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_FILE = path.join(__dirname, '..', 'data', 'db.json');
+const ORIGINAL_DB_FILE = path.join(__dirname, '..', 'data', 'db.json');
 const SEED_FILE = path.join(__dirname, '..', 'data', 'seed.json');
+const DB_FILE = process.env.VERCEL ? path.join('/tmp', 'db.json') : ORIGINAL_DB_FILE;
 
 class Database {
   constructor() {
@@ -16,8 +17,19 @@ class Database {
 
   init() {
     try {
+      if (process.env.VERCEL && !fs.existsSync(DB_FILE)) {
+        const sourceFile = fs.existsSync(ORIGINAL_DB_FILE) ? ORIGINAL_DB_FILE : SEED_FILE;
+        if (fs.existsSync(sourceFile)) {
+          fs.writeFileSync(DB_FILE, fs.readFileSync(sourceFile, 'utf8'), 'utf8');
+        }
+      }
+
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf8');
+        return JSON.parse(raw);
+      }
+      if (fs.existsSync(ORIGINAL_DB_FILE)) {
+        const raw = fs.readFileSync(ORIGINAL_DB_FILE, 'utf8');
         return JSON.parse(raw);
       }
     } catch (e) {
@@ -54,7 +66,13 @@ class Database {
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (e) {
-      console.error('[DB] Write failed to db.json', e.message);
+      console.warn('[DB] Write failed to db.json, attempting /tmp/db.json fallback:', e.message);
+      try {
+        const tmpFile = path.join('/tmp', 'db.json');
+        fs.writeFileSync(tmpFile, JSON.stringify(this.data, null, 2), 'utf8');
+      } catch (tmpErr) {
+        // Retain in memory
+      }
     }
   }
 

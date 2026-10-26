@@ -1,0 +1,23 @@
+{
+  "name": "maneyinda-marukatte",
+  "version": "1.0.0",
+  "description": "Maneyindha Marukatte - Hyperlocal E-Commerce Platform Empowering Home-Based Women Entrepreneurs",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "test": "node backend/test-api.js"
+  },
+  "keywords": [
+    "hyperlocal",
+    "marketplace",
+    "women-entrepreneurs",
+    "razorpay",
+    "vercel"
+  ],
+  "author": "Maneyinda Marukatte",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

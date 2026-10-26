@@ -64,7 +64,7 @@
         }
       ],
       "emailVerified": true,
-      "emailVerifiedAt": "2026-10-26T10:45:56.483Z"
+      "emailVerifiedAt": "2026-10-26T11:12:38.780Z"
     },
     {
       "id": "cust_02",
@@ -90,7 +90,7 @@
       "wishlist": [],
       "cart": [],
       "emailVerified": true,
-      "emailVerifiedAt": "2026-10-26T10:45:56.458Z"
+      "emailVerifiedAt": "2026-10-26T11:12:38.762Z"
     },
     {
       "id": "cust_03",
@@ -456,7 +456,7 @@
       "rating": 4.8,
       "reviewCount": 235,
       "views": 780,
-      "ordersCount": 450,
+      "ordersCount": 474,
       "reportsCount": 0
     },
     {
@@ -680,6 +680,696 @@
     }
   ],
   "orders": [
+    {
+      "id": "ORD-78632",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_first_timer_1793013158803",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 45,
+      "couponCode": "WELCOME10",
+      "totalAmount": 435,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_mock_9rfl6ues"
+    },
+    {
+      "id": "ORD-82191",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 2
+        }
+      ],
+      "totalAmount": 930,
+      "paymentStatus": "Refunded",
+      "razorpayPaymentId": "pay_sim_refund_test_123",
+      "refundDetails": {
+        "refundId": "rfnd_1793013158771",
+        "amount": 930,
+        "reason": "Customer requested refund",
+        "refundedAt": "2026-10-26T11:12:38.771Z"
+      }
+    },
+    {
+      "id": "ORD-24245",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 1
+        }
+      ],
+      "totalAmount": 480,
+      "razorpayOrderId": "order_webhook_test_111",
+      "paymentStatus": "Paid",
+      "razorpayPaymentId": "pay_webhook_captured_999",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_webhook_captured_999",
+        "orderId": "order_webhook_test_111",
+        "method": "online",
+        "verifiedVia": "webhook",
+        "paidAt": "2026-10-26T11:12:38.751Z"
+      }
+    },
+    {
+      "id": "ORD-86130",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_mock_lbun2z5z",
+      "razorpayPaymentId": "pay_real_test_1793013158741",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_real_test_1793013158741",
+        "orderId": "order_mock_lbun2z5z",
+        "paidAt": "2026-10-26T11:12:38.741Z"
+      },
+      "updatedAt": "2026-10-26T11:12:38.741Z"
+    },
+    {
+      "id": "ORD-74007",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_mock_85lv78p1"
+    },
+    {
+      "id": "ORD-51152",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-85278",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
+    {
+      "id": "ORD-18671",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_first_timer_1793012902593",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 45,
+      "couponCode": "WELCOME10",
+      "totalAmount": 435,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_mock_h8ff725y"
+    },
+    {
+      "id": "ORD-38294",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 2
+        }
+      ],
+      "totalAmount": 930,
+      "paymentStatus": "Refunded",
+      "razorpayPaymentId": "pay_sim_refund_test_123",
+      "refundDetails": {
+        "refundId": "rfnd_1793012902539",
+        "amount": 930,
+        "reason": "Customer requested refund",
+        "refundedAt": "2026-10-26T11:08:22.539Z"
+      }
+    },
+    {
+      "id": "ORD-24521",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 1
+        }
+      ],
+      "totalAmount": 480,
+      "razorpayOrderId": "order_webhook_test_111",
+      "paymentStatus": "Paid",
+      "razorpayPaymentId": "pay_webhook_captured_999",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_webhook_captured_999",
+        "orderId": "order_webhook_test_111",
+        "method": "online",
+        "verifiedVia": "webhook",
+        "paidAt": "2026-10-26T11:08:22.510Z"
+      }
+    },
+    {
+      "id": "ORD-19338",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_mock_qdw4iex0",
+      "razorpayPaymentId": "pay_real_test_1793012902493",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_real_test_1793012902493",
+        "orderId": "order_mock_qdw4iex0",
+        "paidAt": "2026-10-26T11:08:22.493Z"
+      },
+      "updatedAt": "2026-10-26T11:08:22.493Z"
+    },
+    {
+      "id": "ORD-91265",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_mock_igu9p3ll"
+    },
+    {
+      "id": "ORD-93316",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-45229",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
+    {
+      "id": "ORD-97735",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_first_timer_1793012178505",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 45,
+      "couponCode": "WELCOME10",
+      "totalAmount": 435,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_mock_umxkygle"
+    },
+    {
+      "id": "ORD-67284",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 2
+        }
+      ],
+      "totalAmount": 930,
+      "paymentStatus": "Refunded",
+      "razorpayPaymentId": "pay_sim_refund_test_123",
+      "refundDetails": {
+        "refundId": "rfnd_1793012178438",
+        "amount": 930,
+        "reason": "Customer requested refund",
+        "refundedAt": "2026-10-26T10:56:18.438Z"
+      }
+    },
+    {
+      "id": "ORD-90735",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 1
+        }
+      ],
+      "totalAmount": 480,
+      "razorpayOrderId": "order_webhook_test_111",
+      "paymentStatus": "Paid",
+      "razorpayPaymentId": "pay_webhook_captured_999",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_webhook_captured_999",
+        "orderId": "order_webhook_test_111",
+        "method": "online",
+        "verifiedVia": "webhook",
+        "paidAt": "2026-10-26T10:56:18.404Z"
+      }
+    },
+    {
+      "id": "ORD-63519",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_mock_l2ux1to0",
+      "razorpayPaymentId": "pay_real_test_1793012178386",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_real_test_1793012178386",
+        "orderId": "order_mock_l2ux1to0",
+        "paidAt": "2026-10-26T10:56:18.387Z"
+      },
+      "updatedAt": "2026-10-26T10:56:18.387Z"
+    },
+    {
+      "id": "ORD-73957",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_mock_1l0g3vit"
+    },
+    {
+      "id": "ORD-37637",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-20190",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
     {
       "id": "ORD-59410",
       "date": "Oct 26, 2026",
@@ -6862,6 +7552,45 @@
   ],
   "supportTickets": [
     {
+      "id": "SUP-7101",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-1119",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-4532",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
       "id": "SUP-9313",
       "date": "Oct 26, 2026",
       "status": "Open",
@@ -7393,252 +8122,252 @@
   ],
   "activityLogs": [
     {
-      "id": "act_1793011556665",
-      "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-7639]",
+      "id": "act_1793013158882",
+      "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-7768]",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556652",
-      "text": "Shop owner (ent_01) updated advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-7639]",
+      "id": "act_1793013158875",
+      "text": "Shop owner (ent_01) updated advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-7768]",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556635",
-      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-7639]: status=Rejected, reason=\"Offer text is unclear and image requires higher resolution.\"",
+      "id": "act_1793013158869",
+      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-7768]: status=Rejected, reason=\"Offer text is unclear and image requires higher resolution.\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556601",
-      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-7639]: status=Approved, reason=\"Approved\"",
+      "id": "act_1793013158849",
+      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-7768]: status=Approved, reason=\"Approved\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556580",
-      "text": "Shop owner (ent_01) submitted advertisement \"Handmade Festive Cupcake Banner\" [AD-7639] for Admin approval",
+      "id": "act_1793013158837",
+      "text": "Shop owner (ent_01) submitted advertisement \"Handmade Festive Cupcake Banner\" [AD-7768] for Admin approval",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556562",
-      "text": "Admin moderated offer FESTIVE6541: status=deactivated, reason=\"Misleading price claims reported by customers\"",
+      "id": "act_1793013158827",
+      "text": "Admin moderated offer FESTIVE8815: status=deactivated, reason=\"Misleading price claims reported by customers\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556548",
-      "text": "Shop owner (ent_01) created promotional offer: \"Festive Cupcake Bonanza\" [FESTIVE6541]",
+      "id": "act_1793013158819",
+      "text": "Shop owner (ent_01) created promotional offer: \"Festive Cupcake Bonanza\" [FESTIVE8815]",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556517",
+      "id": "act_1793013158800",
       "text": "Promotional offer deleted by Admin: TESTFEST25",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556507",
+      "id": "act_1793013158795",
       "text": "Promotional offer TESTFEST25 set to active=false by Admin",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556496",
+      "id": "act_1793013158787",
       "text": "Promotional offer created by Admin: TESTFEST25 (🎉 Festival Special)",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556473",
-      "text": "Order #ORD-73311 refunded (₹930) and inventory stock restored",
+      "id": "act_1793013158774",
+      "text": "Order #ORD-82191 refunded (₹930) and inventory stock restored",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556444",
-      "text": "Order #ORD-57940 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
+      "id": "act_1793013158754",
+      "text": "Order #ORD-24245 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556427",
-      "text": "Order #ORD-54255 verified and marked Paid via Razorpay (pay_real_test_1793011556423)",
+      "id": "act_1793013158744",
+      "text": "Order #ORD-86130 verified and marked Paid via Razorpay (pay_real_test_1793013158741)",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556319",
+      "id": "act_1793013158682",
       "text": "Administrator signed in: Platform Administrator",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556312",
-      "text": "Support ticket #SUP-9313 created: \"Damaged item\"",
+      "id": "act_1793013158678",
+      "text": "Support ticket #SUP-7101 created: \"Damaged item\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556298",
-      "text": "Order #ORD-66873 updated to status \"Preparing\"",
+      "id": "act_1793013158672",
+      "text": "Order #ORD-51152 updated to status \"Preparing\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556286",
-      "text": "Order #ORD-66873 placed for ₹480 with Anita's Bakery",
+      "id": "act_1793013158667",
+      "text": "Order #ORD-51152 placed for ₹480 with Anita's Bakery",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556274",
-      "text": "Order #ORD-79838 was cancelled by customer",
+      "id": "act_1793013158660",
+      "text": "Order #ORD-85278 was cancelled by customer",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556259",
-      "text": "Order #ORD-79838 updated to status \"Accepted\"",
+      "id": "act_1793013158652",
+      "text": "Order #ORD-85278 updated to status \"Accepted\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793011556242",
-      "text": "Order #ORD-79838 placed for ₹480 with Anita's Bakery",
+      "id": "act_1793013158646",
+      "text": "Order #ORD-85278 placed for ₹480 with Anita's Bakery",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441646",
-      "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-8705]",
+      "id": "act_1793012902725",
+      "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-5386]",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441634",
-      "text": "Shop owner (ent_01) updated advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-8705]",
+      "id": "act_1793012902708",
+      "text": "Shop owner (ent_01) updated advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-5386]",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441619",
-      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-8705]: status=Rejected, reason=\"Offer text is unclear and image requires higher resolution.\"",
+      "id": "act_1793012902700",
+      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-5386]: status=Rejected, reason=\"Offer text is unclear and image requires higher resolution.\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441581",
-      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-8705]: status=Approved, reason=\"Approved\"",
+      "id": "act_1793012902670",
+      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-5386]: status=Approved, reason=\"Approved\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441553",
-      "text": "Shop owner (ent_01) submitted advertisement \"Handmade Festive Cupcake Banner\" [AD-8705] for Admin approval",
+      "id": "act_1793012902651",
+      "text": "Shop owner (ent_01) submitted advertisement \"Handmade Festive Cupcake Banner\" [AD-5386] for Admin approval",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441532",
-      "text": "Admin moderated offer FESTIVE1505: status=deactivated, reason=\"Misleading price claims reported by customers\"",
+      "id": "act_1793012902634",
+      "text": "Admin moderated offer FESTIVE2610: status=deactivated, reason=\"Misleading price claims reported by customers\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441513",
-      "text": "Shop owner (ent_01) created promotional offer: \"Festive Cupcake Bonanza\" [FESTIVE1505]",
+      "id": "act_1793012902617",
+      "text": "Shop owner (ent_01) created promotional offer: \"Festive Cupcake Bonanza\" [FESTIVE2610]",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441470",
+      "id": "act_1793012902589",
       "text": "Promotional offer deleted by Admin: TESTFEST25",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441458",
+      "id": "act_1793012902576",
       "text": "Promotional offer TESTFEST25 set to active=false by Admin",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441446",
+      "id": "act_1793012902567",
       "text": "Promotional offer created by Admin: TESTFEST25 (🎉 Festival Special)",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441415",
-      "text": "Order #ORD-68371 refunded (₹930) and inventory stock restored",
+      "id": "act_1793012902544",
+      "text": "Order #ORD-38294 refunded (₹930) and inventory stock restored",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441381",
-      "text": "Order #ORD-99827 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
+      "id": "act_1793012902515",
+      "text": "Order #ORD-24521 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441361",
-      "text": "Order #ORD-73073 verified and marked Paid via Razorpay (pay_real_test_1793010441355)",
+      "id": "act_1793012902500",
+      "text": "Order #ORD-19338 verified and marked Paid via Razorpay (pay_real_test_1793012902493)",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441251",
+      "id": "act_1793012902403",
       "text": "Administrator signed in: Platform Administrator",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441243",
-      "text": "Support ticket #SUP-6558 created: \"Damaged item\"",
+      "id": "act_1793012902398",
+      "text": "Support ticket #SUP-1119 created: \"Damaged item\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441233",
-      "text": "Order #ORD-90663 updated to status \"Preparing\"",
+      "id": "act_1793012902386",
+      "text": "Order #ORD-93316 updated to status \"Preparing\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441222",
-      "text": "Order #ORD-90663 placed for ₹480 with Anita's Bakery",
+      "id": "act_1793012902374",
+      "text": "Order #ORD-93316 placed for ₹480 with Anita's Bakery",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441214",
-      "text": "Order #ORD-22983 was cancelled by customer",
+      "id": "act_1793012902361",
+      "text": "Order #ORD-45229 was cancelled by customer",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441202",
-      "text": "Order #ORD-22983 updated to status \"Accepted\"",
+      "id": "act_1793012902346",
+      "text": "Order #ORD-45229 updated to status \"Accepted\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793010441193",
-      "text": "Order #ORD-22983 placed for ₹480 with Anita's Bakery",
+      "id": "act_1793012902329",
+      "text": "Order #ORD-45229 placed for ₹480 with Anita's Bakery",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959134",
-      "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-7309]",
+      "id": "act_1793012178637",
+      "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-8545]",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959124",
-      "text": "Shop owner (ent_01) updated advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-7309]",
+      "id": "act_1793012178628",
+      "text": "Shop owner (ent_01) updated advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-8545]",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959117",
-      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-7309]: status=Rejected, reason=\"Offer text is unclear and image requires higher resolution.\"",
+      "id": "act_1793012178618",
+      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-8545]: status=Rejected, reason=\"Offer text is unclear and image requires higher resolution.\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959081",
-      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-7309]: status=Approved, reason=\"Approved\"",
+      "id": "act_1793012178590",
+      "text": "Admin reviewed advertisement \"Handmade Festive Cupcake Banner\" [AD-8545]: status=Approved, reason=\"Approved\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959058",
-      "text": "Shop owner (ent_01) submitted advertisement \"Handmade Festive Cupcake Banner\" [AD-7309] for Admin approval",
+      "id": "act_1793012178568",
+      "text": "Shop owner (ent_01) submitted advertisement \"Handmade Festive Cupcake Banner\" [AD-8545] for Admin approval",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959039",
-      "text": "Admin moderated offer FESTIVE9006: status=deactivated, reason=\"Misleading price claims reported by customers\"",
+      "id": "act_1793012178547",
+      "text": "Admin moderated offer FESTIVE8526: status=deactivated, reason=\"Misleading price claims reported by customers\"",
       "time": "Just now"
     },
     {
-      "id": "act_1793009959015",
-      "text": "Shop owner (ent_01) created promotional offer: \"Festive Cupcake Bonanza\" [FESTIVE9006]",
+      "id": "act_1793012178532",
+      "text": "Shop owner (ent_01) created promotional offer: \"Festive Cupcake Bonanza\" [FESTIVE8526]",
       "time": "Just now"
     },
     {
-      "id": "act_1793009958980",
+      "id": "act_1793012178501",
       "text": "Promotional offer deleted by Admin: TESTFEST25",
       "time": "Just now"
     },
     {
-      "id": "act_1793009958964",
+      "id": "act_1793012178489",
       "text": "Promotional offer TESTFEST25 set to active=false by Admin",
       "time": "Just now"
     },
     {
-      "id": "act_1793009958954",
+      "id": "act_1793012178473",
       "text": "Promotional offer created by Admin: TESTFEST25 (🎉 Festival Special)",
       "time": "Just now"
     }
@@ -7918,6 +8647,72 @@
     }
   ],
   "notifications": [
+    {
+      "id": "NOTIF-1793013158866",
+      "title": "⚠️ Advertisement Requires Changes",
+      "message": "Your advertisement \"Handmade Festive Cupcake Banner\" was not approved. Reason: Offer text is unclear and image requires higher resolution.. You can edit and resubmit.",
+      "type": "error",
+      "role": "entrepreneur",
+      "entrepreneurId": "ent_01",
+      "userId": null,
+      "isRead": false,
+      "createdAt": "2026-10-26T11:12:38.866Z"
+    },
+    {
+      "id": "NOTIF-1793013158847",
+      "title": "🎉 Advertisement Approved!",
+      "message": "Your advertisement \"Handmade Festive Cupcake Banner\" was reviewed and approved by Platform Admin. It is now live in the customer carousel!",
+      "type": "success",
+      "role": "entrepreneur",
+      "entrepreneurId": "ent_01",
+      "userId": null,
+      "isRead": false,
+      "createdAt": "2026-10-26T11:12:38.847Z"
+    },
+    {
+      "id": "NOTIF-1793012902693",
+      "title": "⚠️ Advertisement Requires Changes",
+      "message": "Your advertisement \"Handmade Festive Cupcake Banner\" was not approved. Reason: Offer text is unclear and image requires higher resolution.. You can edit and resubmit.",
+      "type": "error",
+      "role": "entrepreneur",
+      "entrepreneurId": "ent_01",
+      "userId": null,
+      "isRead": false,
+      "createdAt": "2026-10-26T11:08:22.693Z"
+    },
+    {
+      "id": "NOTIF-1793012902665",
+      "title": "🎉 Advertisement Approved!",
+      "message": "Your advertisement \"Handmade Festive Cupcake Banner\" was reviewed and approved by Platform Admin. It is now live in the customer carousel!",
+      "type": "success",
+      "role": "entrepreneur",
+      "entrepreneurId": "ent_01",
+      "userId": null,
+      "isRead": false,
+      "createdAt": "2026-10-26T11:08:22.665Z"
+    },
+    {
+      "id": "NOTIF-1793012178614",
+      "title": "⚠️ Advertisement Requires Changes",
+      "message": "Your advertisement \"Handmade Festive Cupcake Banner\" was not approved. Reason: Offer text is unclear and image requires higher resolution.. You can edit and resubmit.",
+      "type": "error",
+      "role": "entrepreneur",
+      "entrepreneurId": "ent_01",
+      "userId": null,
+      "isRead": false,
+      "createdAt": "2026-10-26T10:56:18.614Z"
+    },
+    {
+      "id": "NOTIF-1793012178587",
+      "title": "🎉 Advertisement Approved!",
+      "message": "Your advertisement \"Handmade Festive Cupcake Banner\" was reviewed and approved by Platform Admin. It is now live in the customer carousel!",
+      "type": "success",
+      "role": "entrepreneur",
+      "entrepreneurId": "ent_01",
+      "userId": null,
+      "isRead": false,
+      "createdAt": "2026-10-26T10:56:18.587Z"
+    },
     {
       "id": "NOTIF-1793011556630",
       "title": "⚠️ Advertisement Requires Changes",

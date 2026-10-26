@@ -33,14 +33,14 @@ class APIClient {
         const json = await res.json();
         this.isOnline = json.status === 'UP';
         this.updateConnectionUI(true);
-        console.log('[API] Backend online & connected:', this.baseUrl);
+        console.log('[API] Connected to backend API:', this.baseUrl);
         this.syncInitialData();
         return true;
       }
     } catch (e) {
       this.isOnline = false;
       this.updateConnectionUI(false);
-      console.log('[API] Backend offline or slow. Running in local standalone mode.');
+      console.log('[API] Backend offline or warming up. Running in local standalone mode.');
     }
     return false;
   }

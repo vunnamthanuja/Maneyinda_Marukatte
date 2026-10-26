@@ -7,11 +7,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+const UPLOADS_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'uploads')
+  : path.join(__dirname, '..', 'uploads');
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {}
 
 // Whitelist of supported and safe MIME extensions
 const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
@@ -72,7 +76,19 @@ const uploadController = {
         const safeName = `media_${Date.now()}_${Math.random().toString(36).substring(2, 9)}${ext}`;
         const filePath = path.join(UPLOADS_DIR, safeName);
 
-        fs.writeFileSync(filePath, fileBuffer);
+        try {
+          fs.writeFileSync(filePath, fileBuffer);
+        } catch (writeErr) {
+          console.warn('[UPLOAD] Disk write error, falling back to data URL:', writeErr.message);
+          return res.status(200).json({
+            success: true,
+            url: typeof base64 === 'string' && base64.startsWith('data:') ? base64 : `data:image/${ext.replace('.', '')};base64,${cleanBase64}`,
+            filename: safeName,
+            mediaType: isVideo ? 'video' : 'image',
+            size: fileBuffer.length,
+            message: 'Media uploaded successfully.'
+          });
+        }
 
         return res.status(200).json({
           success: true,
