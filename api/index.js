@@ -48,8 +48,27 @@ module.exports = async (req, res) => {
   }
 
   const host = req.headers.host || 'localhost';
-  const parsedUrl = new URL(req.url, `https://${host}`);
+  const rawUrl = req.headers['x-vercel-original-url'] ||
+                 req.headers['x-forwarded-uri'] ||
+                 req.headers['x-matched-path'] ||
+                 req.url;
+  const parsedUrl = new URL(rawUrl, `https://${host}`);
   let pathname = parsedUrl.pathname;
+
+  // Extract from query parameters if rewritten by Vercel
+  const fallbackUrl = new URL(req.url, `https://${host}`);
+  const queryParamPath = fallbackUrl.searchParams.get('__path');
+  const uploadParam = fallbackUrl.searchParams.get('__upload');
+
+  if (queryParamPath) {
+    pathname = '/api/' + queryParamPath.replace(/^\/+/, '');
+  } else if (uploadParam) {
+    pathname = '/uploads/' + uploadParam.replace(/^\/+/, '');
+  } else if (pathname === '/api/index.js' || pathname === '/api/index') {
+    if (req.headers['x-vercel-original-url']) {
+      pathname = new URL(req.headers['x-vercel-original-url'], `https://${host}`).pathname;
+    }
+  }
 
   // Handle static uploads (/uploads/*) on Vercel
   if (pathname.startsWith('/uploads/')) {
@@ -87,8 +106,16 @@ module.exports = async (req, res) => {
 
   const query = {};
   parsedUrl.searchParams.forEach((val, key) => {
-    query[key] = val;
+    if (key !== '__path' && key !== '__upload') {
+      query[key] = val;
+    }
   });
+  fallbackUrl.searchParams.forEach((val, key) => {
+    if (key !== '__path' && key !== '__upload' && !query[key]) {
+      query[key] = val;
+    }
+  });
+
   req.query = req.query || query;
   req.params = match.params || {};
 
