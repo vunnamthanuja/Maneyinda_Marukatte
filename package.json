@@ -2,7 +2,6 @@
   "name": "maneyinda-marukatte",
   "version": "1.0.0",
   "description": "Maneyindha Marukatte - Hyperlocal E-Commerce Platform Empowering Home-Based Women Entrepreneurs",
-  "main": "index.html",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node backend/server.js",

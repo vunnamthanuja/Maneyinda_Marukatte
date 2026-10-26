@@ -61,7 +61,16 @@ class Router {
       });
     };
 
-    this.add('GET', '/', indexHandler);
+    this.add('GET', '/', (req, res) => {
+      const fs = require('fs');
+      const path = require('path');
+      const indexPath = path.join(__dirname, '..', '..', 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return fs.createReadStream(indexPath).pipe(res);
+      }
+      return indexHandler(req, res);
+    });
     this.add('GET', '/api', indexHandler);
 
     // Health check

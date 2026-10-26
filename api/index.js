@@ -10,6 +10,10 @@ const router = require('../backend/routes/router');
 require('../backend/config/env');
 
 const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -92,12 +96,15 @@ module.exports = async (req, res) => {
     }
   }
 
-  // If root homepage is requested via serverless entrypoint, serve index.html
-  if (pathname === '/' || pathname === '/index.html') {
-    const indexPath = path.join(__dirname, '..', 'index.html');
-    if (fs.existsSync(indexPath)) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return fs.createReadStream(indexPath).pipe(res);
+  // Handle static assets & index.html if routed to serverless function
+  if (!pathname.startsWith('/api') && !pathname.startsWith('/uploads')) {
+    let relativePath = (pathname === '/' || pathname === '') ? 'index.html' : pathname.replace(/^\/+/, '');
+    const safePath = path.normalize(path.join(__dirname, '..', relativePath));
+
+    if (fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
+      const ext = path.extname(safePath).toLowerCase();
+      res.setHeader('Content-Type', MIME_TYPES[ext] || 'text/html; charset=utf-8');
+      return fs.createReadStream(safePath).pipe(res);
     }
   }
 
