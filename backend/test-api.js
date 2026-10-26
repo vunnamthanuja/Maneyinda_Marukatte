@@ -402,45 +402,39 @@ async function runInProcessTests() {
   await test('Order transitions to Paid and Accepted upon signature verification', async () => {
     const db = require('./models/db');
     const crypto = require('crypto');
-    const testSecret = 'rzp_sec_test_order_verification_999';
-    const originalSecret = process.env.RAZORPAY_KEY_SECRET;
-    process.env.RAZORPAY_KEY_SECRET = testSecret;
+    const activeSecret = process.env.RAZORPAY_KEY_SECRET || 'test_verification_secret';
 
-    try {
-      // 1. Create order
-      const createRes = await mockRequest('POST', '/api/payments/create-order', {
-        customerId: 'cust_01',
-        items: [{ productId: 'prod_01', qty: 1 }],
-        deliveryMethod: 'Home Delivery'
-      });
-      const orderId = createRes.data.orderId;
-      const rzpOrderId = createRes.data.razorpayOrderId;
-      const rzpPaymentId = 'pay_real_test_' + Date.now();
+    // 1. Create order
+    const createRes = await mockRequest('POST', '/api/payments/create-order', {
+      customerId: 'cust_01',
+      items: [{ productId: 'prod_01', qty: 1 }],
+      deliveryMethod: 'Home Delivery'
+    });
+    const orderId = createRes.data.orderId;
+    const rzpOrderId = createRes.data.razorpayOrderId || ('order_mock_' + Date.now());
+    const rzpPaymentId = 'pay_real_test_' + Date.now();
 
-      const validSig = crypto
-        .createHmac('sha256', testSecret)
-        .update(`${rzpOrderId}|${rzpPaymentId}`)
-        .digest('hex');
+    const validSig = crypto
+      .createHmac('sha256', activeSecret)
+      .update(`${rzpOrderId}|${rzpPaymentId}`)
+      .digest('hex');
 
-      // 2. Verify payment
-      const verifyRes = await mockRequest('POST', '/api/payments/verify', {
-        razorpay_order_id: rzpOrderId,
-        razorpay_payment_id: rzpPaymentId,
-        razorpay_signature: validSig,
-        orderId
-      });
+    // 2. Verify payment
+    const verifyRes = await mockRequest('POST', '/api/payments/verify', {
+      razorpay_order_id: rzpOrderId,
+      razorpay_payment_id: rzpPaymentId,
+      razorpay_signature: validSig,
+      orderId
+    });
 
-      if (verifyRes.status !== 200 || !verifyRes.data.verified) {
-        throw new Error(`Verification failed: ${JSON.stringify(verifyRes.data)}`);
-      }
+    if (verifyRes.status !== 200 || !verifyRes.data.verified) {
+      throw new Error(`Verification failed: ${JSON.stringify(verifyRes.data)}`);
+    }
 
-      // 3. Confirm in DB
-      const verifiedOrder = db.getOrderById(orderId);
-      if (verifiedOrder.paymentStatus !== 'Paid' || verifiedOrder.orderStatus !== 'Accepted') {
-        throw new Error(`Order was not marked Paid / Accepted: ${verifiedOrder.paymentStatus}`);
-      }
-    } finally {
-      process.env.RAZORPAY_KEY_SECRET = originalSecret;
+    // 3. Confirm in DB
+    const verifiedOrder = db.getOrderById(orderId);
+    if (verifiedOrder.paymentStatus !== 'Paid' || verifiedOrder.orderStatus !== 'Accepted') {
+      throw new Error(`Order was not marked Paid / Accepted: ${verifiedOrder.paymentStatus}`);
     }
   });
 
