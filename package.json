@@ -1,0 +1,23 @@
+{
+  "name": "maneyinda-marukatte",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Hyperlocal Marketplace empowering home-based women entrepreneurs",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node backend/test-api.js",
+    "build": "echo 'Static assets ready for deployment'"
+  },
+  "keywords": [
+    "hyperlocal",
+    "marketplace",
+    "women-entrepreneurs",
+    "ecommerce"
+  ],
+  "author": "Maneyinda Marukatte Engineering Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

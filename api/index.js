@@ -35,8 +35,27 @@ module.exports = async (req, res) => {
   }
 
   const host = req.headers.host || 'localhost';
-  const parsedUrl = new URL(req.url, `https://${host}`);
+  const rawUrl = req.headers['x-vercel-original-url'] || req.headers['x-forwarded-uri'] || req.headers['x-matched-path'] || req.url;
+  const parsedUrl = new URL(rawUrl, `https://${host}`);
   let pathname = parsedUrl.pathname;
+
+  // Extract query parameters
+  const query = {};
+  parsedUrl.searchParams.forEach((val, key) => {
+    query[key] = val;
+  });
+  if (req.query && typeof req.query === 'object') {
+    Object.assign(query, req.query);
+  }
+
+  // Handle rewrite to /api/index.js?path=...
+  if (pathname === '/api/index.js' || pathname === '/api/index' || pathname === '/api/' || pathname === '/') {
+    if (query.path) {
+      pathname = '/api/' + query.path.replace(/^\/+/, '');
+    } else {
+      pathname = '/api';
+    }
+  }
 
   // Normalize path to /api/...
   if (!pathname.startsWith('/api')) {
@@ -51,11 +70,6 @@ module.exports = async (req, res) => {
       message: `Cannot ${req.method} ${pathname}`
     });
   }
-
-  const query = {};
-  parsedUrl.searchParams.forEach((val, key) => {
-    query[key] = val;
-  });
   req.query = req.query || query;
   req.params = match.params || {};
 

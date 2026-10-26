@@ -25,19 +25,22 @@ class APIClient {
   // --- HEALTH & STATUS ---
   async checkHealth() {
     try {
-      const res = await fetch(`${this.baseUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(1500) });
+      const signal = (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function')
+        ? AbortSignal.timeout(3500)
+        : undefined;
+      const res = await fetch(`${this.baseUrl}/health`, { method: 'GET', signal });
       if (res.ok) {
         const json = await res.json();
         this.isOnline = json.status === 'UP';
         this.updateConnectionUI(true);
-        console.log('[API] Connected to backend on port 5000');
+        console.log('[API] Backend online & connected:', this.baseUrl);
         this.syncInitialData();
         return true;
       }
     } catch (e) {
       this.isOnline = false;
       this.updateConnectionUI(false);
-      console.log('[API] Backend offline. Running in local standalone mode.');
+      console.log('[API] Backend offline or slow. Running in local standalone mode.');
     }
     return false;
   }
