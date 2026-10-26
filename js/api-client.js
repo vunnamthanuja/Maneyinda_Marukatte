@@ -755,7 +755,7 @@ class APIClient {
     const ownerId = (user && user.entrepreneurId) || (user && user.id);
     const list = ((store.data && store.data.offers) || []).filter(o => o.entrepreneurId === ownerId);
     return { success: true, count: list.length, data: list };
-  },
+  }
 
   async getEntrepreneurOfferById(id) {
     if (this.isOnline) {
@@ -763,7 +763,7 @@ class APIClient {
     }
     const offer = ((store.data && store.data.offers) || []).find(o => o.id === id);
     return offer ? { success: true, data: offer } : { success: false, message: 'Offer not found' };
-  },
+  }
 
   async createEntrepreneurOffer(offerData) {
     if (this.isOnline) {
@@ -789,7 +789,7 @@ class APIClient {
     store.data.offers.unshift(newOffer);
     store.saveData();
     return { success: true, data: newOffer, message: 'Offer created successfully.' };
-  },
+  }
 
   async updateEntrepreneurOffer(id, updates) {
     if (this.isOnline) {
@@ -805,7 +805,7 @@ class APIClient {
       return { success: true, data: store.data.offers[idx] };
     }
     return { success: false, message: 'Offer not found' };
-  },
+  }
 
   async toggleEntrepreneurOffer(id) {
     if (this.isOnline) {
@@ -820,7 +820,7 @@ class APIClient {
       return { success: true, data: store.data.offers[idx] };
     }
     return { success: false, message: 'Offer not found' };
-  },
+  }
 
   async deleteEntrepreneurOffer(id) {
     if (this.isOnline) {
@@ -835,7 +835,7 @@ class APIClient {
       return { success: true, data: removed };
     }
     return { success: false, message: 'Offer not found' };
-  },
+  }
 
   async getEntrepreneurOfferPerformance(id) {
     if (this.isOnline) {
@@ -856,7 +856,7 @@ class APIClient {
         usageLimit: offer.usageLimit || null
       }
     };
-  },
+  }
 
   async moderateAdminOffer(id, status, reason = '') {
     if (this.isOnline) {
@@ -874,7 +874,7 @@ class APIClient {
       return { success: true, data: store.data.offers[idx] };
     }
     return { success: false, message: 'Offer not found' };
-  },
+  }
 
   async deleteAdminOffer(id) {
     if (this.isOnline) {
@@ -889,7 +889,7 @@ class APIClient {
       return { success: true, data: removed };
     }
     return { success: false, message: 'Offer not found' };
-  },
+  }
 
   // -------------------------------------------------------------------
   // ADVERTISEMENT CLIENT METHODS
@@ -905,21 +905,21 @@ class APIClient {
       success: true,
       data: store.getAdvertisements(placement, category)
     };
-  },
+  }
 
   async recordAdImpression(id) {
     if (this.isOnline) {
       return await this.request(`/advertisements/${id}/impression`, { method: 'POST' }).catch(() => {});
     }
     return { success: true, impressions: store.recordAdImpression(id) };
-  },
+  }
 
   async recordAdClick(id) {
     if (this.isOnline) {
       return await this.request(`/advertisements/${id}/click`, { method: 'POST' }).catch(() => {});
     }
     return { success: true, clicks: store.recordAdClick(id) };
-  },
+  }
 
   // Entrepreneur Advertisements
   async getEntrepreneurAds() {
@@ -930,7 +930,7 @@ class APIClient {
     const ownerId = (user && user.entrepreneurId) || (user && user.id);
     const list = store.getEntrepreneurAds(ownerId);
     return { success: true, count: list.length, data: list };
-  },
+  }
 
   async getEntrepreneurAdById(id) {
     if (this.isOnline) {
@@ -938,7 +938,7 @@ class APIClient {
     }
     const ad = store.getAdvertisementById(id);
     return ad ? { success: true, data: ad } : { success: false, message: 'Ad not found' };
-  },
+  }
 
   async createEntrepreneurAd(adData) {
     if (this.isOnline) {
@@ -964,7 +964,7 @@ class APIClient {
     store.data.advertisements.unshift(newAd);
     store.saveData();
     return { success: true, data: newAd, message: 'Advertisement submitted for Admin approval.' };
-  },
+  }
 
   async updateEntrepreneurAd(id, updates) {
     if (this.isOnline) {
@@ -987,7 +987,7 @@ class APIClient {
       return { success: true, data: store.data.advertisements[idx] };
     }
     return { success: false, message: 'Advertisement not found' };
-  },
+  }
 
   async toggleEntrepreneurAd(id) {
     if (this.isOnline) {
@@ -1003,7 +1003,7 @@ class APIClient {
       return { success: true, data: store.data.advertisements[idx] };
     }
     return { success: false, message: 'Advertisement not found' };
-  },
+  }
 
   async deleteEntrepreneurAd(id) {
     if (this.isOnline) {
@@ -1018,7 +1018,7 @@ class APIClient {
       return { success: true, data: removed };
     }
     return { success: false, message: 'Advertisement not found' };
-  },
+  }
 
   async getAdPerformance(id) {
     if (this.isOnline) {
@@ -1040,7 +1040,7 @@ class APIClient {
         ordersAttributed: ad.ordersAttributed || 0
       }
     };
-  },
+  }
 
   // Media Upload Helper
   async uploadMedia(fileOrBase64, filename = 'banner.jpg') {
@@ -1060,7 +1060,7 @@ class APIClient {
       filename,
       message: 'Media uploaded successfully.'
     };
-  },
+  }
 
   // Admin Advertisements Review
   async getAdminAds(status = null) {
@@ -1071,7 +1071,7 @@ class APIClient {
     let list = (store.data && store.data.advertisements) || [];
     if (status) list = list.filter(a => a.status === status);
     return { success: true, count: list.length, data: list };
-  },
+  }
 
   async reviewAdminAd(id, status, rejectionReason = null, reviewNotes = null) {
     if (this.isOnline) {
@@ -1089,7 +1089,7 @@ class APIClient {
       return { success: true, data: store.data.advertisements[idx] };
     }
     return { success: false, message: 'Ad not found' };
-  },
+  }
 
   async deleteAdminAd(id) {
     if (this.isOnline) {

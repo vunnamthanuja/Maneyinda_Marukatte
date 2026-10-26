@@ -279,6 +279,10 @@ const AuthModule = {
       btn.innerHTML = `Sending Code... <span class="material-symbols-rounded" style="font-size:18px;">hourglass_top</span>`;
     }
 
+    if (!window.apiClient && typeof APIClient !== 'undefined') {
+      window.apiClient = new APIClient();
+    }
+
     try {
       const res = await window.apiClient.sendOtp(email, 'registration');
       if (res && res.success) {
@@ -745,6 +749,10 @@ const AuthModule = {
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = `Sending Code... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    if (!window.apiClient && typeof APIClient !== 'undefined') {
+      window.apiClient = new APIClient();
     }
 
     try {
