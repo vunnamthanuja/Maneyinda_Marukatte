@@ -92,6 +92,21 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // 1.5. Serve /api/static/* assets locally
+  if (pathname.startsWith('/api/static/')) {
+    const rel = pathname.replace('/api/static/', '');
+    const safePath = path.normalize(path.join(ROOT_DIR, rel));
+    if (safePath.startsWith(ROOT_DIR) && fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
+      const ext = path.extname(safePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      });
+      return fs.createReadStream(safePath).pipe(res);
+    }
+  }
+
   // 2. Serve static uploads (/uploads/*)
   if (pathname.startsWith('/uploads/')) {
     const filename = path.basename(pathname);

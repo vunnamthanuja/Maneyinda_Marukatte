@@ -82,6 +82,21 @@ module.exports = async (req, res) => {
     staticBundle = require('./static-bundle.json');
   } catch (e) {}
 
+  let checkPath = pathname;
+  if (checkPath.startsWith('/api/static/')) {
+    checkPath = checkPath.replace('/api/static', '');
+  }
+
+  if (staticBundle && staticBundle[checkPath]) {
+    const entry = staticBundle[checkPath];
+    res.setHeader('Content-Type', entry.mime);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    if (entry.isBase64) {
+      return res.end(Buffer.from(entry.content, 'base64'));
+    }
+    return res.end(entry.content);
+  }
+
   if (staticBundle) {
     const candidatePaths = [
       parsedUrl.pathname,
@@ -92,11 +107,14 @@ module.exports = async (req, res) => {
     ].filter(Boolean);
 
     for (const p of candidatePaths) {
-      const clean = p === '' ? '/' : (p.startsWith('/') ? p : '/' + p);
+      let clean = p === '' ? '/' : (p.startsWith('/') ? p : '/' + p);
+      if (clean.startsWith('/api/static/')) {
+        clean = clean.replace('/api/static', '');
+      }
       if (staticBundle[clean]) {
         const entry = staticBundle[clean];
         res.setHeader('Content-Type', entry.mime);
-        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
         if (entry.isBase64) {
           return res.end(Buffer.from(entry.content, 'base64'));
         }
