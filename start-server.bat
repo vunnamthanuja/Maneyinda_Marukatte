@@ -1,35 +1,46 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
-title Maneyindha Marukatte - Server & Email OTP Delivery
+title Maneyindha Marukatte - Port 5000 Server
+
 echo ======================================================
-echo  🌿 MANEYINDA MARUKATTE (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ)
-echo  🚀 Starting Local Server on Port 5000...
+echo  Maneyindha Marukatte - Server Starting on Port 5000
 echo ======================================================
 
-rem Determine Node.js path
-set NODE_CMD=
-where node >nul 2>nul
-if %errorlevel% equ 0 (
-    set "NODE_CMD=node"
+rem 1. Terminate any previous stale process on port 5000
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr /R /C:":5000 " 2^>nul') do (
+    if not "%%a"=="" if not "%%a"=="0" (
+        echo Freeing port 5000 (terminating previous PID %%a)...
+        taskkill /F /PID %%a >nul 2>&1
+    )
+)
+
+rem 2. Detect Node.js
+set "NODE_CMD="
+if exist "C:\Program Files\heroku\client\bin\node.exe" (
+    set "NODE_CMD=C:\Program Files\heroku\client\bin\node.exe"
 ) else if exist "C:\Program Files\nodejs\node.exe" (
     set "NODE_CMD=C:\Program Files\nodejs\node.exe"
-) else if exist "C:\Program Files\heroku\client\bin\node.exe" (
-    set "NODE_CMD=C:\Program Files\heroku\client\bin\node.exe"
 ) else (
-    echo [ERROR] Node.js executable was not found. Please install Node.js.
+    where node >nul 2>nul
+    if !errorlevel! equ 0 set "NODE_CMD=node"
+)
+
+if "%NODE_CMD%"=="" (
+    echo [ERROR] Node.js was not found on your system.
+    echo Please install Node.js from https://nodejs.org
     pause
     exit /b 1
 )
 
-rem Launch browser automatically after giving server 2 seconds to initialize
-start "" /b cmd /c "timeout /t 2 /nobreak >nul && start http://localhost:5000"
-
-echo Running server with: %NODE_CMD%
+echo Starting server with Node: %NODE_CMD%
 echo Opening application at: http://localhost:5000
-echo Real OTP email delivery enabled via Gmail SMTP & Resend.
-echo Unique 6-digit verification codes generated on every request.
-echo Do not close this terminal while using the application.
+echo Real email OTP delivery active via Gmail SMTP and Resend.
 echo ======================================================
+
+rem 3. Launch browser directly to http://localhost:5000
+start "" "http://localhost:5000"
+
+rem 4. Start backend server
 "%NODE_CMD%" backend/server.js
 pause

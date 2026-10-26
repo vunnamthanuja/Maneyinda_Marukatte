@@ -268,6 +268,12 @@ const AuthModule = {
     this.regEmail = email;
     if (errSpan) errSpan.style.display = 'none';
 
+    if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+      AppUtils.showToast('Please open the app via http://localhost:5000 (not file://)', 4000);
+      window.location.href = 'http://localhost:5000';
+      return;
+    }
+
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = `Sending Code... <span class="material-symbols-rounded" style="font-size:18px;">hourglass_top</span>`;
@@ -729,6 +735,12 @@ const AuthModule = {
     const email = input.value.trim().toLowerCase();
     this.regEmail = email;
     if (err) err.style.display = 'none';
+
+    if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+      AppUtils.showToast('Please open the app via http://localhost:5000 (not file://)', 4000);
+      window.location.href = 'http://localhost:5000';
+      return;
+    }
 
     if (btn) {
       btn.disabled = true;
