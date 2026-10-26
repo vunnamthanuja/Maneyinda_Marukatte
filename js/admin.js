@@ -247,6 +247,26 @@ const AdminModule = {
           </div>
         </div>
 
+        <!-- 5. Promotional Offers & Banner Manager -->
+        <div class="card card-clickable" style="padding:14px; margin-bottom:10px; border-left:4px solid #6E8A2F; cursor:pointer;" onclick="AppRouter.navigate('screen-admin-offers')">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:#6E8A2F; font-size:26px;">local_offer</span>
+              <div>
+                <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary);">
+                  🏷️ Promotional Offers & Banner Manager
+                </h4>
+                <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">
+                  Configure rotating home offers, coupons, validity & banner preview
+                </p>
+              </div>
+            </div>
+            <span class="status-chip chip-delivered" style="font-size:10px; font-weight:700;">
+              ${(store.getOffers ? store.getOffers(true).length : 5)} Active
+            </span>
+          </div>
+        </div>
+
         <!-- 3. Active Complaints / Moderation -->
         <div class="card card-clickable" style="padding:14px; margin-bottom:10px; border-left:4px solid var(--color-error); cursor:pointer;" onclick="AppRouter.navigate('screen-admin-moderation')">
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1312,6 +1332,316 @@ const AdminModule = {
       store.saveData();
     }
     AppRouter.renderActiveScreen();
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: PROMOTIONAL OFFERS & BANNER MANAGER
+  // -------------------------------------------------------------
+  isOfferFormOpen: false,
+
+  renderOffers() {
+    const offers = (store.data && store.data.offers) || [];
+    const activeBannerOffers = offers.filter(o => o.active && o.showInBanner);
+
+    return `
+      <!-- Top Admin App Bar -->
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-dashboard')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">🏷️ Offers & Banner Manager</span>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="AdminModule.toggleOfferForm()" style="min-height:auto; padding:6px 12px;">
+          <span class="material-symbols-rounded" style="font-size:16px;">${this.isOfferFormOpen ? 'close' : 'add'}</span>
+          ${this.isOfferFormOpen ? 'Close' : 'New Offer'}
+        </button>
+      </div>
+
+      <div class="screen-content" style="padding-top:10px; padding-bottom:70px;">
+        <!-- Live Banner Interactive Preview -->
+        <div style="font-size:12px; font-weight:700; color:var(--color-text-tertiary); text-transform:uppercase; margin-bottom:6px;">
+          👁️ Live Customer Banner Preview (${activeBannerOffers.length} Active in rotation)
+        </div>
+
+        <div style="background:var(--color-bg-warm); border:1.5px dashed var(--color-primary); border-radius:16px; padding:8px; margin-bottom:16px;">
+          ${activeBannerOffers.length === 0 ? `
+            <div style="padding:16px; text-align:center; color:var(--color-text-secondary); font-size:12px;">
+              No offers currently marked for banner display. Activate an offer or toggle "Show in banner".
+            </div>
+          ` : `
+            <div class="promo-banner-container" style="margin:0;">
+              <div class="promo-banner-track">
+                ${activeBannerOffers.map(o => `
+                  <div class="promo-slide" style="background:${o.bannerBg || 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)'};">
+                    <div class="promo-slide-header">
+                      <span class="promo-badge-pill">${o.badgeText || 'SPECIAL OFFER'}</span>
+                      <span class="promo-code-pill">${o.code}</span>
+                    </div>
+                    <div>
+                      <div class="promo-slide-title">${o.title}</div>
+                      <div class="promo-slide-subtitle">${o.subtitle}</div>
+                    </div>
+                    <div class="promo-slide-footer">
+                      <span style="font-size:10px; opacity:0.85;">${o.minOrderAmount ? `Min order ₹${o.minOrderAmount}` : 'Limited time deal'}</span>
+                      <button class="promo-cta-btn" style="pointer-events:none;">
+                        <span>${o.ctaText || 'Shop Now'}</span>
+                        <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `}
+        </div>
+
+        <!-- Create New Offer Form (Toggled) -->
+        ${this.isOfferFormOpen ? `
+          <div class="card" style="padding:16px; margin-bottom:16px; border-left:4px solid var(--color-primary);">
+            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary); margin-bottom:12px;">
+              ✨ Create New Promotional Offer
+            </h4>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="form-label" style="font-size:11px;">Coupon Code *</label>
+                  <input type="text" id="offer-code" class="form-input" placeholder="e.g. SUMMER15" style="text-transform:uppercase; font-weight:700;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">Badge Label</label>
+                  <input type="text" id="offer-badge" class="form-input" placeholder="e.g. 15% OFF, WEEKEND DEAL">
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size:11px;">Offer Title *</label>
+                <input type="text" id="offer-title" class="form-input" placeholder="e.g. 🎁 Summer Home Bakers Treat">
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size:11px;">Subtitle / Description *</label>
+                <input type="text" id="offer-subtitle" class="form-input" placeholder="e.g. Get 15% off delicious homemade brownies and cakes">
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="form-label" style="font-size:11px;">Discount Type</label>
+                  <select id="offer-discount-type" class="form-input" style="padding:8px;">
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="flat">Flat INR (₹)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">Discount Value *</label>
+                  <input type="number" id="offer-discount-value" class="form-input" placeholder="e.g. 15 or 50">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="form-label" style="font-size:11px;">Min Order Amount (₹)</label>
+                  <input type="number" id="offer-min-order" class="form-input" placeholder="e.g. 199">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">Max Discount Cap (₹)</label>
+                  <input type="number" id="offer-max-discount" class="form-input" placeholder="e.g. 100">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="form-label" style="font-size:11px;">Offer Scope</label>
+                  <select id="offer-scope" class="form-input" style="padding:8px;" onchange="AdminModule.onOfferScopeChange(this.value)">
+                    <option value="global">Global (All Products)</option>
+                    <option value="first_order">First Order Only</option>
+                    <option value="category">Specific Category</option>
+                    <option value="shop">Specific Shop / Seller</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size:11px;">Target Category / Shop</label>
+                  <input type="text" id="offer-target" class="form-input" placeholder="e.g. Bakery & Sweets">
+                </div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:16px; margin:6px 0;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                  <input type="checkbox" id="offer-show-banner" checked style="accent-color:var(--color-primary);">
+                  Show in rotating homepage banner
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                  <input type="checkbox" id="offer-active" checked style="accent-color:var(--color-primary);">
+                  Active immediately
+                </label>
+              </div>
+
+              <button class="btn btn-primary btn-block" onclick="AdminModule.saveNewOffer()">
+                <span class="material-symbols-rounded">save</span>
+                Save & Publish Offer
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- All Offers List -->
+        <div style="font-size:12px; font-weight:700; color:var(--color-text-tertiary); text-transform:uppercase; margin-bottom:8px;">
+          📋 All Configured Offers (${offers.length})
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${offers.map(o => `
+            <div class="card" style="padding:14px; border-left:4px solid ${o.active ? 'var(--color-primary)' : 'var(--color-border)'};">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="coupon-code-badge">${o.code}</span>
+                    <span style="font-size:13px; font-weight:700; color:var(--color-text-primary);">${o.title}</span>
+                  </div>
+                  <div style="font-size:11.5px; color:var(--color-text-secondary); margin-top:4px;">
+                    ${o.subtitle}
+                  </div>
+                </div>
+                <span class="status-chip ${o.active ? 'chip-delivered' : 'chip-cancelled'}" style="font-size:10px;">
+                  ${o.active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; font-size:11px;">
+                <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-primary); font-weight:600;">
+                  ${o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} FLAT OFF`}
+                </span>
+                <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
+                  Scope: ${o.scope}${o.targetId ? ` (${o.targetId})` : ''}
+                </span>
+                ${o.minOrderAmount ? `
+                  <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
+                    Min: ₹${o.minOrderAmount}
+                  </span>
+                ` : ''}
+                <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
+                  Banner: ${o.showInBanner ? 'Yes' : 'No'}
+                </span>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px; border-top:1px solid var(--color-border); padding-top:8px;">
+                <button class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px; min-height:auto;" onclick="AdminModule.toggleOfferStatus('${o.id}')">
+                  ${o.active ? 'Deactivate' : 'Activate'}
+                </button>
+                <button class="btn btn-sm btn-danger-outline" style="font-size:11px; padding:4px 10px; min-height:auto;" onclick="AdminModule.deleteOffer('${o.id}')">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      ${this.renderBottomNav('dashboard')}
+    `;
+  },
+
+  toggleOfferForm() {
+    this.isOfferFormOpen = !this.isOfferFormOpen;
+    AppRouter.renderActiveScreen();
+  },
+
+  onOfferScopeChange(val) {
+    const targetInput = document.getElementById('offer-target');
+    if (!targetInput) return;
+    if (val === 'category') {
+      targetInput.placeholder = 'e.g. Bakery & Sweets';
+    } else if (val === 'shop') {
+      targetInput.placeholder = 'e.g. ent_01';
+    } else {
+      targetInput.placeholder = 'N/A';
+    }
+  },
+
+  async saveNewOffer() {
+    const code = (document.getElementById('offer-code')?.value || '').trim().toUpperCase();
+    const title = (document.getElementById('offer-title')?.value || '').trim();
+    const subtitle = (document.getElementById('offer-subtitle')?.value || '').trim();
+    const badgeText = (document.getElementById('offer-badge')?.value || '').trim() || `${code} DEAL`;
+    const discountType = document.getElementById('offer-discount-type')?.value || 'percentage';
+    const discountValue = parseFloat(document.getElementById('offer-discount-value')?.value || '0');
+    const minOrderAmount = parseFloat(document.getElementById('offer-min-order')?.value || '0');
+    const maxDiscount = parseFloat(document.getElementById('offer-max-discount')?.value || '0') || null;
+    const scope = document.getElementById('offer-scope')?.value || 'global';
+    const targetId = (document.getElementById('offer-target')?.value || '').trim() || null;
+    const showInBanner = document.getElementById('offer-show-banner')?.checked ?? true;
+    const active = document.getElementById('offer-active')?.checked ?? true;
+
+    if (!code || !title || !discountValue) {
+      AppUtils.showToast('Please fill in Code, Title and Discount Value.');
+      return;
+    }
+
+    const offerData = {
+      code,
+      title,
+      subtitle: subtitle || `${discountValue}${discountType === 'percentage' ? '%' : '₹'} off on your order`,
+      badgeText,
+      tagText: discountType === 'percentage' ? `${discountValue}% OFF` : `₹${discountValue} OFF`,
+      discountType,
+      discountValue,
+      minOrderAmount,
+      maxDiscount,
+      scope,
+      targetId,
+      showInBanner,
+      active,
+      bannerBg: 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)',
+      bannerTextColor: '#FFFFFF',
+      ctaText: 'Shop Now',
+      ctaTarget: 'screen-customer-home',
+      ctaCategory: scope === 'category' ? targetId : 'All'
+    };
+
+    const res = await window.apiClient.createAdminOffer(offerData);
+    if (res && res.success) {
+      AppUtils.showToast(`Offer ${code} created successfully!`);
+      this.isOfferFormOpen = false;
+      if (res.data) {
+        if (!store.data.offers) store.data.offers = [];
+        store.data.offers.unshift(res.data);
+        store.saveData();
+      }
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast((res && res.message) || 'Failed to create offer.');
+    }
+  },
+
+  async toggleOfferStatus(id) {
+    const res = await window.apiClient.toggleAdminOffer(id);
+    if (res && res.success) {
+      const off = (store.data.offers || []).find(o => o.id === id);
+      if (off) {
+        off.active = !off.active;
+        store.saveData();
+      }
+      AppUtils.showToast(res.message || 'Offer status updated.');
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast('Could not update offer status.');
+    }
+  },
+
+  async deleteOffer(id) {
+    if (!confirm('Are you sure you want to delete this promotional offer?')) return;
+    const res = await window.apiClient.deleteAdminOffer(id);
+    if (res && res.success) {
+      const idx = (store.data.offers || []).findIndex(o => o.id === id);
+      if (idx !== -1) {
+        store.data.offers.splice(idx, 1);
+        store.saveData();
+      }
+      AppUtils.showToast('Offer deleted successfully.');
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast('Could not delete offer.');
+    }
   },
 
   renderBottomNav(activeItem) {

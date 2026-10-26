@@ -711,7 +711,169 @@ const defaultSeedData = {
   ],
 
   // Recent Searches
-  recentSearches: ['Chocolate Cake', 'Pickles', 'Tailoring', 'Jute Bags']
+  recentSearches: ['Chocolate Cake', 'Pickles', 'Tailoring', 'Jute Bags'],
+
+  // Promotional Offers & Deals
+  offers: [
+    {
+      id: 'off_01',
+      code: 'WELCOME10',
+      title: '🎁 Welcome Offer',
+      subtitle: 'Get 10% off your first order above ₹199',
+      badgeText: 'FIRST ORDER OFFER',
+      tagText: '10% OFF',
+      discountType: 'percentage',
+      discountValue: 10,
+      maxDiscount: 100,
+      minOrderAmount: 199,
+      scope: 'first_order',
+      targetId: null,
+      active: true,
+      showInBanner: true,
+      bannerBg: 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)',
+      bannerTextColor: '#FFFFFF',
+      ctaText: 'Shop Now',
+      ctaTarget: 'screen-customer-home',
+      ctaCategory: 'All',
+      validFrom: '2026-01-01T00:00:00Z',
+      validUntil: '2027-12-31T23:59:59Z',
+      usageLimit: 1,
+      createdAt: '2026-10-25T10:00:00Z'
+    },
+    {
+      id: 'off_02',
+      code: 'CAKE15',
+      title: '🧁 Home Bakery Special',
+      subtitle: 'Get 15% off selected cakes from participating home bakers',
+      badgeText: '15% OFF',
+      tagText: '15% OFF',
+      discountType: 'percentage',
+      discountValue: 15,
+      maxDiscount: 150,
+      minOrderAmount: 200,
+      scope: 'category',
+      targetId: 'Bakery & Sweets',
+      active: true,
+      showInBanner: true,
+      bannerBg: 'linear-gradient(135deg, #4A6B32 0%, #3B5525 100%)',
+      bannerTextColor: '#FFFFFF',
+      ctaText: 'Explore Cakes',
+      ctaTarget: 'screen-customer-home',
+      ctaCategory: 'Bakery & Sweets',
+      validFrom: '2026-01-01T00:00:00Z',
+      validUntil: '2027-12-31T23:59:59Z',
+      usageLimit: null,
+      createdAt: '2026-10-25T10:00:00Z'
+    },
+    {
+      id: 'off_03',
+      code: 'CRAFT20',
+      title: '🧵 Handcrafted Wonders',
+      subtitle: 'Flat 20% off selected handmade crafts this week',
+      badgeText: '20% OFF',
+      tagText: '20% OFF',
+      discountType: 'percentage',
+      discountValue: 20,
+      maxDiscount: 200,
+      minOrderAmount: 250,
+      scope: 'category',
+      targetId: 'Handmade Crafts',
+      active: true,
+      showInBanner: true,
+      bannerBg: 'linear-gradient(135deg, #4A6B32 0%, #2A401B 100%)',
+      bannerTextColor: '#FFFFFF',
+      ctaText: 'Explore Crafts',
+      ctaTarget: 'screen-customer-home',
+      ctaCategory: 'Handmade Crafts',
+      validFrom: '2026-01-01T00:00:00Z',
+      validUntil: '2027-12-31T23:59:59Z',
+      usageLimit: null,
+      createdAt: '2026-10-25T10:00:00Z'
+    },
+    {
+      id: 'off_04',
+      code: 'TIFFIN10',
+      title: '🍱 Fresh Ghar Ka Khana',
+      subtitle: 'Enjoy 10% off selected homemade tiffins',
+      badgeText: '10% OFF',
+      tagText: '10% OFF',
+      discountType: 'percentage',
+      discountValue: 10,
+      maxDiscount: 80,
+      minOrderAmount: 150,
+      scope: 'category',
+      targetId: 'Food & Tiffin',
+      active: true,
+      showInBanner: true,
+      bannerBg: 'linear-gradient(135deg, #4A6B32 0%, #354E22 100%)',
+      bannerTextColor: '#FFFFFF',
+      ctaText: 'Order Tiffins',
+      ctaTarget: 'screen-customer-home',
+      ctaCategory: 'Food & Tiffin',
+      validFrom: '2026-01-01T00:00:00Z',
+      validUntil: '2027-12-31T23:59:59Z',
+      usageLimit: null,
+      createdAt: '2026-10-25T10:00:00Z'
+    },
+    {
+      id: 'off_05',
+      code: 'WEEKEND50',
+      title: '🛍️ Weekend Women Bazaar',
+      subtitle: 'Special weekend offers from local women entrepreneurs',
+      badgeText: 'WEEKEND DEAL',
+      tagText: '₹50 OFF',
+      discountType: 'flat',
+      discountValue: 50,
+      maxDiscount: 50,
+      minOrderAmount: 399,
+      scope: 'global',
+      targetId: null,
+      active: true,
+      showInBanner: true,
+      bannerBg: 'linear-gradient(135deg, #4A6B32 0%, #1F3314 100%)',
+      bannerTextColor: '#FFFFFF',
+      ctaText: 'Explore Offers',
+      ctaTarget: 'screen-customer-home',
+      ctaCategory: 'All',
+      validFrom: '2026-01-01T00:00:00Z',
+      validUntil: '2027-12-31T23:59:59Z',
+      usageLimit: null,
+      createdAt: '2026-10-25T10:00:00Z'
+    }
+  ],
+
+  // Promotional Announcements
+  announcements: [
+    {
+      id: 'ANN-01',
+      title: '🙏 Namaste Bangalore! New Homemade Delights Added',
+      message: 'Discover authentic treats and handmade treasures crafted with love by local women entrepreneurs right in your neighborhood.',
+      date: 'Today',
+      badge: 'NEW',
+      type: 'greeting',
+      isRead: false
+    },
+    {
+      id: 'ANN-02',
+      title: '🎁 First Order 10% Off with Code WELCOME10',
+      message: 'Use code WELCOME10 at checkout to enjoy 10% instant discount on orders above ₹199. Valid on all kitchens and craft studios.',
+      date: 'Yesterday',
+      badge: 'PROMO',
+      type: 'promo',
+      offerCode: 'WELCOME10',
+      isRead: false
+    },
+    {
+      id: 'ANN-03',
+      title: '🧁 Anita\'s Bakery Special 15% Off',
+      message: 'Fresh batch of Dutch Chocolate and Cupcakes available with 15% discount using coupon CAKE15.',
+      date: '2 days ago',
+      badge: 'BAKERY',
+      type: 'promo',
+      offerCode: 'CAKE15',
+      isRead: false
+    }
+  ]
 };
 
 class AppStore {
@@ -723,7 +885,14 @@ class AppStore {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (!parsed.offers || parsed.offers.length === 0) {
+          parsed.offers = defaultSeedData.offers;
+        }
+        if (!parsed.announcements || parsed.announcements.length === 0) {
+          parsed.announcements = defaultSeedData.announcements;
+        }
+        return parsed;
       }
     } catch (e) {
       console.error('Failed to load localStorage data', e);
@@ -1226,6 +1395,37 @@ class AppStore {
 
   getActivityLogs() {
     return this.data.activityLogs || [];
+  }
+
+  // Promotional Offers & Announcements
+  getOffers(activeOnly = true) {
+    const list = this.data.offers || [];
+    if (!activeOnly) return list;
+    const now = new Date();
+    return list.filter(o => {
+      if (!o.active) return false;
+      if (o.validFrom && new Date(o.validFrom) > now) return false;
+      if (o.validUntil && new Date(o.validUntil) < now) return false;
+      return true;
+    });
+  }
+
+  getOfferByCode(code) {
+    if (!code) return null;
+    const clean = code.trim().toUpperCase();
+    return this.getOffers(true).find(o => o.code && o.code.toUpperCase() === clean) || null;
+  }
+
+  getAnnouncements() {
+    return this.data.announcements || [];
+  }
+
+  markAnnouncementRead(id) {
+    const item = (this.data.announcements || []).find(a => a.id === id);
+    if (item) {
+      item.isRead = true;
+      this.saveData();
+    }
   }
 }
 

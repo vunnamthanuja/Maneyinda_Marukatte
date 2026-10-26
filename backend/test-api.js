@@ -612,6 +612,165 @@ async function runInProcessTests() {
     }
   });
 
+  // 31. Promotional Offers Public Listing
+  await test('GET /api/offers should return active promotional offers and banner items', async () => {
+    const res = await mockRequest('GET', '/api/offers');
+    if (res.status !== 200 || !res.data.success || !Array.isArray(res.data.data)) {
+      throw new Error(`Offers listing failed: ${JSON.stringify(res.data)}`);
+    }
+    const codes = res.data.data.map(o => o.code);
+    if (!codes.includes('WELCOME10') || !codes.includes('CAKE15')) {
+      throw new Error(`Expected seeded offers WELCOME10 and CAKE15, found: ${codes.join(', ')}`);
+    }
+  });
+
+  // 32. Strict Server-Side Coupon Validation
+  await test('POST /api/offers/validate validates coupons and enforces server rules', async () => {
+    // A: Valid WELCOME10 on subtotal 450 -> 10% = ₹45 discount
+    const validRes = await mockRequest('POST', '/api/offers/validate', {
+      code: 'WELCOME10',
+      subtotal: 450,
+      items: [{ productId: 'prod_01', qty: 1 }],
+      customerId: 'cust_new'
+    });
+    if (validRes.status !== 200 || !validRes.data.valid || validRes.data.discountAmount !== 45) {
+      throw new Error(`WELCOME10 calculation failed: ${JSON.stringify(validRes.data)}`);
+    }
+
+    // B: Below minimum order threshold (min ₹199 for WELCOME10)
+    const minOrderRes = await mockRequest('POST', '/api/offers/validate', {
+      code: 'WELCOME10',
+      subtotal: 100,
+      items: [{ productId: 'prod_01', qty: 1 }],
+      customerId: 'cust_new'
+    });
+    if (minOrderRes.status !== 400 || minOrderRes.data.valid !== false) {
+      throw new Error(`Should reject coupon below minimum order amount: ${JSON.stringify(minOrderRes.data)}`);
+    }
+
+    // C: Category scope mismatch (CAKE15 should reject Crafts or Tiffins)
+    const catMismatch = await mockRequest('POST', '/api/offers/validate', {
+      code: 'CAKE15',
+      subtotal: 350,
+      items: [{ productId: 'prod_03', qty: 1 }], // prod_03 is Handmade Crafts
+      customerId: 'cust_01'
+    });
+    if (catMismatch.status !== 400 || catMismatch.data.valid !== false) {
+      throw new Error(`Should reject CAKE15 on non-bakery products: ${JSON.stringify(catMismatch.data)}`);
+    }
+
+    // D: Non-existent code
+    const invalidCode = await mockRequest('POST', '/api/offers/validate', {
+      code: 'FAKECODE99',
+      subtotal: 500
+    });
+    if (invalidCode.status !== 404 || invalidCode.data.valid !== false) {
+      throw new Error(`Should reject non-existent coupon: ${JSON.stringify(invalidCode.data)}`);
+    }
+  });
+
+  // 33. Promotional Announcements Listing
+  await test('GET /api/promotions/announcements returns active announcements and greetings', async () => {
+    const res = await mockRequest('GET', '/api/promotions/announcements');
+    if (res.status !== 200 || !res.data.success || !Array.isArray(res.data.announcements)) {
+      throw new Error(`Announcements listing failed: ${JSON.stringify(res.data)}`);
+    }
+    if (res.data.announcements.length === 0) {
+      throw new Error('Expected at least 1 promotional announcement');
+    }
+  });
+
+  // 34. Protected Admin Offer Management Guards & CRUD
+  await test('Protected Admin Offers API enforces RBAC guards and CRUD operations', async () => {
+    // A: Reject without token -> 401
+    const unauth = await mockRequest('GET', '/api/admin/offers');
+    if (unauth.status !== 401) {
+      throw new Error(`Expected 401 for unauthenticated request, got ${unauth.status}`);
+    }
+
+    // B: Customer token -> 403
+    const custLogin = await mockRequest('POST', '/api/auth/login-customer', {
+      email: 'thanuja@example.com',
+      otp: '123456'
+    });
+    const custRes = await mockRequest('GET', '/api/admin/offers', null, {
+      'authorization': `Bearer ${custLogin.data.token}`
+    });
+    if (custRes.status !== 403) {
+      throw new Error(`Expected 403 for customer on admin offers, got ${custRes.status}`);
+    }
+
+    // C: Admin token -> 200 OK
+    const adminRes = await mockRequest('GET', '/api/admin/offers', null, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (adminRes.status !== 200 || !adminRes.data.success || !Array.isArray(adminRes.data.data)) {
+      throw new Error(`Admin offers list failed: ${JSON.stringify(adminRes.data)}`);
+    }
+
+    // D: Create new promotional offer with Admin Token
+    const createRes = await mockRequest('POST', '/api/admin/offers', {
+      code: 'TESTFEST25',
+      title: '🎉 Festival Special',
+      subtitle: 'Flat 25% off during festival season',
+      badgeText: '25% OFF',
+      discountType: 'percentage',
+      discountValue: 25,
+      minOrderAmount: 200,
+      scope: 'global'
+    }, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (createRes.status !== 201 || !createRes.data.success || !createRes.data.data.id) {
+      throw new Error(`Admin offer creation failed: ${JSON.stringify(createRes.data)}`);
+    }
+
+    const testOfferId = createRes.data.data.id;
+
+    // E: Toggle Active State
+    const toggleRes = await mockRequest('PATCH', `/api/admin/offers/${testOfferId}/toggle`, null, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (toggleRes.status !== 200 || toggleRes.data.data.active !== false) {
+      throw new Error(`Offer toggle failed: ${JSON.stringify(toggleRes.data)}`);
+    }
+
+    // F: Delete Offer
+    const delRes = await mockRequest('DELETE', `/api/admin/offers/${testOfferId}`, null, {
+      'authorization': `Bearer ${adminToken}`
+    });
+    if (delRes.status !== 200 || !delRes.data.success) {
+      throw new Error(`Offer deletion failed: ${JSON.stringify(delRes.data)}`);
+    }
+  });
+
+  // 35. Verified Coupon Discount in Razorpay / Online Order Creation
+  await test('POST /api/payments/create-order applies server-verified coupon discount to grand total', async () => {
+    // prod_01 is ₹450 eggless chocolate cake.
+    // Order 1 unit + ₹30 delivery = ₹480 normal.
+    // Apply WELCOME10 (10% off itemsTotal = ₹45 discount).
+    // Final grand total = ₹450 - ₹45 + ₹30 = ₹435 -> 43500 paise!
+    const uniqueCustId = `cust_first_timer_${Date.now()}`;
+    const res = await mockRequest('POST', '/api/payments/create-order', {
+      items: [{ productId: 'prod_01', qty: 1 }],
+      customerId: uniqueCustId,
+      deliveryMethod: 'Home Delivery',
+      couponCode: 'WELCOME10'
+    });
+
+    if (res.status !== 200 || !res.data.success) {
+      throw new Error(`Order creation with coupon failed: ${JSON.stringify(res.data)}`);
+    }
+
+    if (res.data.discountAmount !== 45) {
+      throw new Error(`Expected discountAmount 45, got: ${res.data.discountAmount}`);
+    }
+
+    if (res.data.amount !== 43500) {
+      throw new Error(`Expected amount 43500 paise (₹435), got: ${res.data.amount}`);
+    }
+  });
+
   console.log(`\n======================================================`);
   console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`);
   console.log(`======================================================\n`);

@@ -166,6 +166,7 @@ const AppRouter = {
       case 'screen-admin-analytics': html = AdminModule.renderAnalytics(); break;
       case 'screen-admin-profile': html = AdminModule.renderProfile(); break;
       case 'screen-admin-payments': html = AdminModule.renderPayments(); break;
+      case 'screen-admin-offers': html = AdminModule.renderOffers(); break;
 
       default:
         html = CustomerModule.renderHome();

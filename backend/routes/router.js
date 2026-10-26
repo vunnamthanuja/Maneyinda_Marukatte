@@ -13,6 +13,7 @@ const supportController = require('../controllers/supportController');
 const adminController = require('../controllers/adminController');
 const uploadController = require('../controllers/uploadController');
 const paymentController = require('../controllers/paymentController');
+const offerController = require('../controllers/offerController');
 const AuthMiddleware = require('../middleware/auth');
 
 class Router {
@@ -144,6 +145,17 @@ class Router {
     this.add('POST', '/api/payments/webhook', paymentController.handleWebhook);
     this.add('GET', '/api/admin/payments', adminGuard(paymentController.getAllTransactions));
     this.add('POST', '/api/admin/payments/:orderId/refund', adminGuard(paymentController.processRefund));
+
+    // --- Promotional Offers & Announcements ---
+    this.add('GET', '/api/offers', offerController.getActiveOffers);
+    this.add('GET', '/api/offers/:id', offerController.getOfferById);
+    this.add('POST', '/api/offers/validate', offerController.validateCoupon);
+    this.add('GET', '/api/promotions/announcements', offerController.getAnnouncements);
+    this.add('GET', '/api/admin/offers', adminGuard(offerController.getAdminOffers));
+    this.add('POST', '/api/admin/offers', adminGuard(offerController.createOffer));
+    this.add('PUT', '/api/admin/offers/:id', adminGuard(offerController.updateOffer));
+    this.add('PATCH', '/api/admin/offers/:id/toggle', adminGuard(offerController.toggleOffer));
+    this.add('DELETE', '/api/admin/offers/:id', adminGuard(offerController.deleteOffer));
   }
 
   match(method, pathname) {

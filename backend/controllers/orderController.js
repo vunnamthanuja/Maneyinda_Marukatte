@@ -124,7 +124,21 @@ const orderController = {
 
     const isPickup = (deliveryMethod || '').toLowerCase().includes('pickup');
     const deliveryCharge = isPickup ? 0 : 30;
-    const grandTotal = itemsTotal + deliveryCharge;
+    // Server-Side Coupon Validation
+    let discountAmount = 0;
+    let appliedCoupon = null;
+    if (body.couponCode && typeof body.couponCode === 'string') {
+      const offer = db.getOfferByCode(body.couponCode.trim());
+      if (offer) {
+        const discResult = db.calculateDiscountForCart(offer, resolvedItems, customerId, itemsTotal);
+        if (discResult.valid && discResult.discountAmount > 0) {
+          discountAmount = discResult.discountAmount;
+          appliedCoupon = offer.code;
+        }
+      }
+    }
+
+    const grandTotal = Math.max(0, itemsTotal - discountAmount + deliveryCharge);
 
     const newOrder = db.createOrder({
       customerId,
@@ -135,6 +149,8 @@ const orderController = {
       items: resolvedItems,
       itemsTotal,
       deliveryCharge,
+      discountAmount,
+      couponCode: appliedCoupon,
       totalAmount: grandTotal,
       deliveryMethod: isPickup ? 'Pickup' : 'Home Delivery',
       deliveryAddress: deliveryAddress || null,

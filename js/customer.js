@@ -12,6 +12,10 @@ const CustomerModule = {
   carouselActiveIndex: 0,
   activeDetailQty: 1,
   activeDetailCustomization: {},
+  promoActiveIndex: 0,
+  promoTimer: null,
+  appliedCoupon: null,
+  presetCouponCode: '',
 
   // -------------------------------------------------------------
   // SCREEN 1: CUSTOMER HOME
@@ -23,6 +27,8 @@ const CustomerModule = {
     const wishlistCount = store.getWishlist().length;
     const popularProducts = store.getProducts({ activeOnly: true });
     const trendingProducts = AppAI.calculateTrendingProducts(popularProducts, store.getOrders(), '7days');
+
+    setTimeout(() => CustomerModule.initPromoBanner(), 60);
 
     return `
       <!-- Home Header -->
@@ -53,6 +59,12 @@ const CustomerModule = {
         <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">search</span>
         <span>${(window.AppLang && AppLang.t('searchPlaceholder')) || 'Search Products, Stores or Categories...'}</span>
       </div>
+
+      <!-- Culturally Welcoming Namaste Card (Mobile Dismissible Strip) -->
+      ${this.renderNamasteCard()}
+
+      <!-- Promotional Rotating Offers Banner (Warm Cream & Olive Green Theme) -->
+      ${this.renderPromoBanner()}
 
       <div class="screen-content" style="padding-top:0; padding-bottom:70px;">
         <!-- Categories Quick Horizontal List -->
@@ -102,12 +114,192 @@ const CustomerModule = {
     `;
   },
 
+  // --- NAMASTE CULTURAL GREETING ---
+  renderNamasteCard() {
+    const isDismissed = sessionStorage.getItem('NAMASTE_DISMISSED') === 'true';
+    if (isDismissed) return '';
+
+    return `
+      <div id="namaste-mobile-card" class="namaste-welcome-card" role="region" aria-label="Cultural Welcome">
+        <button class="namaste-dismiss-btn" onclick="CustomerModule.dismissNamaste(false)" title="Dismiss welcome greeting">
+          <span class="material-symbols-rounded" style="font-size:16px;">close</span>
+        </button>
+        <div class="namaste-icon-wrap">🙏</div>
+        <div style="flex:1;">
+          <div class="namaste-card-title">
+            <span>Namaste! Welcome to Maneyindha Marukatte</span>
+          </div>
+          <div class="namaste-card-desc">
+            Discover homemade delights and handmade treasures from women entrepreneurs near you.
+          </div>
+          <div class="namaste-card-actions">
+            <button class="namaste-cta-btn" onclick="CustomerModule.exploreLocalShops()">
+              <span>Explore Local Shops</span>
+              <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  dismissNamaste(isDesktop = false) {
+    sessionStorage.setItem('NAMASTE_DISMISSED', 'true');
+    const mCard = document.getElementById('namaste-mobile-card');
+    if (mCard) mCard.classList.add('dismissed');
+    const dCard = document.getElementById('namaste-desktop-sidebar');
+    if (dCard) dCard.classList.add('dismissed');
+  },
+
+  exploreLocalShops() {
+    AppRouter.navigate('screen-customer-search');
+  },
+
+  // --- PROMOTIONAL ROTATING OFFERS BANNER ---
+  renderPromoBanner() {
+    const offers = (store.getOffers && store.getOffers(true)) || [];
+    const bannerOffers = offers.filter(o => o.showInBanner);
+    if (bannerOffers.length === 0) return '';
+
+    return `
+      <div class="promo-banner-container" id="promo-banner-container"
+           onmouseenter="CustomerModule.pauseBannerTimer()"
+           onmouseleave="CustomerModule.startBannerTimer()">
+        <div class="promo-banner-track" id="promo-banner-track">
+          ${bannerOffers.map((o) => `
+            <div class="promo-slide" onclick="CustomerModule.handlePromoClick('${o.id}')" style="background:${o.bannerBg || 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)'};">
+              <div class="promo-slide-header">
+                <span class="promo-badge-pill">
+                  <span>${o.badgeText || 'SPECIAL OFFER'}</span>
+                </span>
+                <span class="promo-code-pill">${o.code}</span>
+              </div>
+              <div>
+                <div class="promo-slide-title">${o.title}</div>
+                <div class="promo-slide-subtitle">${o.subtitle}</div>
+              </div>
+              <div class="promo-slide-footer">
+                <span style="font-size:10px; opacity:0.85; color:#F4EBD9;">
+                  ${o.minOrderAmount ? `Min order ₹${o.minOrderAmount}` : 'Limited time deal'}
+                </span>
+                <button class="promo-cta-btn" onclick="event.stopPropagation(); CustomerModule.handlePromoClick('${o.id}')">
+                  <span>${o.ctaText || 'Shop Now'}</span>
+                  <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="promo-carousel-dots" id="promo-carousel-dots">
+          ${bannerOffers.map((_, i) => `
+            <div class="promo-dot ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation(); CustomerModule.goToPromoSlide(${i})"></div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  initPromoBanner() {
+    this.promoActiveIndex = 0;
+    this.updatePromoTrack();
+    this.startBannerTimer();
+  },
+
+  startBannerTimer() {
+    this.pauseBannerTimer();
+    const offers = (store.getOffers && store.getOffers(true)) || [];
+    const count = offers.filter(o => o.showInBanner).length;
+    if (count <= 1) return;
+    this.promoTimer = setInterval(() => {
+      this.promoActiveIndex = (this.promoActiveIndex + 1) % count;
+      this.updatePromoTrack();
+    }, 4500);
+  },
+
+  pauseBannerTimer() {
+    if (this.promoTimer) {
+      clearInterval(this.promoTimer);
+      this.promoTimer = null;
+    }
+  },
+
+  goToPromoSlide(idx) {
+    this.promoActiveIndex = idx;
+    this.updatePromoTrack();
+    this.startBannerTimer();
+  },
+
+  updatePromoTrack() {
+    const track = document.getElementById('promo-banner-track');
+    const dots = document.querySelectorAll('#promo-carousel-dots .promo-dot');
+    if (track) {
+      track.style.transform = `translateX(-${this.promoActiveIndex * 100}%)`;
+    }
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', i === this.promoActiveIndex);
+    });
+  },
+
+  handlePromoClick(offerId) {
+    const offers = (store.getOffers && store.getOffers(false)) || [];
+    const offer = offers.find(o => o.id === offerId);
+    if (!offer) return;
+
+    this.presetCouponCode = offer.code;
+
+    if (offer.scope === 'category' && offer.targetId) {
+      CustomerModule.viewCategoryListing(offer.targetId);
+    } else if (offer.scope === 'shop' && offer.targetId) {
+      CustomerModule.viewPublicStore(offer.targetId);
+    } else if (offer.ctaCategory && offer.ctaCategory !== 'All') {
+      CustomerModule.viewCategoryListing(offer.ctaCategory);
+    } else {
+      AppRouter.navigate('screen-customer-search');
+    }
+  },
+
+  // --- PRODUCT-SPECIFIC & GENUINE OFFERS ---
+  getProductOffer(product) {
+    if (!product) return null;
+    const offers = (store.getOffers && store.getOffers(true)) || [];
+    let matched = offers.find(o => o.scope === 'product' && o.targetId === product.id);
+    if (!matched) {
+      matched = offers.find(o => o.scope === 'shop' && o.targetId === product.entrepreneurId);
+    }
+    if (!matched) {
+      matched = offers.find(o => o.scope === 'category' && o.targetId === product.category);
+    }
+
+    if (!matched) return null;
+
+    let discountAmount = 0;
+    if (matched.discountType === 'percentage') {
+      discountAmount = Math.round((product.price * matched.discountValue) / 100);
+      if (matched.maxDiscount) discountAmount = Math.min(discountAmount, matched.maxDiscount);
+    } else {
+      discountAmount = Math.min(product.price, matched.discountValue);
+    }
+
+    const discountedPrice = Math.max(0, product.price - discountAmount);
+    return {
+      offer: matched,
+      tagText: matched.tagText || matched.badgeText || `${matched.discountValue}% OFF`,
+      originalPrice: product.price,
+      discountedPrice,
+      discountAmount
+    };
+  },
+
   renderProductCard(p, showTrend = false) {
     const isSaved = store.isInWishlist(p.id);
+    const offerInfo = this.getProductOffer(p);
     return `
       <div class="product-card" onclick="CustomerModule.viewProductDetails('${p.id}')" style="cursor:pointer;">
         <div class="product-thumb-wrap">
           <img src="${p.images[0] || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300'}" alt="${p.name}">
+          ${offerInfo ? `
+            <span class="product-promo-badge">${offerInfo.tagText}</span>
+          ` : ''}
           <button class="product-wishlist-btn ${isSaved ? 'active' : ''}" onclick="event.stopPropagation(); CustomerModule.toggleWishlist('${p.id}', this)">
             <span class="material-symbols-rounded ${isSaved ? 'icon-filled' : 'icon-outlined'}" style="font-size:18px;">favorite</span>
           </button>
@@ -128,7 +320,14 @@ const CustomerModule = {
 
           <div class="product-price-row">
             <div>
-              <div class="product-price">₹${p.price}</div>
+              ${offerInfo ? `
+                <div class="product-price-block">
+                  <span class="product-price-current">₹${offerInfo.discountedPrice}</span>
+                  <span class="product-price-original">₹${offerInfo.originalPrice}</span>
+                </div>
+              ` : `
+                <div class="product-price">₹${p.price}</div>
+              `}
               <div class="product-rating-badge">
                 <span class="material-symbols-rounded" style="font-size:14px; color:var(--color-accent);">star</span>
                 ${p.rating || 4.8}
@@ -419,6 +618,7 @@ const CustomerModule = {
     const isStoreOpen = ent ? ent.isStoreOpen : true;
     const relatedProducts = store.getProducts({ activeOnly: true }).filter(item => item.id !== p.id && item.category === p.category);
     const reviews = store.getReviewsForProduct(p.id);
+    const offerInfo = this.getProductOffer(p);
 
     return `
       <div class="top-app-bar">
@@ -468,8 +668,16 @@ const CustomerModule = {
         </h2>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-size:24px; font-weight:700; color:var(--color-primary);">
-            ₹${p.price}
+          <div>
+            ${offerInfo ? `
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="font-size:24px; font-weight:700; color:var(--color-primary);">₹${offerInfo.discountedPrice}</span>
+                <span style="font-size:15px; color:var(--color-text-tertiary); text-decoration:line-through;">₹${offerInfo.originalPrice}</span>
+                <span class="product-promo-badge" style="position:static;">${offerInfo.tagText}</span>
+              </div>
+            ` : `
+              <div style="font-size:24px; font-weight:700; color:var(--color-primary);">₹${p.price}</div>
+            `}
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <span class="status-chip ${p.stock > 0 ? 'chip-delivered' : 'chip-cancelled'}">
@@ -481,6 +689,13 @@ const CustomerModule = {
             </div>
           </div>
         </div>
+
+        ${offerInfo ? `
+          <div style="background:#F4F7EE; border-left:3px solid var(--color-primary); padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:11.5px; color:var(--color-primary-dark); display:flex; align-items:center; justify-content:space-between;">
+            <span>🏷️ <strong>Coupon ${offerInfo.offer.code}</strong>: ${offerInfo.offer.subtitle}</span>
+            <button class="btn btn-sm btn-text" style="font-size:11px; font-weight:700; padding:2px 8px; min-height:auto;" onclick="CustomerModule.copyCoupon('${offerInfo.offer.code}')">Use Code</button>
+          </div>
+        ` : ''}
 
         <!-- Product Attributes Chips -->
         ${p.attributes && p.attributes.length > 0 ? `
@@ -1180,7 +1395,8 @@ const CustomerModule = {
     const ent = store.getEntrepreneurById(firstProduct.entrepreneurId);
     const subtotal = checkoutItems.reduce((sum, i) => sum + (i.product.price * i.qty), 0);
     const deliveryCharge = (firstProduct.deliveryMethod && firstProduct.deliveryMethod.homeDelivery) ? (firstProduct.deliveryMethod.deliveryCharge || 30) : 0;
-    const grandTotal = subtotal + deliveryCharge;
+    const discountAmount = CustomerModule.appliedCoupon ? CustomerModule.appliedCoupon.discountAmount : 0;
+    const grandTotal = Math.max(0, subtotal - discountAmount + deliveryCharge);
 
     return `
       <div class="top-app-bar">
@@ -1263,6 +1479,46 @@ const CustomerModule = {
           <input type="text" id="checkout-order-note" class="form-input" placeholder="e.g. Please leave at door, or pack tightly...">
         </div>
 
+        <!-- Promo Code & Coupon Section -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="font-size:18px;">local_offer</span>
+              Coupons & Offers
+            </h4>
+            ${CustomerModule.appliedCoupon ? `
+              <button class="btn btn-sm btn-text" style="color:var(--color-error); font-size:11px; padding:2px 6px; min-height:auto;" onclick="CustomerModule.removeCoupon()">Remove</button>
+            ` : ''}
+          </div>
+
+          ${CustomerModule.appliedCoupon ? `
+            <div class="applied-coupon-pill">
+              <div>
+                <span class="coupon-code-badge">${CustomerModule.appliedCoupon.code}</span>
+                <span style="font-size:12px; font-weight:700; color:#2E7D32; margin-left:6px;">
+                  Saved ₹${CustomerModule.appliedCoupon.discountAmount}!
+                </span>
+                <div style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">
+                  ${CustomerModule.appliedCoupon.title}
+                </div>
+              </div>
+              <span class="material-symbols-rounded" style="color:#2E7D32; font-size:22px;">check_circle</span>
+            </div>
+          ` : `
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="coupon-code-input" class="form-input" placeholder="Enter code (e.g. WELCOME10)" style="text-transform:uppercase; font-weight:700; font-size:12px; padding:8px 12px;" value="${CustomerModule.presetCouponCode || ''}">
+              <button class="btn btn-primary btn-sm" onclick="CustomerModule.applyCoupon()" style="padding:0 16px; white-space:nowrap; min-height:40px;">Apply</button>
+            </div>
+            <div class="available-coupon-chips" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('WELCOME10')">🎁 WELCOME10</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('CAKE15')">🧁 CAKE15</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('CRAFT20')">🧵 CRAFT20</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('TIFFIN10')">🍱 TIFFIN10</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('WEEKEND50')">🛍️ WEEKEND50</span>
+            </div>
+          `}
+        </div>
+
         <!-- Payment Method -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">Payment Method</h4>
@@ -1295,6 +1551,12 @@ const CustomerModule = {
             <span>Delivery Charge</span>
             <span id="checkout-del-charge-val">₹${deliveryCharge}</span>
           </div>
+          ${CustomerModule.appliedCoupon && CustomerModule.appliedCoupon.discountAmount > 0 ? `
+            <div class="order-summary-row discount-amount-row" style="margin:4px 0;">
+              <span>Discount (${CustomerModule.appliedCoupon.code})</span>
+              <span>-₹${CustomerModule.appliedCoupon.discountAmount}</span>
+            </div>
+          ` : ''}
           <div class="order-summary-row total-row">
             <span>Total Amount</span>
             <span id="checkout-grand-total-val" style="color:var(--color-primary);">₹${grandTotal}</span>
@@ -1314,13 +1576,74 @@ const CustomerModule = {
 
   onDeliveryMethodChange(isHome, subtotal, baseDel) {
     const del = isHome ? baseDel : 0;
-    const total = subtotal + del;
+    const disc = this.appliedCoupon ? this.appliedCoupon.discountAmount : 0;
+    const total = Math.max(0, subtotal - disc + del);
     const delEl = document.getElementById('checkout-del-charge-val');
     const totEl = document.getElementById('checkout-grand-total-val');
     const btnTot = document.getElementById('btn-total-val');
     if (delEl) delEl.textContent = `₹${del}`;
     if (totEl) totEl.textContent = `₹${total}`;
     if (btnTot) btnTot.textContent = `${total}`;
+  },
+
+  copyCoupon(code) {
+    this.presetCouponCode = code;
+    AppUtils.showToast(`Coupon ${code} copied!`);
+  },
+
+  quickFillCoupon(code) {
+    const input = document.getElementById('coupon-code-input');
+    if (input) input.value = code;
+    this.presetCouponCode = code;
+    this.applyCoupon();
+  },
+
+  async applyCoupon() {
+    const input = document.getElementById('coupon-code-input');
+    const code = (input ? input.value : this.presetCouponCode || '').trim();
+    if (!code) {
+      AppUtils.showToast('Please enter a coupon code.');
+      return;
+    }
+
+    const cart = store.getCart();
+    const user = store.getUser() || {};
+    let checkoutItems = [];
+    cart.forEach(item => {
+      const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+      if (this.selectedCartItemKeys.includes(key)) {
+        const p = store.getProductById(item.productId);
+        if (p) checkoutItems.push({ productId: p.id, qty: item.qty, price: p.price, category: p.category });
+      }
+    });
+    if (checkoutItems.length === 0 && cart.length > 0) {
+      checkoutItems = cart.map(i => {
+        const p = store.getProductById(i.productId);
+        return { productId: i.productId, qty: i.qty, price: p ? p.price : 0, category: p ? p.category : '' };
+      });
+    }
+
+    const subtotal = checkoutItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+
+    const res = await window.apiClient.validateCoupon(code, checkoutItems, subtotal, user.id);
+    if (res && res.valid) {
+      this.appliedCoupon = {
+        code: res.code,
+        title: res.title,
+        discountAmount: res.discountAmount
+      };
+      AppUtils.showToast(res.message || `Coupon "${res.code}" applied!`);
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast((res && res.message) || 'Invalid coupon code or condition not met.');
+    }
+  },
+
+  removeCoupon() {
+    this.appliedCoupon = null;
+    this.presetCouponCode = '';
+    AppUtils.showToast('Coupon removed.');
+    AppRouter.renderActiveScreen();
   },
 
   selectPayMode(mode) {
@@ -1336,7 +1659,8 @@ const CustomerModule = {
     const delChecked = document.querySelector('input[name="chk-del-method"]:checked');
     const isHome = delChecked ? delChecked.value === 'Home Delivery' : true;
     const deliveryCharge = isHome ? baseDeliveryCharge : 0;
-    const grandTotal = subtotal + deliveryCharge;
+    const discountAmount = CustomerModule.appliedCoupon ? CustomerModule.appliedCoupon.discountAmount : 0;
+    const grandTotal = Math.max(0, subtotal - discountAmount + deliveryCharge);
     const noteEl = document.getElementById('checkout-order-note');
     const note = noteEl ? noteEl.value : '';
     const selAddr = store.getSelectedAddress();
@@ -1435,7 +1759,8 @@ const CustomerModule = {
             deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
             deliveryAddress: selAddr,
             orderNote: note,
-            entrepreneurId
+            entrepreneurId,
+            couponCode: CustomerModule.appliedCoupon ? CustomerModule.appliedCoupon.code : null
           });
 
           if (orderRes && orderRes.success) {
@@ -1523,6 +1848,8 @@ const CustomerModule = {
                 finalOrderId = newOrder.id;
               }
 
+              CustomerModule.appliedCoupon = null;
+              CustomerModule.presetCouponCode = '';
               AppRouter.navigate('screen-order-success', { orderId: finalOrderId });
             } else {
               restoreButton();
@@ -1616,6 +1943,9 @@ const CustomerModule = {
       expectedDelivery: 'Today before 6:30 PM',
       ...orderPayload
     };
+
+    CustomerModule.appliedCoupon = null;
+    CustomerModule.presetCouponCode = '';
 
     if (window.apiClient && window.apiClient.isOnline) {
       window.apiClient.createOrder(payload).then(res => {
@@ -2231,6 +2561,36 @@ const CustomerModule = {
       </div>
 
       <div class="screen-content" style="padding-top: 6px; padding-bottom: 70px;">
+        <!-- Active Promotional Announcements & Deals -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11.5px; font-weight:700; color:var(--color-primary); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px;">
+            🎉 Promotional Announcements
+          </div>
+          ${store.getAnnouncements().map(a => `
+            <div class="card" style="padding:12px; margin-bottom:8px; border-left:3.5px solid var(--color-primary); ${a.isRead ? 'opacity:0.85;' : 'background:#FAFDF6;'}">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                <span style="font-size:12.5px; font-weight:700; color:var(--color-text-primary);">${a.title}</span>
+                <span class="status-chip chip-delivered" style="font-size:9px; padding:2px 6px;">${a.badge}</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.4; margin-bottom:8px;">${a.message}</p>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:10px; color:var(--color-text-tertiary);">${a.date}</span>
+                <div style="display:flex; gap:6px;">
+                  ${a.offerCode ? `
+                    <button class="btn btn-sm btn-secondary" style="font-size:10.5px; padding:3px 10px; min-height:auto;" onclick="CustomerModule.applyAnnouncementCoupon('${a.id}', '${a.offerCode}')">
+                      Apply ${a.offerCode}
+                    </button>
+                  ` : ''}
+                  ${!a.isRead ? `
+                    <button class="btn btn-sm btn-text" style="font-size:10.5px; padding:3px 6px; min-height:auto;" onclick="CustomerModule.markAnnouncementAsRead('${a.id}')">
+                      Mark read
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
         ${notifs.length === 0 ? `
           <div class="empty-state" style="padding-top:60px;">
             <span class="material-symbols-rounded empty-state-icon">notifications_off</span>
@@ -2288,6 +2648,18 @@ const CustomerModule = {
 
   clearAllNotifications() {
     store.clearAllNotifications('customer');
+    AppRouter.renderActiveScreen();
+  },
+
+  applyAnnouncementCoupon(announcementId, code) {
+    store.markAnnouncementRead(announcementId);
+    this.presetCouponCode = code;
+    AppUtils.showToast(`Coupon ${code} selected! Redirecting to shop...`);
+    AppRouter.navigate('screen-customer-search');
+  },
+
+  markAnnouncementAsRead(id) {
+    store.markAnnouncementRead(id);
     AppRouter.renderActiveScreen();
   },
 

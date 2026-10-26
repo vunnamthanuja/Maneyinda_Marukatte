@@ -73,6 +73,8 @@ class PaymentController {
     let grandTotal = 0;
     let itemsTotal = 0;
     let deliveryCharge = 30;
+    let discountAmount = 0;
+    let appliedCoupon = null;
     let targetEntrepreneurId = body.entrepreneurId || null;
     let seller = null;
     let verifiedItems = [];
@@ -133,9 +135,21 @@ class PaymentController {
         };
       });
 
+      // Strict Coupon Validation & Backend Discount Recalculation
+      if (body.couponCode && typeof body.couponCode === 'string') {
+        const offer = db.getOfferByCode(body.couponCode.trim());
+        if (offer) {
+          const discResult = db.calculateDiscountForCart(offer, verifiedItems, finalCustomerId, itemsTotal);
+          if (discResult.valid && discResult.discountAmount > 0) {
+            discountAmount = discResult.discountAmount;
+            appliedCoupon = offer.code;
+          }
+        }
+      }
+
       const isPickup = (deliveryMethod || '').toLowerCase().includes('pickup');
       deliveryCharge = isPickup ? 0 : 30;
-      grandTotal = itemsTotal + deliveryCharge;
+      grandTotal = Math.max(0, itemsTotal - discountAmount + deliveryCharge);
     } else if (body.amount !== undefined) {
       if (isNaN(body.amount) || Number(body.amount) <= 0) {
         return res.status(400).json({
@@ -174,6 +188,8 @@ class PaymentController {
         items: verifiedItems,
         itemsTotal,
         deliveryCharge,
+        discountAmount,
+        couponCode: appliedCoupon,
         totalAmount: grandTotal,
         currency: 'INR',
         deliveryMethod: (deliveryMethod || '').toLowerCase().includes('pickup') ? 'Pickup' : 'Home Delivery',
@@ -200,6 +216,8 @@ class PaymentController {
         razorpayOrderId: mockOrderId,
         amount: amountInPaise,
         currency: 'INR',
+        discountAmount,
+        couponCode: appliedCoupon,
         keyId: 'rzp_test_simulation',
         storeName: internalOrder ? internalOrder.storeName : 'Maneyindha Marukatte',
         isSimulated: true,
@@ -262,6 +280,8 @@ class PaymentController {
               razorpayOrderId: parsed.id,
               amount: parsed.amount,
               currency: parsed.currency,
+              discountAmount,
+              couponCode: appliedCoupon,
               keyId: keyId,
               receipt: parsed.receipt,
               storeName: internalOrder ? internalOrder.storeName : 'Maneyindha Marukatte'

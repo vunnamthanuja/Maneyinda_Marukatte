@@ -453,6 +453,181 @@ class Database {
       this.persist();
     }
   }
+
+  // -------------------------------------------------------------
+  // PROMOTIONAL OFFERS & ANNOUNCEMENTS
+  // -------------------------------------------------------------
+  getOffers(filter = {}) {
+    let list = this.data.offers || [];
+    if (filter.activeOnly) {
+      const now = new Date();
+      list = list.filter(o => {
+        if (!o.active) return false;
+        if (o.startDate && new Date(o.startDate) > now) return false;
+        if (o.endDate && new Date(o.endDate) < now) return false;
+        return true;
+      });
+    }
+    if (filter.bannerOnly) {
+      list = list.filter(o => o.bannerEnabled !== false);
+    }
+    return list;
+  }
+
+  getOfferById(id) {
+    return (this.data.offers || []).find(o => o.id === id) || null;
+  }
+
+  getOfferByCode(code) {
+    if (!code) return null;
+    return (this.data.offers || []).find(o => (o.code || '').toUpperCase() === code.trim().toUpperCase()) || null;
+  }
+
+  createOffer(offerData) {
+    const newOffer = {
+      id: 'OFFER-' + Math.floor(1000 + Math.random() * 9000),
+      code: (offerData.code || '').toUpperCase().trim(),
+      title: offerData.title,
+      description: offerData.description || '',
+      discountType: offerData.discountType || 'percentage',
+      discountValue: Number(offerData.discountValue) || 10,
+      minOrderAmount: Number(offerData.minOrderAmount) || 0,
+      scope: offerData.scope || 'global',
+      targetCategory: offerData.targetCategory || null,
+      targetProductId: offerData.targetProductId || null,
+      targetEntrepreneurId: offerData.targetEntrepreneurId || null,
+      badgeText: offerData.badgeText || `${offerData.discountValue}% OFF`,
+      startDate: offerData.startDate || new Date().toISOString(),
+      endDate: offerData.endDate || null,
+      active: typeof offerData.active === 'boolean' ? offerData.active : true,
+      bannerEnabled: typeof offerData.bannerEnabled === 'boolean' ? offerData.bannerEnabled : true,
+      bannerColor: offerData.bannerColor || '#4A6B32',
+      icon: offerData.icon || 'local_offer',
+      ctaText: offerData.ctaText || 'Shop Now',
+      ctaLink: offerData.ctaLink || 'screen-customer-home',
+      createdAt: new Date().toISOString(),
+      ...offerData
+    };
+
+    if (!this.data.offers) this.data.offers = [];
+    this.data.offers.unshift(newOffer);
+    this.persist();
+    return newOffer;
+  }
+
+  updateOffer(id, updates) {
+    const idx = (this.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      if (updates.code) updates.code = updates.code.toUpperCase().trim();
+      this.data.offers[idx] = { ...this.data.offers[idx], ...updates, updatedAt: new Date().toISOString() };
+      this.persist();
+      return this.data.offers[idx];
+    }
+    return null;
+  }
+
+  deleteOffer(id) {
+    const idx = (this.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      const removed = this.data.offers.splice(idx, 1)[0];
+      this.persist();
+      return removed;
+    }
+    return null;
+  }
+
+  getAnnouncements() {
+    return this.data.promotionalAnnouncements || [];
+  }
+
+  calculateDiscountForCart(offer, items, customerId, subtotal) {
+    if (!offer || !offer.active) {
+      return { valid: false, error: 'OFFER_INACTIVE', message: 'This promotional offer is currently inactive.' };
+    }
+
+    const now = new Date();
+    if (offer.startDate && new Date(offer.startDate) > now) {
+      return { valid: false, error: 'OFFER_NOT_STARTED', message: 'This promotional offer has not started yet.' };
+    }
+    if (offer.endDate && new Date(offer.endDate) < now) {
+      return { valid: false, error: 'OFFER_EXPIRED', message: 'This promotional offer has expired.' };
+    }
+
+    if (subtotal < (offer.minOrderAmount || 0)) {
+      return {
+        valid: false,
+        error: 'MIN_AMOUNT_NOT_MET',
+        message: `Minimum order subtotal of ₹${offer.minOrderAmount} required for this coupon.`
+      };
+    }
+
+    let eligibleAmount = 0;
+
+    if (offer.scope === 'first_order') {
+      const pastOrders = (this.data.orders || []).filter(o => 
+        o.customerId === customerId && 
+        o.orderStatus !== 'Cancelled' && 
+        o.orderStatus !== 'Pending Payment' &&
+        o.paymentStatus === 'Paid'
+      );
+      if (pastOrders.length > 0) {
+        return {
+          valid: false,
+          error: 'FIRST_ORDER_ONLY',
+          message: 'The coupon WELCOME10 is valid exclusively on your very first order.'
+        };
+      }
+      eligibleAmount = subtotal;
+    } else if (offer.scope === 'category') {
+      const matchingItems = (items || []).filter(i => {
+        const prod = this.getProductById(i.productId);
+        return prod && prod.category && prod.category.toLowerCase() === (offer.targetCategory || '').toLowerCase();
+      });
+      if (matchingItems.length === 0) {
+        return {
+          valid: false,
+          error: 'CATEGORY_MISMATCH',
+          message: `This offer applies only to products in category "${offer.targetCategory}".`
+        };
+      }
+      eligibleAmount = matchingItems.reduce((sum, item) => {
+        const prod = this.getProductById(item.productId);
+        return sum + ((prod ? prod.price : item.price) * item.qty);
+      }, 0);
+    } else if (offer.scope === 'product') {
+      const matchingItems = (items || []).filter(i => i.productId === offer.targetProductId);
+      if (matchingItems.length === 0) {
+        return {
+          valid: false,
+          error: 'PRODUCT_MISMATCH',
+          message: 'This offer applies only to specific promotional products.'
+        };
+      }
+      eligibleAmount = matchingItems.reduce((sum, item) => {
+        const prod = this.getProductById(item.productId);
+        return sum + ((prod ? prod.price : item.price) * item.qty);
+      }, 0);
+    } else {
+      eligibleAmount = subtotal;
+    }
+
+    let discount = 0;
+    if (offer.discountType === 'percentage') {
+      discount = Math.round((eligibleAmount * offer.discountValue) / 100);
+    } else {
+      discount = Math.min(offer.discountValue, eligibleAmount);
+    }
+
+    return {
+      valid: true,
+      discountAmount: discount,
+      eligibleAmount,
+      offerCode: offer.code,
+      offerTitle: offer.title,
+      badgeText: offer.badgeText
+    };
+  }
+
 }
 
 module.exports = new Database();

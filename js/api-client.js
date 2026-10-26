@@ -77,6 +77,16 @@ class APIClient {
           store.saveData();
         }
       }
+
+      // Sync promotional offers
+      const offRes = await fetch(`${this.baseUrl}/offers`);
+      if (offRes.ok) {
+        const json = await offRes.json();
+        if (json.data && Array.isArray(json.data)) {
+          store.data.offers = json.data;
+          store.saveData();
+        }
+      }
     } catch (err) {
       console.warn('[API SYNC] Could not complete initial sync:', err);
     }
@@ -551,11 +561,15 @@ class APIClient {
     };
   }
 
-  async createPaymentOrder(amount, receipt, notes = {}) {
+  async createPaymentOrder(orderDataOrAmount, receipt, notes = {}) {
+    const payload = typeof orderDataOrAmount === 'object' && orderDataOrAmount !== null
+      ? orderDataOrAmount
+      : { amount: orderDataOrAmount, receipt, notes };
+
     if (this.isOnline) {
       return await this.request('/payments/create-order', {
         method: 'POST',
-        body: JSON.stringify({ amount, receipt, notes })
+        body: JSON.stringify(payload)
       });
     }
     return {
@@ -578,6 +592,151 @@ class APIClient {
       simulated: true,
       message: 'Offline payment verified.'
     };
+  }
+
+  // =============================================================
+  // 8. PROMOTIONAL OFFERS & ANNOUNCEMENTS MODULE
+  // =============================================================
+  async getOffers(bannerOnly = false) {
+    if (this.isOnline) {
+      try {
+        const query = bannerOnly ? '?banner=true' : '';
+        const res = await this.request(`/offers${query}`);
+        if (res && res.success && Array.isArray(res.data)) {
+          return res.data;
+        }
+      } catch (e) {
+        console.warn('[API] Could not fetch offers from backend:', e);
+      }
+    }
+    // Fallback to store
+    const local = (store.data && store.data.offers) || [];
+    return bannerOnly ? local.filter(o => o.active && o.showInBanner) : local.filter(o => o.active);
+  }
+
+  async validateCoupon(code, items = [], subtotal = 0, customerId = 'cust_guest') {
+    if (this.isOnline) {
+      try {
+        return await this.request('/offers/validate', {
+          method: 'POST',
+          body: JSON.stringify({ code, items, subtotal, customerId })
+        });
+      } catch (e) {
+        console.warn('[API] Coupon validation request error:', e);
+      }
+    }
+    // Fallback local coupon validation
+    const offers = (store.data && store.data.offers) || [];
+    const offer = offers.find(o => o.active && o.code && o.code.toUpperCase() === (code || '').trim().toUpperCase());
+    if (!offer) {
+      return { success: false, valid: false, message: `Coupon "${(code || '').toUpperCase()}" is not valid.` };
+    }
+    if (offer.minOrderAmount && subtotal < offer.minOrderAmount) {
+      return { success: false, valid: false, message: `Minimum order amount of ₹${offer.minOrderAmount} required.` };
+    }
+    let disc = 0;
+    if (offer.discountType === 'percentage') {
+      disc = Math.round((subtotal * offer.discountValue) / 100);
+      if (offer.maxDiscount) disc = Math.min(disc, offer.maxDiscount);
+    } else {
+      disc = Math.min(subtotal, offer.discountValue);
+    }
+    return {
+      success: true,
+      valid: true,
+      code: offer.code,
+      title: offer.title,
+      discountAmount: disc,
+      message: `Coupon "${offer.code}" applied! You save ₹${disc}.`
+    };
+  }
+
+  async getAnnouncements() {
+    if (this.isOnline) {
+      try {
+        const res = await this.request('/promotions/announcements');
+        if (res && res.success) {
+          return res;
+        }
+      } catch (e) {
+        console.warn('[API] Could not fetch announcements:', e);
+      }
+    }
+    return {
+      success: true,
+      announcements: (store.data && store.data.announcements) || [],
+      featuredOffers: ((store.data && store.data.offers) || []).slice(0, 5)
+    };
+  }
+
+  async getAdminOffers() {
+    if (this.isOnline) {
+      return await this.request('/admin/offers');
+    }
+    return {
+      success: true,
+      data: (store.data && store.data.offers) || []
+    };
+  }
+
+  async createAdminOffer(offerData) {
+    if (this.isOnline) {
+      return await this.request('/admin/offers', {
+        method: 'POST',
+        body: JSON.stringify(offerData)
+      });
+    }
+    if (!store.data.offers) store.data.offers = [];
+    const newOffer = { id: `off_${Date.now()}`, active: true, createdAt: new Date().toISOString(), ...offerData };
+    store.data.offers.unshift(newOffer);
+    store.saveData();
+    return { success: true, data: newOffer };
+  }
+
+  async updateAdminOffer(id, updates) {
+    if (this.isOnline) {
+      return await this.request(`/admin/offers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      store.data.offers[idx] = { ...store.data.offers[idx], ...updates, updatedAt: new Date().toISOString() };
+      store.saveData();
+      return { success: true, data: store.data.offers[idx] };
+    }
+    return { success: false, message: 'Offer not found' };
+  }
+
+  async toggleAdminOffer(id) {
+    if (this.isOnline) {
+      return await this.request(`/admin/offers/${id}/toggle`, {
+        method: 'PATCH'
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      store.data.offers[idx].active = !store.data.offers[idx].active;
+      store.saveData();
+      return { success: true, data: store.data.offers[idx] };
+    }
+    return { success: false, message: 'Offer not found' };
+  }
+
+  async deleteAdminOffer(id) {
+    if (this.isOnline) {
+      return await this.request(`/admin/offers/${id}`, {
+        method: 'DELETE'
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      const removed = store.data.offers.splice(idx, 1)[0];
+      store.saveData();
+      return { success: true, data: removed };
+    }
+    return { success: false, message: 'Offer not found' };
   }
 }
 

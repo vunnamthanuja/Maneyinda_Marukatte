@@ -64,7 +64,7 @@
         }
       ],
       "emailVerified": true,
-      "emailVerifiedAt": "2026-10-26T05:55:49.280Z"
+      "emailVerifiedAt": "2026-10-26T06:48:22.484Z"
     },
     {
       "id": "cust_02",
@@ -90,7 +90,7 @@
       "wishlist": [],
       "cart": [],
       "emailVerified": true,
-      "emailVerifiedAt": "2026-10-26T05:55:49.761Z"
+      "emailVerifiedAt": "2026-10-26T06:48:22.459Z"
     },
     {
       "id": "cust_03",
@@ -128,6 +128,18 @@
       "savedAddresses": [],
       "wishlist": [],
       "cart": []
+    },
+    {
+      "id": "cust_1792994493497",
+      "savedAddresses": [],
+      "wishlist": [],
+      "cart": [],
+      "name": "yashaswinikt0502",
+      "email": "yashaswinikt0502@gmail.com",
+      "phone": "",
+      "role": "customer",
+      "emailVerified": true,
+      "emailVerifiedAt": "2026-10-26T06:01:33.497Z"
     }
   ],
   "categories": [
@@ -390,7 +402,7 @@
       "name": "Homemade Dutch Chocolate Cake (Eggless)",
       "category": "Bakery & Sweets",
       "price": 450,
-      "stock": 50,
+      "stock": 34,
       "description": "Fresh homemade chocolate cake prepared with premium cocoa and pure butter. Melt-in-the-mouth texture, 100% vegetarian & eggless.",
       "images": [
         "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop&q=80",
@@ -444,7 +456,7 @@
       "rating": 4.8,
       "reviewCount": 235,
       "views": 780,
-      "ordersCount": 305,
+      "ordersCount": 331,
       "reportsCount": 0
     },
     {
@@ -668,6 +680,753 @@
     }
   ],
   "orders": [
+    {
+      "id": "ORD-60007",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_first_timer_1792997302505",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 45,
+      "couponCode": "WELCOME10",
+      "totalAmount": 435,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_TsRYFddkxCaEEZ"
+    },
+    {
+      "id": "ORD-50587",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 2
+        }
+      ],
+      "totalAmount": 930,
+      "paymentStatus": "Refunded",
+      "razorpayPaymentId": "pay_sim_refund_test_123",
+      "refundDetails": {
+        "refundId": "rfnd_1792997302470",
+        "amount": 930,
+        "reason": "Customer requested refund",
+        "refundedAt": "2026-10-26T06:48:22.470Z"
+      }
+    },
+    {
+      "id": "ORD-24055",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 1
+        }
+      ],
+      "totalAmount": 480,
+      "razorpayOrderId": "order_webhook_test_111",
+      "paymentStatus": "Paid",
+      "razorpayPaymentId": "pay_webhook_captured_999",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_webhook_captured_999",
+        "orderId": "order_webhook_test_111",
+        "method": "online",
+        "verifiedVia": "webhook",
+        "paidAt": "2026-10-26T06:48:22.447Z"
+      }
+    },
+    {
+      "id": "ORD-67807",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_TsRYFOEm28igU6",
+      "razorpayPaymentId": "pay_real_test_1792997302435",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_real_test_1792997302435",
+        "orderId": "order_TsRYFOEm28igU6",
+        "paidAt": "2026-10-26T06:48:22.436Z"
+      },
+      "updatedAt": "2026-10-26T06:48:22.436Z"
+    },
+    {
+      "id": "ORD-46665",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_TsRYFDvoB3o1dO"
+    },
+    {
+      "id": "ORD-48162",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-31231",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
+    {
+      "id": "ORD-60512",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_new_shopper",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_TsRVHQ8t0FdtGq"
+    },
+    {
+      "id": "ORD-40694",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 2
+        }
+      ],
+      "totalAmount": 930,
+      "paymentStatus": "Refunded",
+      "razorpayPaymentId": "pay_sim_refund_test_123",
+      "refundDetails": {
+        "refundId": "rfnd_1792997133683",
+        "amount": 930,
+        "reason": "Customer requested refund",
+        "refundedAt": "2026-10-26T06:45:33.683Z"
+      }
+    },
+    {
+      "id": "ORD-49108",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 1
+        }
+      ],
+      "totalAmount": 480,
+      "razorpayOrderId": "order_webhook_test_111",
+      "paymentStatus": "Paid",
+      "razorpayPaymentId": "pay_webhook_captured_999",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_webhook_captured_999",
+        "orderId": "order_webhook_test_111",
+        "method": "online",
+        "verifiedVia": "webhook",
+        "paidAt": "2026-10-26T06:45:33.656Z"
+      }
+    },
+    {
+      "id": "ORD-41901",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_TsRVH8IxT6cwnz",
+      "razorpayPaymentId": "pay_real_test_1792997133640",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_real_test_1792997133640",
+        "orderId": "order_TsRVH8IxT6cwnz",
+        "paidAt": "2026-10-26T06:45:33.641Z"
+      },
+      "updatedAt": "2026-10-26T06:45:33.641Z"
+    },
+    {
+      "id": "ORD-96896",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending",
+      "razorpayOrderId": "order_TsRVGxvp9rpaqH"
+    },
+    {
+      "id": "ORD-44360",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-40086",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
+    {
+      "id": "ORD-32555",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_new_shopper",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 45,
+      "couponCode": "WELCOME10",
+      "totalAmount": 435,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending"
+    },
+    {
+      "id": "ORD-68616",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 2
+        }
+      ],
+      "totalAmount": 930,
+      "paymentStatus": "Refunded",
+      "razorpayPaymentId": "pay_sim_refund_test_123",
+      "refundDetails": {
+        "refundId": "rfnd_1792997119356",
+        "amount": 930,
+        "reason": "Customer requested refund",
+        "refundedAt": "2026-10-26T06:45:19.356Z"
+      }
+    },
+    {
+      "id": "ORD-85714",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Accepted",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "qty": 1
+        }
+      ],
+      "totalAmount": 480,
+      "razorpayOrderId": "order_webhook_test_111",
+      "paymentStatus": "Paid",
+      "razorpayPaymentId": "pay_webhook_captured_999",
+      "paymentDetails": {
+        "provider": "razorpay",
+        "paymentId": "pay_webhook_captured_999",
+        "orderId": "order_webhook_test_111",
+        "method": "online",
+        "verifiedVia": "webhook",
+        "paidAt": "2026-10-26T06:45:19.335Z"
+      }
+    },
+    {
+      "id": "ORD-18518",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending"
+    },
+    {
+      "id": "ORD-19897",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Pending Payment",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "currency": "INR",
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Razorpay UPI / Online",
+      "paymentStatus": "Pending"
+    },
+    {
+      "id": "ORD-85358",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-10200",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
+    {
+      "id": "ORD-66647",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Preparing",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null
+    },
+    {
+      "id": "ORD-90760",
+      "date": "Oct 26, 2026",
+      "orderStatus": "Cancelled",
+      "reviewSubmitted": false,
+      "refundRequest": null,
+      "replacementRequest": null,
+      "customerId": "cust_01",
+      "customerName": "Valued Customer",
+      "customerPhone": "",
+      "entrepreneurId": "ent_01",
+      "storeName": "Anita's Bakery",
+      "items": [
+        {
+          "productId": "prod_01",
+          "name": "Homemade Dutch Chocolate Cake (Eggless)",
+          "price": 450,
+          "qty": 1,
+          "customization": null
+        }
+      ],
+      "itemsTotal": 450,
+      "deliveryCharge": 30,
+      "discountAmount": 0,
+      "couponCode": null,
+      "totalAmount": 480,
+      "deliveryMethod": "Home Delivery",
+      "deliveryAddress": null,
+      "orderNote": "",
+      "paymentMethod": "Online Payment",
+      "paymentStatus": "Paid",
+      "paymentDetails": null,
+      "cancelReason": "Changed mind",
+      "cancelledAt": "Oct 26, 2026"
+    },
     {
       "id": "ORD-62631",
       "date": "Oct 26, 2026",
@@ -2715,6 +3474,58 @@
   ],
   "supportTickets": [
     {
+      "id": "SUP-8863",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-9932",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-8440",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
+      "id": "SUP-9066",
+      "date": "Oct 26, 2026",
+      "status": "Open",
+      "adminNotes": "",
+      "customerId": "cust_01",
+      "customerName": "Thanuja",
+      "category": "Order Issue",
+      "orderId": null,
+      "subject": "Damaged item",
+      "description": "The packaging had slight tear",
+      "photos": []
+    },
+    {
       "id": "SUP-6916",
       "date": "Oct 26, 2026",
       "status": "Open",
@@ -2999,6 +3810,236 @@
   ],
   "activityLogs": [
     {
+      "id": "act_1792997302503",
+      "text": "Promotional offer deleted: TESTFEST25",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302497",
+      "text": "Promotional offer TESTFEST25 set to active=false",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302492",
+      "text": "Promotional offer created: TESTFEST25 (🎉 Festival Special)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302474",
+      "text": "Order #ORD-50587 refunded (₹930) and inventory stock restored",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302449",
+      "text": "Order #ORD-24055 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302438",
+      "text": "Order #ORD-67807 verified and marked Paid via Razorpay (pay_real_test_1792997302435)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302015",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302009",
+      "text": "Support ticket #SUP-8863 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997302001",
+      "text": "Order #ORD-48162 updated to status \"Preparing\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997301993",
+      "text": "Order #ORD-48162 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997301983",
+      "text": "Order #ORD-31231 was cancelled by customer",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997301976",
+      "text": "Order #ORD-31231 updated to status \"Accepted\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997301966",
+      "text": "Order #ORD-31231 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133719",
+      "text": "Promotional offer deleted: TESTFEST25",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133713",
+      "text": "Promotional offer TESTFEST25 set to active=false",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133704",
+      "text": "Promotional offer created: TESTFEST25 (🎉 Festival Special)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133685",
+      "text": "Order #ORD-40694 refunded (₹930) and inventory stock restored",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133661",
+      "text": "Order #ORD-49108 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133647",
+      "text": "Order #ORD-41901 verified and marked Paid via Razorpay (pay_real_test_1792997133640)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133196",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133190",
+      "text": "Support ticket #SUP-9932 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133183",
+      "text": "Order #ORD-44360 updated to status \"Preparing\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133174",
+      "text": "Order #ORD-44360 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133168",
+      "text": "Order #ORD-40086 was cancelled by customer",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133160",
+      "text": "Order #ORD-40086 updated to status \"Accepted\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997133149",
+      "text": "Order #ORD-40086 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119392",
+      "text": "Promotional offer deleted: TESTFEST25",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119383",
+      "text": "Promotional offer TESTFEST25 set to active=false",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119375",
+      "text": "Promotional offer created: TESTFEST25 (🎉 Festival Special)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119359",
+      "text": "Order #ORD-68616 refunded (₹930) and inventory stock restored",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119337",
+      "text": "Order #ORD-85714 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119218",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119207",
+      "text": "Support ticket #SUP-8440 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119190",
+      "text": "Order #ORD-85358 updated to status \"Preparing\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119171",
+      "text": "Order #ORD-85358 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119160",
+      "text": "Order #ORD-10200 was cancelled by customer",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119150",
+      "text": "Order #ORD-10200 updated to status \"Accepted\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997119137",
+      "text": "Order #ORD-10200 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044268",
+      "text": "Administrator signed in: Platform Administrator",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044257",
+      "text": "Support ticket #SUP-9066 created: \"Damaged item\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044247",
+      "text": "Order #ORD-66647 updated to status \"Preparing\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044235",
+      "text": "Order #ORD-66647 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044221",
+      "text": "Order #ORD-90760 was cancelled by customer",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044208",
+      "text": "Order #ORD-90760 updated to status \"Accepted\"",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792997044193",
+      "text": "Order #ORD-90760 placed for ₹480 with Anita's Bakery",
+      "time": "Just now"
+    },
+    {
+      "id": "act_1792994493500",
+      "text": "New customer registered: yashaswinikt0502 (yashaswinikt0502@gmail.com)",
+      "time": "Just now"
+    },
+    {
       "id": "act_1792994149774",
       "text": "Order #ORD-62631 refunded (₹930) and inventory stock restored",
       "time": "Just now"
@@ -3017,236 +4058,6 @@
       "id": "act_1792994149347",
       "text": "Administrator signed in: Platform Administrator",
       "time": "Just now"
-    },
-    {
-      "id": "act_1792994149343",
-      "text": "Support ticket #SUP-6916 created: \"Damaged item\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994149335",
-      "text": "Order #ORD-94281 updated to status \"Preparing\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994149328",
-      "text": "Order #ORD-94281 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994149321",
-      "text": "Order #ORD-88056 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994149312",
-      "text": "Order #ORD-88056 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994149302",
-      "text": "Order #ORD-88056 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994107512",
-      "text": "Order #ORD-76875 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792994083422",
-      "text": "Order #ORD-18236 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993490399",
-      "text": "Order #ORD-18236 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993461535",
-      "text": "Order #ORD-34483 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993288108",
-      "text": "Order #ORD-73850 refunded (₹930) and inventory stock restored",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993288094",
-      "text": "Order #ORD-69123 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993288086",
-      "text": "Order #ORD-82134 verified and marked Paid via Razorpay (pay_real_test_1792993288083)",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284174",
-      "text": "Administrator signed in: Platform Administrator",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284171",
-      "text": "Support ticket #SUP-5848 created: \"Damaged item\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284167",
-      "text": "Order #ORD-53277 updated to status \"Preparing\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284163",
-      "text": "Order #ORD-53277 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284159",
-      "text": "Order #ORD-35086 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284154",
-      "text": "Order #ORD-35086 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993284148",
-      "text": "Order #ORD-35086 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993213197",
-      "text": "Order #ORD-46384 refunded (₹930) and inventory stock restored",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993213180",
-      "text": "Order #ORD-21538 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212114",
-      "text": "Administrator signed in: Platform Administrator",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212110",
-      "text": "Support ticket #SUP-2911 created: \"Damaged item\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212106",
-      "text": "Order #ORD-56064 updated to status \"Preparing\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212103",
-      "text": "Order #ORD-56064 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212100",
-      "text": "Order #ORD-40382 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212093",
-      "text": "Order #ORD-40382 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993212089",
-      "text": "Order #ORD-40382 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202186",
-      "text": "Order #ORD-39688 refunded (₹930) and inventory stock restored",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202174",
-      "text": "Order #ORD-91242 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202118",
-      "text": "Administrator signed in: Platform Administrator",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202113",
-      "text": "Support ticket #SUP-1822 created: \"Damaged item\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202109",
-      "text": "Order #ORD-43938 updated to status \"Preparing\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202106",
-      "text": "Order #ORD-43938 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202103",
-      "text": "Order #ORD-54184 was cancelled by customer",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202097",
-      "text": "Order #ORD-54184 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792993202093",
-      "text": "Order #ORD-54184 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792992826457",
-      "text": "Order #ORD-43729 updated to status \"Accepted\"",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792992786198",
-      "text": "Order #ORD-43729 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792992762095",
-      "text": "Order #ORD-26458 placed for ₹480 with Anita's Bakery",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792951935368",
-      "text": "Order #ORD-30529 refunded (₹930) and inventory stock restored",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792951935346",
-      "text": "Order #ORD-93653 marked Paid via Razorpay Webhook (pay_webhook_captured_999)",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792951935336",
-      "text": "Order #ORD-44721 verified and marked Paid via Razorpay (pay_real_test_1792951935332)",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792951935299",
-      "text": "Administrator signed in: Platform Administrator",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1792951935295",
-      "text": "Support ticket #SUP-3154 created: \"Damaged item\"",
-      "time": "Just now"
     }
   ],
   "reportedProducts": [
@@ -3258,6 +4069,149 @@
       "reason": "Wrong delivery radius stated on card",
       "status": "reported",
       "adminActionReason": ""
+    }
+  ],
+  "offers": [
+    {
+      "id": "OFFER-1001",
+      "code": "WELCOME10",
+      "title": "🎁 WELCOME10 — First Order Discount",
+      "description": "Get 10% off your first order above ₹199 from home-based women entrepreneurs",
+      "discountType": "percentage",
+      "discountValue": 10,
+      "minOrderAmount": 199,
+      "scope": "first_order",
+      "targetCategory": null,
+      "targetProductId": null,
+      "badgeText": "FIRST ORDER OFFER",
+      "startDate": "2026-01-01T00:00:00.000Z",
+      "endDate": "2026-12-31T23:59:59.000Z",
+      "active": true,
+      "bannerEnabled": true,
+      "bannerColor": "#4A6B32",
+      "icon": "card_giftcard",
+      "ctaText": "Shop Now",
+      "ctaLink": "screen-customer-home",
+      "createdAt": "2026-10-26T06:13:25.118Z"
+    },
+    {
+      "id": "OFFER-1002",
+      "code": "CAKE15",
+      "title": "🧁 15% Off Handcrafted Cakes",
+      "description": "Get 15% off selected homemade cakes from participating home bakers",
+      "discountType": "percentage",
+      "discountValue": 15,
+      "minOrderAmount": 299,
+      "scope": "category",
+      "targetCategory": "Bakery & Sweets",
+      "targetProductId": null,
+      "badgeText": "15% OFF",
+      "startDate": "2026-01-01T00:00:00.000Z",
+      "endDate": "2026-12-31T23:59:59.000Z",
+      "active": true,
+      "bannerEnabled": true,
+      "bannerColor": "#556B2F",
+      "icon": "cake",
+      "ctaText": "Explore Cakes",
+      "ctaLink": "screen-category-listing?cat=Bakery%20%26%20Sweets",
+      "createdAt": "2026-10-26T06:13:25.118Z"
+    },
+    {
+      "id": "OFFER-1003",
+      "code": "CRAFT20",
+      "title": "🧵 Flat 20% Off Handmade Crafts",
+      "description": "Flat 20% off selected handmade crafts, jute bags and terracotta decor this week",
+      "discountType": "percentage",
+      "discountValue": 20,
+      "minOrderAmount": 250,
+      "scope": "category",
+      "targetCategory": "Handmade Crafts",
+      "targetProductId": null,
+      "badgeText": "20% OFF",
+      "startDate": "2026-01-01T00:00:00.000Z",
+      "endDate": "2026-12-31T23:59:59.000Z",
+      "active": true,
+      "bannerEnabled": true,
+      "bannerColor": "#4A6B32",
+      "icon": "palette",
+      "ctaText": "View Crafts",
+      "ctaLink": "screen-category-listing?cat=Handmade%20Crafts",
+      "createdAt": "2026-10-26T06:13:25.118Z"
+    },
+    {
+      "id": "OFFER-1004",
+      "code": "TIFFIN10",
+      "title": "🍱 Enjoy 10% Off Homemade Tiffins",
+      "description": "Enjoy 10% off selected traditional homemade meals delivered fresh to your door",
+      "discountType": "percentage",
+      "discountValue": 10,
+      "minOrderAmount": 150,
+      "scope": "category",
+      "targetCategory": "Food & Tiffin",
+      "targetProductId": null,
+      "badgeText": "10% OFF",
+      "startDate": "2026-01-01T00:00:00.000Z",
+      "endDate": "2026-12-31T23:59:59.000Z",
+      "active": true,
+      "bannerEnabled": true,
+      "bannerColor": "#556B2F",
+      "icon": "restaurant",
+      "ctaText": "Order Tiffins",
+      "ctaLink": "screen-category-listing?cat=Food%20%26%20Tiffin",
+      "createdAt": "2026-10-26T06:13:25.118Z"
+    },
+    {
+      "id": "OFFER-1005",
+      "code": "WEEKEND50",
+      "title": "🛍️ Special Weekend Offers",
+      "description": "Flat ₹50 off orders above ₹399 from local women entrepreneurs this weekend",
+      "discountType": "flat",
+      "discountValue": 50,
+      "minOrderAmount": 399,
+      "scope": "global",
+      "targetCategory": null,
+      "targetProductId": null,
+      "badgeText": "WEEKEND DEAL",
+      "startDate": "2026-01-01T00:00:00.000Z",
+      "endDate": "2026-12-31T23:59:59.000Z",
+      "active": true,
+      "bannerEnabled": true,
+      "bannerColor": "#3F5E28",
+      "icon": "storefront",
+      "ctaText": "Explore Offers",
+      "ctaLink": "screen-customer-home",
+      "createdAt": "2026-10-26T06:13:25.118Z"
+    }
+  ],
+  "promotionalAnnouncements": [
+    {
+      "id": "ANN-01",
+      "title": "🎉 Welcome to Maneyindha Marukatte!",
+      "message": "Use code WELCOME10 on your first order to get 10% off above ₹199.",
+      "code": "WELCOME10",
+      "type": "welcome",
+      "date": "Today",
+      "read": false
+    },
+    {
+      "id": "ANN-02",
+      "title": "🧁 Home Baker Weekend Special",
+      "message": "Use code CAKE15 to enjoy 15% off delicious eggless cakes from Anita's Bakery.",
+      "code": "CAKE15",
+      "type": "category",
+      "category": "Bakery & Sweets",
+      "date": "This Week",
+      "read": false
+    },
+    {
+      "id": "ANN-03",
+      "title": "🧵 Support Local Artisans with CRAFT20",
+      "message": "Flat 20% off all handcrafted jute and terracotta items with Lakshmi Crafts.",
+      "code": "CRAFT20",
+      "type": "category",
+      "category": "Handmade Crafts",
+      "date": "Active",
+      "read": false
     }
   ]
 }
