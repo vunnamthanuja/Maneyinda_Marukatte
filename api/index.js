@@ -98,6 +98,26 @@ module.exports = async (req, res) => {
 
   // Handle static assets & index.html if routed to serverless function
   if (!pathname.startsWith('/api') && !pathname.startsWith('/uploads')) {
+    let cleanPath = pathname === '' ? '/' : pathname;
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+
+    // 1. Check pre-bundled assets first (guaranteed 100% reliability on Vercel)
+    let staticBundle = null;
+    try {
+      staticBundle = require('./static-bundle.json');
+    } catch (e) {}
+
+    if (staticBundle && staticBundle[cleanPath]) {
+      const entry = staticBundle[cleanPath];
+      res.setHeader('Content-Type', entry.mime);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      if (entry.isBase64) {
+        return res.end(Buffer.from(entry.content, 'base64'));
+      }
+      return res.end(entry.content);
+    }
+
+    // 2. Fallback to direct filesystem checks
     let relativePath = (pathname === '/' || pathname === '') ? 'index.html' : pathname.replace(/^\/+/, '');
     let safePath = path.normalize(path.join(__dirname, '..', relativePath));
     if (!fs.existsSync(safePath)) {
