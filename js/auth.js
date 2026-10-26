@@ -11,7 +11,7 @@ const AuthModule = {
   resendCountdown: 30,
   countdownInterval: null,
   loginFailedAttempts: 0,
-  otpCode: '123456',
+  otpCode: '',
 
   init() {
     // Check if auto-navigating from splash
@@ -280,17 +280,21 @@ const AuthModule = {
         AppRouter.navigate('screen-otp-verify');
         setTimeout(() => this.startResendTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 60), 50);
       } else {
-        // Fallback: server offline or error, navigate to OTP screen with 123456
-        console.warn('[AUTH] Registration sendOtp error, falling back:', res);
-        AppUtils.showToast('ℹ️ Server offline. Use test OTP: 123456');
-        AppRouter.navigate('screen-otp-verify');
-        setTimeout(() => this.startResendTimer(300, 60), 50);
+        const errMsg = (res && res.message) || 'Unable to send verification code. Please check your connection and try again.';
+        if (errSpan) {
+          errSpan.textContent = errMsg;
+          errSpan.style.display = 'flex';
+        }
+        AppUtils.showToast(`⚠️ ${errMsg}`, 4000);
       }
     } catch (e) {
-      console.warn('[AUTH] Exception in handleSendOtp, fallback to 123456:', e);
-      AppUtils.showToast('ℹ️ Server unreachable. Use test OTP: 123456');
-      AppRouter.navigate('screen-otp-verify');
-      setTimeout(() => this.startResendTimer(300, 60), 50);
+      console.warn('[AUTH] Exception in handleSendOtp:', e);
+      const errMsg = 'Cannot connect to server. Please ensure the backend is started.';
+      if (errSpan) {
+        errSpan.textContent = errMsg;
+        errSpan.style.display = 'flex';
+      }
+      AppUtils.showToast(`⚠️ ${errMsg}`, 4000);
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -488,7 +492,7 @@ const AuthModule = {
         AppUtils.showToast('✅ Email verified successfully!');
         AppRouter.navigate('screen-basic-info');
       } else {
-        err.textContent = (res && res.message) || 'Invalid or expired verification code.';
+        err.textContent = (res && res.message) || 'Invalid or expired verification code. Please enter the 6-digit code received on your email.';
         err.style.display = 'flex';
         if (btn) {
           btn.disabled = false;
@@ -738,18 +742,21 @@ const AuthModule = {
         AppRouter.navigate('screen-customer-otp');
         setTimeout(() => this.startResendTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 60), 50);
       } else {
-        // Fallback: If sending failed or server offline, allow simulated OTP
-        console.warn('[AUTH] Online sendOtp returned error, falling back to simulated OTP:', res);
-        AppUtils.showToast(res && res.message ? `Notice: ${res.message}` : 'Entering test mode: Use OTP 123456');
-        AppRouter.navigate('screen-customer-otp');
-        setTimeout(() => this.startResendTimer(300, 60), 50);
+        const errMsg = (res && res.message) || 'Unable to send login code. Please check your connection and try again.';
+        if (err) {
+          err.textContent = errMsg;
+          err.style.display = 'flex';
+        }
+        AppUtils.showToast(`⚠️ ${errMsg}`, 4000);
       }
     } catch (e) {
       console.error('[AUTH] Exception in handleCustomerSendOtp:', e);
-      // Even if network error occurs, gracefully navigate to OTP screen with 123456
-      AppUtils.showToast('ℹ️ Server unreachable. Use test OTP: 123456');
-      AppRouter.navigate('screen-customer-otp');
-      setTimeout(() => this.startResendTimer(300, 60), 50);
+      const errMsg = 'Cannot connect to server. Please ensure the backend is started.';
+      if (err) {
+        err.textContent = errMsg;
+        err.style.display = 'flex';
+      }
+      AppUtils.showToast(`⚠️ ${errMsg}`, 4000);
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -848,28 +855,14 @@ const AuthModule = {
         AppRouter.navigate('screen-customer-home');
         return;
       }
-      if (code === '123456') {
-        clearInterval(this.countdownInterval);
-        store.setRole('customer');
-        AppUtils.showToast('✅ Logged in successfully (Test Mode)!');
-        AppRouter.navigate('screen-customer-home');
-        return;
-      }
       if (err) {
-        err.textContent = (res && res.message) || 'Invalid or expired OTP code. Use 123456 for test mode.';
+        err.textContent = (res && res.message) || 'Invalid or expired OTP code. Please enter the 6-digit code received on your email.';
         err.style.display = 'flex';
       }
     } catch (e) {
-      console.warn('[AUTH] Login exception, checking fallback:', e);
-      if (code === '123456') {
-        clearInterval(this.countdownInterval);
-        store.setRole('customer');
-        AppUtils.showToast('✅ Logged in successfully (Offline Mode)!');
-        AppRouter.navigate('screen-customer-home');
-        return;
-      }
+      console.warn('[AUTH] Login exception:', e);
       if (err) {
-        err.textContent = 'Invalid OTP code. For test mode, use 123456.';
+        err.textContent = 'Invalid or expired OTP code. Please enter the 6-digit code received on your email.';
         err.style.display = 'flex';
       }
     } finally {

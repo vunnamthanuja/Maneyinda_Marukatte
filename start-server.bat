@@ -1,17 +1,35 @@
 @echo off
-title Maneyindha Marukatte - Server & Payments
+setlocal
+cd /d "%~dp0"
+title Maneyindha Marukatte - Server & Email OTP Delivery
 echo ======================================================
-echo Maneyindha Marukatte Server Starting (Port 5000)
-echo Razorpay Key ID: rzp_test_TsQLb79rNRq4zF
-echo Opening app at: http://localhost:5000
+echo  🌿 MANEYINDA MARUKATTE (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ)
+echo  🚀 Starting Local Server on Port 5000...
 echo ======================================================
 
-timeout /t 1 /nobreak >nul
-start "" http://localhost:5000
-
-if exist "C:\Program Files\heroku\client\bin\node.exe" (
-    "C:\Program Files\heroku\client\bin\node.exe" backend/server.js
+rem Determine Node.js path
+set NODE_CMD=
+where node >nul 2>nul
+if %errorlevel% equ 0 (
+    set "NODE_CMD=node"
+) else if exist "C:\Program Files\nodejs\node.exe" (
+    set "NODE_CMD=C:\Program Files\nodejs\node.exe"
+) else if exist "C:\Program Files\heroku\client\bin\node.exe" (
+    set "NODE_CMD=C:\Program Files\heroku\client\bin\node.exe"
 ) else (
-    node backend/server.js
+    echo [ERROR] Node.js executable was not found. Please install Node.js.
+    pause
+    exit /b 1
 )
+
+rem Launch browser automatically after giving server 2 seconds to initialize
+start "" /b cmd /c "timeout /t 2 /nobreak >nul && start http://localhost:5000"
+
+echo Running server with: %NODE_CMD%
+echo Opening application at: http://localhost:5000
+echo Real OTP email delivery enabled via Gmail SMTP & Resend.
+echo Unique 6-digit verification codes generated on every request.
+echo Do not close this terminal while using the application.
+echo ======================================================
+"%NODE_CMD%" backend/server.js
 pause

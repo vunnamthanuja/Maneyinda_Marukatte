@@ -8,10 +8,10 @@
 class APIClient {
   constructor(baseUrl) {
     if (!baseUrl) {
-      if (typeof window !== 'undefined' && window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      if (typeof window !== 'undefined' && window.location.protocol !== 'file:' && window.location.origin && window.location.origin !== 'null') {
         this.baseUrl = `${window.location.origin}/api`;
       } else {
-        this.baseUrl = 'http://localhost:5000/api';
+        this.baseUrl = 'http://127.0.0.1:5000/api';
       }
     } else {
       this.baseUrl = baseUrl;
@@ -156,25 +156,30 @@ class APIClient {
         method: 'POST',
         body: JSON.stringify({ email, purpose })
       });
-      if (res && res.success) {
+      if (res && (res.success || res.message)) {
         return res;
       }
-      if (res && res.error && res.error !== 'NETWORK_ERROR' && res.error !== 'BACKEND_OFFLINE') {
-        return res;
+      if (res && res.error === 'NETWORK_ERROR' && typeof window !== 'undefined' && this.baseUrl !== 'http://127.0.0.1:5000/api') {
+        try {
+          const altRes = await fetch('http://127.0.0.1:5000/api/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, purpose })
+          });
+          const altData = await altRes.json().catch(() => ({}));
+          if (altRes.ok && altData.success) {
+            this.baseUrl = 'http://127.0.0.1:5000/api';
+            return altData;
+          } else if (altData && altData.message) {
+            return altData;
+          }
+        } catch (_) {}
       }
+      return res || { success: false, message: 'Server unreachable. Please ensure the backend is running.' };
     } catch (e) {
-      console.warn('[API] sendOtp network error:', e);
+      console.warn('[API] sendOtp error:', e);
+      return { success: false, error: 'NETWORK_ERROR', message: 'Cannot connect to backend server. Please verify your connection.' };
     }
-
-    // Seamless fallback: If the backend is unreachable or offline, provide simulated OTP 123456
-    console.log('[API] Backend offline or unreachable. Using instant simulated OTP 123456 for:', email);
-    return {
-      success: true,
-      simulated: true,
-      message: 'Server offline. Instant test OTP is 123456',
-      expiresInSeconds: 300,
-      resendCooldownSeconds: 30
-    };
   }
 
   async verifyOtp(email, otp, purpose) {
@@ -183,53 +188,46 @@ class APIClient {
         method: 'POST',
         body: JSON.stringify({ email, otp, purpose })
       });
-      if (res && res.success) return res;
-      if (res && res.status === 400 && res.error !== 'NETWORK_ERROR') return res;
-    } catch (e) {
-      console.warn('[API] verifyOtp network error:', e);
-    }
+      if (res && (res.success || res.message)) return res;
 
-    // Fallback: If 123456 or offline
-    if (otp === '123456') {
-      return { success: true, verified: true, simulated: true, message: 'OTP verified (Offline test mode)' };
+      if (res && res.error === 'NETWORK_ERROR' && typeof window !== 'undefined' && this.baseUrl !== 'http://127.0.0.1:5000/api') {
+        try {
+          const altRes = await fetch('http://127.0.0.1:5000/api/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp, purpose })
+          });
+          const altData = await altRes.json().catch(() => ({}));
+          if (altData && (altData.success || altData.message)) return altData;
+        } catch (_) {}
+      }
+      return res || { success: false, message: 'Invalid or expired verification code.' };
+    } catch (e) {
+      console.warn('[API] verifyOtp error:', e);
+      return { success: false, error: 'NETWORK_ERROR', message: 'Network error verifying code. Please try again.' };
     }
-    return {
-      success: false,
-      error: 'INVALID_OTP',
-      message: 'Invalid OTP code. For test mode, use 123456.'
-    };
   }
 
   async loginCustomer(email, otp, name, phone) {
-    if (this.isOnline) {
-      const res = await this.request('/auth/login-customer', {
-        method: 'POST',
-        body: JSON.stringify({ email, otp, name, phone })
-      });
-      if (res.success && res.token) {
-        this.token = res.token;
-        localStorage.setItem('AUTH_TOKEN', res.token);
-        store.data.currentUser = { ...store.data.currentUser, ...res.user };
-        store.data.currentRole = 'customer';
-        store.saveData();
-        return res;
-      }
+    const res = await this.request('/auth/login-customer', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, name, phone })
+    });
+    if (res && res.success && res.token) {
+      this.token = res.token;
+      localStorage.setItem('AUTH_TOKEN', res.token);
+      store.data.currentUser = { ...store.data.currentUser, ...res.user };
+      store.data.currentRole = 'customer';
+      store.saveData();
+      return res;
     }
-    // Fallback: local sign in
-    let user = store.getUser();
-    if (!user || user.email !== email) {
-      user = {
-        id: 'cust_' + Date.now(),
-        name: name || email.split('@')[0],
-        email: email,
-        phone: phone || '',
-        role: 'customer'
-      };
-      store.data.currentUser = user;
+    if (res && res.message) {
+      return res;
     }
-    store.data.currentRole = 'customer';
-    store.saveData();
-    return { success: true, user };
+    return {
+      success: false,
+      message: 'Authentication failed. Please verify the 6-digit code received on your email.'
+    };
   }
 
   async loginEntrepreneur(username, password) {

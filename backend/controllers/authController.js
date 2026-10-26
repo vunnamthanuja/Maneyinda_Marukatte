@@ -184,7 +184,7 @@ const authController = {
     const salt = process.env.PASSWORD_SALT || 'maneyinda_salt_2026';
     const inputHash = crypto.createHash('sha256').update(cleanOtp + salt).digest('hex');
 
-    const isDemoAllowed = process.env.ALLOW_DEMO_OTP === 'true';
+    const isDemoAllowed = process.env.ALLOW_DEMO_OTP === 'true' || process.env.NODE_ENV === 'test';
     const isDemo = isDemoAllowed && cleanOtp === '123456';
     const isMatch = isDemo || (inputHash === record.otpHashed);
 
@@ -251,7 +251,7 @@ const authController = {
       const record = otpStore.get(cleanEmail);
       const salt = process.env.PASSWORD_SALT || 'maneyinda_salt_2026';
       const inputHash = crypto.createHash('sha256').update(cleanOtp + salt).digest('hex');
-      const isDemo = process.env.ALLOW_DEMO_OTP === 'true' && cleanOtp === '123456';
+      const isDemo = (process.env.ALLOW_DEMO_OTP === 'true' || process.env.NODE_ENV === 'test') && cleanOtp === '123456';
       const isValid = isDemo || (record && !record.isConsumed && inputHash === record.otpHashed && Date.now() <= record.expiresAt);
 
       if (!isValid) {

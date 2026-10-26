@@ -25,6 +25,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
 
   if (req.method === 'OPTIONS') {
@@ -120,23 +121,45 @@ module.exports = async (req, res) => {
   req.params = match.params || {};
 
   // Safeguard: Ensure body is parsed on Vercel serverless functions
-  if (!req.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
-    let rawBody = '';
-    await new Promise((resolve) => {
-      req.on('data', chunk => { rawBody += chunk; });
-      req.on('end', () => {
-        req.rawBody = rawBody;
-        try {
-          req.body = JSON.parse(rawBody);
-        } catch (e) {
-          req.body = {};
-        }
-        resolve();
+  if (req.body) {
+    if (typeof req.body === 'string') {
+      req.rawBody = req.body;
+      try {
+        req.body = JSON.parse(req.body);
+      } catch (_) {}
+    } else if (Buffer.isBuffer && Buffer.isBuffer(req.body)) {
+      req.rawBody = req.body.toString('utf8');
+      try {
+        req.body = JSON.parse(req.rawBody);
+      } catch (_) {}
+    } else {
+      req.rawBody = JSON.stringify(req.body);
+    }
+  } else if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (req.readableEnded || req.complete) {
+      req.body = {};
+      req.rawBody = '';
+    } else {
+      let rawBody = '';
+      await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(), 2500);
+        req.on('data', chunk => { rawBody += chunk; });
+        req.on('end', () => {
+          clearTimeout(timer);
+          req.rawBody = rawBody;
+          try {
+            req.body = JSON.parse(rawBody);
+          } catch (e) {
+            req.body = {};
+          }
+          resolve();
+        });
+        req.on('error', () => {
+          clearTimeout(timer);
+          resolve();
+        });
       });
-      req.on('error', () => resolve());
-    });
-  } else if (!req.rawBody && req.body) {
-    req.rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
   }
 
   try {
