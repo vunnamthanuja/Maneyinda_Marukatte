@@ -73,6 +73,43 @@ class Router {
     });
     this.add('GET', '/api', indexHandler);
 
+    // Static assets bundle route for client modules and assets
+    this.add('GET', '/api/static/:section/:file', (req, res) => {
+      let staticBundle = null;
+      try {
+        staticBundle = require('../../api/static-bundle');
+      } catch (e) {}
+
+      const clean = '/' + req.params.section + '/' + req.params.file;
+      if (staticBundle && staticBundle[clean]) {
+        const entry = staticBundle[clean];
+        res.setHeader('Content-Type', entry.mime);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        if (entry.isBase64) {
+          return res.end(Buffer.from(entry.content, 'base64'));
+        }
+        return res.end(entry.content);
+      }
+
+      // Fallback to local filesystem read
+      const fs = require('fs');
+      const path = require('path');
+      const localPath = path.join(__dirname, '..', '..', req.params.section, req.params.file);
+      if (fs.existsSync(localPath) && fs.statSync(localPath).isFile()) {
+        const ext = path.extname(localPath).toLowerCase();
+        const mimes = {
+          '.js': 'application/javascript; charset=utf-8',
+          '.css': 'text/css; charset=utf-8',
+          '.svg': 'image/svg+xml',
+          '.png': 'image/png'
+        };
+        res.setHeader('Content-Type', mimes[ext] || 'text/plain');
+        return fs.createReadStream(localPath).pipe(res);
+      }
+
+      return res.status(404).json({ success: false, error: 'FILE_NOT_FOUND', path: clean });
+    });
+
     // Health check
     this.add('GET', '/api/health', (req, res) => {
       return res.status(200).json({
