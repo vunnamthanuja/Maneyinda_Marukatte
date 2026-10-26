@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Maneyindha Marukatte - Hyperlocal E-Commerce Platform Empowering Home-Based Women Entrepreneurs",
   "scripts": {
-    "build": "echo Static frontend bundle ready",
+    "build": "node scripts/build.js",
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
     "test": "node backend/test-api.js"
