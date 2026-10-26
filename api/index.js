@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const router = require('../backend/routes/router');
 require('../backend/config/env');
+const staticBundle = require('./static-bundle');
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -56,11 +57,9 @@ module.exports = async (req, res) => {
   // Debug route to verify deployment, headers, and static bundle
   const checkUrl = req.url || '';
   if (checkUrl.includes('/api/debug')) {
-    let staticBundle = null;
-    try { staticBundle = require('./static-bundle.json'); } catch (e) {}
     return res.status(200).json({
       success: true,
-      deployment: 'v2.3-rewrites-live',
+      deployment: 'v2.4-static-bundle-js-live',
       url: req.url,
       headers: req.headers,
       hasBundle: !!staticBundle,
@@ -77,11 +76,6 @@ module.exports = async (req, res) => {
   let pathname = parsedUrl.pathname;
 
   // 1. Guaranteed static asset serving from embedded bundle
-  let staticBundle = null;
-  try {
-    staticBundle = require('./static-bundle.json');
-  } catch (e) {}
-
   let checkPath = pathname;
   if (checkPath.startsWith('/api/static/')) {
     checkPath = checkPath.replace('/api/static', '');

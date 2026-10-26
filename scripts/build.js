@@ -94,6 +94,13 @@ function addFileToBundle(relPath) {
 
 ['index.html', 'css', 'js', 'assets'].forEach(item => addFileToBundle(item));
 
-const bundlePath = path.join(apiDir, 'static-bundle.json');
-fs.writeFileSync(bundlePath, JSON.stringify(bundle), 'utf8');
+const bundlePath = path.join(apiDir, 'static-bundle.js');
+const jsCode = 'module.exports = ' + JSON.stringify(bundle, null, 2) + ';\n';
+fs.writeFileSync(bundlePath, jsCode, 'utf8');
 console.log(`[BUILD] Generated ${bundlePath} with ${Object.keys(bundle).length} entries (${(fs.statSync(bundlePath).size / 1024).toFixed(1)} KB).`);
+
+// Remove old json bundle if present
+const oldJson = path.join(apiDir, 'static-bundle.json');
+if (fs.existsSync(oldJson)) {
+  fs.unlinkSync(oldJson);
+}
