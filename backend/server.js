@@ -76,14 +76,16 @@ const server = http.createServer((req, res) => {
   // Serve static frontend files (index.html, css, js, assets)
   if (!pathname.startsWith('/api') && pathname !== '/api') {
     let relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-    const safePath = path.normalize(path.join(ROOT_DIR, relativePath));
-
-    if (safePath.startsWith(ROOT_DIR) && fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
-      const ext = path.extname(safePath).toLowerCase();
-      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-      res.writeHead(200, { 'Content-Type': contentType });
-      fs.createReadStream(safePath).pipe(res);
-      return;
+    const candidateDirs = [ROOT_DIR, process.cwd()];
+    for (const dir of candidateDirs) {
+      const safePath = path.normalize(path.join(dir, relativePath));
+      if (fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
+        const ext = path.extname(safePath).toLowerCase();
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': contentType });
+        fs.createReadStream(safePath).pipe(res);
+        return;
+      }
     }
   }
 

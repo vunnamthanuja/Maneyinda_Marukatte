@@ -61,7 +61,6 @@ class Router {
       });
     };
 
-    this.add('GET', '/', indexHandler);
     this.add('GET', '/api', indexHandler);
 
     // Health check

@@ -2,10 +2,48 @@
    MANEYINDA MARUKATTE - VERCEL SERVERLESS FUNCTION ENTRYPOINT
    Adapts incoming Vercel Serverless HTTP requests directly to the
    built-in backend router with CORS, query, and path resolution.
+   Also includes fail-safe static serving for root website index.html.
 ===================================================================== */
 
+const fs = require('fs');
+const path = require('path');
 const router = require('../backend/routes/router');
 require('../backend/config/env');
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm'
+};
+
+function tryServeStatic(pathname, res) {
+  let relative = (pathname === '/' || pathname === '' || pathname === '/index.html') ? 'index.html' : pathname.replace(/^\/+/, '');
+  const searchRoots = [
+    process.cwd(),
+    path.join(__dirname, '..')
+  ];
+
+  for (const root of searchRoots) {
+    const fullPath = path.normalize(path.join(root, relative));
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      const ext = path.extname(fullPath).toLowerCase();
+      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+      res.end(fs.readFileSync(fullPath));
+      return true;
+    }
+  }
+  return false;
+}
 
 module.exports = async (req, res) => {
   // 1. CORS headers
@@ -48,8 +86,15 @@ module.exports = async (req, res) => {
     Object.assign(query, req.query);
   }
 
+  // Fail-safe: If request is for root / or a static frontend file, serve it directly
+  if (pathname === '/' || pathname === '/index.html' || (!pathname.startsWith('/api') && !query.path)) {
+    if (tryServeStatic(pathname, res)) {
+      return;
+    }
+  }
+
   // Handle rewrite to /api/index.js?path=...
-  if (pathname === '/api/index.js' || pathname === '/api/index' || pathname === '/api/' || pathname === '/') {
+  if (pathname === '/api/index.js' || pathname === '/api/index' || pathname === '/api/' || pathname === '/api') {
     if (query.path) {
       pathname = '/api/' + query.path.replace(/^\/+/, '');
     } else {

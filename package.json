@@ -3,11 +3,9 @@
   "version": "1.2.0",
   "private": true,
   "description": "Hyperlocal Marketplace empowering home-based women entrepreneurs",
-  "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
-    "test": "node backend/test-api.js",
-    "build": "echo 'Static assets ready for deployment'"
+    "test": "node backend/test-api.js"
   },
   "keywords": [
     "hyperlocal",
