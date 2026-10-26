@@ -29,6 +29,7 @@ temp/
 .env.local
 .env.*.local
 
-# Backend uploads
+# Backend uploads (keep sample banners, ignore dynamic user uploads)
 backend/uploads/*
 !backend/uploads/.gitkeep
+!backend/uploads/*.svg
