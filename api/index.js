@@ -92,6 +92,15 @@ module.exports = async (req, res) => {
     }
   }
 
+  // If root homepage is requested via serverless entrypoint, serve index.html
+  if (pathname === '/' || pathname === '/index.html') {
+    const indexPath = path.join(__dirname, '..', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return fs.createReadStream(indexPath).pipe(res);
+    }
+  }
+
   // Normalize path to /api/...
   if (!pathname.startsWith('/api')) {
     pathname = '/api' + (pathname.startsWith('/') ? pathname : '/' + pathname);
