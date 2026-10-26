@@ -182,6 +182,16 @@ const server = http.createServer((req, res) => {
 });
 
 if (require.main === module) {
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n⚠️  PORT ${PORT} IS ALREADY IN USE.`);
+      console.log(`A previous server instance is already running on port ${PORT}.`);
+      console.log(`You can directly visit: http://localhost:${PORT}\n`);
+    } else {
+      console.error('[SERVER LISTEN ERROR]', err);
+    }
+  });
+
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n======================================================`);
     console.log(`🌿 MANEYINDA MARUKATTE (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ) REST API`);
@@ -189,6 +199,16 @@ if (require.main === module) {
     console.log(`📡 Base API URL: http://localhost:${PORT}/api`);
     console.log(`📄 API Contract: API_CONTRACT.md`);
     console.log(`======================================================\n`);
+
+    if (process.env.OPEN_BROWSER !== 'false') {
+      const { exec } = require('child_process');
+      const startCmd = process.platform === 'win32' ? `start http://localhost:${PORT}` :
+                       process.platform === 'darwin' ? `open http://localhost:${PORT}` :
+                       `xdg-open http://localhost:${PORT}`;
+      exec(startCmd, (err) => {
+        if (err) console.log(`[BROWSER] Open http://localhost:${PORT} in your browser.`);
+      });
+    }
   });
 }
 

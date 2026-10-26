@@ -20,9 +20,9 @@ const failedAttempts = new Map(); // identifier -> { count, lockedUntil }
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
-const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
+const RESEND_COOLDOWN_MS = 15 * 1000; // 15 seconds cooldown for responsive user experience
 const MAX_VERIFY_ATTEMPTS = 5;
-const MAX_HOURLY_REQUESTS = 5;
+const MAX_HOURLY_REQUESTS = 50; // Generous limit for development and testing
 
 const authController = {
   // POST /api/auth/send-otp
@@ -111,9 +111,9 @@ const authController = {
 
     return res.status(200).json({
       success: true,
-      message: `Verification code sent to ${cleanEmail}.`,
+      message: `Verification code sent to ${cleanEmail}. Check your inbox and spam folder.`,
       expiresInSeconds: 300,
-      resendCooldownSeconds: 60,
+      resendCooldownSeconds: 15,
       recipient: cleanEmail,
       provider: sendResult.provider
     });
