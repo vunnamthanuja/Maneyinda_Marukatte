@@ -182,6 +182,7 @@ module.exports = async (req, res) => {
     return res.status(404).json({
       success: false,
       error: 'ROUTE_NOT_FOUND',
+      buildVersion: 'build-2026-10-26-v2',
       message: `Cannot ${req.method} ${pathname}`
     });
   }

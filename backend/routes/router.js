@@ -78,6 +78,7 @@ class Router {
       return res.status(200).json({
         success: true,
         status: 'UP',
+        buildVersion: 'build-2026-10-26-v2',
         timestamp: new Date().toISOString(),
         service: 'Maneyinda Marukatte REST API'
       });
