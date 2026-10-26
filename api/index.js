@@ -2,10 +2,49 @@
    MANEYINDA MARUKATTE - VERCEL SERVERLESS FUNCTION ENTRYPOINT
    Adapts incoming Vercel Serverless HTTP requests directly to the
    built-in backend router with CORS, query, and path resolution.
+   Includes universal static file serving for root, CSS, JS, and assets.
 ===================================================================== */
 
+const fs = require('fs');
+const path = require('path');
 const router = require('../backend/routes/router');
 require('../backend/config/env');
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm'
+};
+
+function tryServeStatic(pathname, res) {
+  let relative = (pathname === '/' || pathname === '' || pathname === '/index.html') ? 'index.html' : pathname.replace(/^\/+/, '');
+  const searchRoots = [
+    process.cwd(),
+    path.join(__dirname, '..'),
+    path.join(process.cwd(), 'public')
+  ];
+
+  for (const root of searchRoots) {
+    const fullPath = path.normalize(path.join(root, relative));
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      const ext = path.extname(fullPath).toLowerCase();
+      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
+      res.end(fs.readFileSync(fullPath));
+      return true;
+    }
+  }
+  return false;
+}
 
 module.exports = async (req, res) => {
   // CORS headers
@@ -46,6 +85,13 @@ module.exports = async (req, res) => {
   });
   if (req.query && typeof req.query === 'object') {
     Object.assign(query, req.query);
+  }
+
+  // 1. Static file fallback: If not an /api route, serve static file directly (index.html, CSS, JS, etc.)
+  if (!pathname.startsWith('/api/') && pathname !== '/api') {
+    if (tryServeStatic(pathname, res)) {
+      return;
+    }
   }
 
   // Support /api/index.js?path=...
