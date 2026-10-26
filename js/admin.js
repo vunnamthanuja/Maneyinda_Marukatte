@@ -134,6 +134,8 @@ const AdminModule = {
     const orders = store.data.orders || [];
     const tickets = store.getSupportTickets().filter(t => t.status === 'Open' || t.status === 'In Progress');
     const reported = store.data.reportedProducts || [];
+    const ads = (store.data && store.data.advertisements) || [];
+    const pendingAds = ads.filter(a => a.status === 'Pending Approval');
 
     return `
       <!-- Admin Header Bar -->
@@ -264,6 +266,30 @@ const AdminModule = {
             <span class="status-chip chip-delivered" style="font-size:10px; font-weight:700;">
               ${(store.getOffers ? store.getOffers(true).length : 5)} Active
             </span>
+          </div>
+        </div>
+
+        <!-- 6. Entrepreneur Advertisements Moderation -->
+        <div class="card card-clickable" style="padding:14px; margin-bottom:10px; border-left:4px solid #FF8F00; cursor:pointer;" onclick="AppRouter.navigate('screen-admin-ads')">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:#FF8F00; font-size:26px;">campaign</span>
+              <div>
+                <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary);">
+                  📢 Entrepreneur Advertisements Moderation
+                </h4>
+                <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">
+                  Review banners & videos uploaded by women entrepreneurs before public display
+                </p>
+              </div>
+            </div>
+            ${pendingAds.length > 0 ? `
+              <span class="badge-counter" style="position:static; width:22px; height:22px; background:#FF8F00; color:#fff;">${pendingAds.length}</span>
+            ` : `
+              <span class="status-chip chip-delivered" style="font-size:10px; font-weight:700;">
+                ${ads.filter(a => a.status === 'Approved' && a.active !== false).length} Active
+              </span>
+            `}
           </div>
         </div>
 
@@ -1587,18 +1613,31 @@ const AdminModule = {
   },
 
   async saveNewOffer() {
-    const code = (document.getElementById('offer-code')?.value || '').trim().toUpperCase();
-    const title = (document.getElementById('offer-title')?.value || '').trim();
-    const subtitle = (document.getElementById('offer-subtitle')?.value || '').trim();
-    const badgeText = (document.getElementById('offer-badge')?.value || '').trim() || `${code} DEAL`;
-    const discountType = document.getElementById('offer-discount-type')?.value || 'percentage';
-    const discountValue = parseFloat(document.getElementById('offer-discount-value')?.value || '0');
-    const minOrderAmount = parseFloat(document.getElementById('offer-min-order')?.value || '0');
-    const maxDiscount = parseFloat(document.getElementById('offer-max-discount')?.value || '0') || null;
-    const scope = document.getElementById('offer-scope')?.value || 'global';
-    const targetId = (document.getElementById('offer-target')?.value || '').trim() || null;
-    const showInBanner = document.getElementById('offer-show-banner')?.checked ?? true;
-    const active = document.getElementById('offer-active')?.checked ?? true;
+    const codeEl = document.getElementById('offer-code');
+    const titleEl = document.getElementById('offer-title');
+    const subtitleEl = document.getElementById('offer-subtitle');
+    const badgeEl = document.getElementById('offer-badge');
+    const discountTypeEl = document.getElementById('offer-discount-type');
+    const discountValueEl = document.getElementById('offer-discount-value');
+    const minOrderEl = document.getElementById('offer-min-order');
+    const maxDiscountEl = document.getElementById('offer-max-discount');
+    const scopeEl = document.getElementById('offer-scope');
+    const targetEl = document.getElementById('offer-target');
+    const bannerEl = document.getElementById('offer-show-banner');
+    const activeEl = document.getElementById('offer-active');
+
+    const code = (codeEl && codeEl.value ? codeEl.value : '').trim().toUpperCase();
+    const title = (titleEl && titleEl.value ? titleEl.value : '').trim();
+    const subtitle = (subtitleEl && subtitleEl.value ? subtitleEl.value : '').trim();
+    const badgeText = (badgeEl && badgeEl.value ? badgeEl.value.trim() : '') || (code + ' DEAL');
+    const discountType = (discountTypeEl && discountTypeEl.value ? discountTypeEl.value : '') || 'percentage';
+    const discountValue = parseFloat((discountValueEl && discountValueEl.value ? discountValueEl.value : '') || '0');
+    const minOrderAmount = parseFloat((minOrderEl && minOrderEl.value ? minOrderEl.value : '') || '0');
+    const maxDiscount = parseFloat((maxDiscountEl && maxDiscountEl.value ? maxDiscountEl.value : '') || '0') || null;
+    const scope = (scopeEl && scopeEl.value ? scopeEl.value : '') || 'global';
+    const targetId = (targetEl && targetEl.value ? targetEl.value : '').trim() || null;
+    const showInBanner = bannerEl ? bannerEl.checked : true;
+    const active = activeEl ? activeEl.checked : true;
 
     if (!code || !title || !discountValue) {
       AppUtils.showToast('Please fill in Code, Title and Discount Value.');
@@ -1691,6 +1730,262 @@ const AdminModule = {
       AppRouter.renderActiveScreen();
     } else {
       AppUtils.showToast((res && res.message) || 'Failed to moderate offer.');
+    }
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: ENTREPRENEUR ADVERTISEMENTS MODERATION
+  // -------------------------------------------------------------
+  activeAdTab: 'all',
+
+  renderAdvertisements(params) {
+    if (params && params.tab) {
+      this.activeAdTab = params.tab;
+    }
+    const allAds = (store.data && store.data.advertisements) || [];
+    const pendingCount = allAds.filter(a => a.status === 'Pending Approval').length;
+    const approvedCount = allAds.filter(a => a.status === 'Approved').length;
+    const rejectedCount = allAds.filter(a => a.status === 'Rejected').length;
+
+    let filtered = allAds;
+    if (this.activeAdTab !== 'all') {
+      filtered = allAds.filter(a => a.status === this.activeAdTab);
+    }
+
+    return `
+      <!-- Top Admin App Bar -->
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-dashboard')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">📢 Advertisements Moderation</span>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="AdminModule.refreshAdsList()" style="min-height:auto; padding:6px 10px; font-size:11px;">
+          <span class="material-symbols-rounded" style="font-size:15px;">refresh</span>
+          Sync
+        </button>
+      </div>
+
+      <div class="screen-content" style="padding-top:10px; padding-bottom:70px;">
+        <!-- Moderation Stats KPI Cards -->
+        <div class="stat-card-grid" style="margin-bottom:14px;">
+          <div class="stat-card" style="border-top:3px solid #FF8F00; cursor:pointer;" onclick="AdminModule.setAdTab('Pending Approval')">
+            <div class="stat-value" style="color:#E65100;">${pendingCount}</div>
+            <div class="stat-label">Pending Review</div>
+          </div>
+          <div class="stat-card" style="border-top:3px solid #4CAF50; cursor:pointer;" onclick="AdminModule.setAdTab('Approved')">
+            <div class="stat-value" style="color:#2E7D32;">${approvedCount}</div>
+            <div class="stat-label">Approved / Live</div>
+          </div>
+          <div class="stat-card" style="border-top:3px solid #E53935; cursor:pointer;" onclick="AdminModule.setAdTab('Rejected')">
+            <div class="stat-value" style="color:#C62828;">${rejectedCount}</div>
+            <div class="stat-label">Rejected</div>
+          </div>
+          <div class="stat-card" style="border-top:3px solid var(--color-primary); cursor:pointer;" onclick="AdminModule.setAdTab('all')">
+            <div class="stat-value">${allAds.length}</div>
+            <div class="stat-label">Total Submitted</div>
+          </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tab-bar" style="margin-bottom:14px;">
+          <button class="filter-tab ${this.activeAdTab === 'Pending Approval' ? 'active' : ''}" onclick="AdminModule.setAdTab('Pending Approval')">
+            Pending (${pendingCount})
+          </button>
+          <button class="filter-tab ${this.activeAdTab === 'Approved' ? 'active' : ''}" onclick="AdminModule.setAdTab('Approved')">
+            Approved (${approvedCount})
+          </button>
+          <button class="filter-tab ${this.activeAdTab === 'Rejected' ? 'active' : ''}" onclick="AdminModule.setAdTab('Rejected')">
+            Rejected (${rejectedCount})
+          </button>
+          <button class="filter-tab ${this.activeAdTab === 'all' ? 'active' : ''}" onclick="AdminModule.setAdTab('all')">
+            All Ads (${allAds.length})
+          </button>
+        </div>
+
+        <!-- Ads Listing -->
+        ${filtered.length === 0 ? `
+          <div class="empty-state" style="padding:40px 16px;">
+            <span class="material-symbols-rounded empty-state-icon" style="color:var(--color-primary);">campaign</span>
+            <div class="empty-state-title">No advertisements in this view</div>
+            <div class="empty-state-desc">All submitted entrepreneur banners and promotional videos have been processed.</div>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${filtered.map(ad => AdminModule.renderAdminAdCard(ad)).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('dashboard')}
+    `;
+  },
+
+  setAdTab(tab) {
+    this.activeAdTab = tab;
+    AppRouter.renderActiveScreen();
+  },
+
+  async refreshAdsList() {
+    AppUtils.showToast('Syncing advertisements...');
+    const res = await window.apiClient.getAdminAds();
+    if (res && res.success && Array.isArray(res.data)) {
+      store.data.advertisements = res.data;
+      store.saveData();
+    }
+    AppRouter.renderActiveScreen();
+  },
+
+  renderAdminAdCard(ad) {
+    const isVideo = ad.videoUrl || (ad.mediaUrl && (ad.mediaUrl.endsWith('.mp4') || ad.mediaUrl.endsWith('.webm')));
+    const mediaSrc = ad.videoUrl || ad.imageUrl || ad.mediaUrl;
+    
+    // Status styling
+    let statusBg = '#FFF8E1';
+    let statusColor = '#F57F17';
+    if (ad.status === 'Approved') {
+      statusBg = '#E8F5E9';
+      statusColor = '#2E7D32';
+    } else if (ad.status === 'Rejected') {
+      statusBg = '#FFEBEE';
+      statusColor = '#C62828';
+    } else if (ad.status === 'Paused') {
+      statusBg = '#ECEFF1';
+      statusColor = '#546E7A';
+    }
+
+    return `
+      <div class="card" style="padding:14px; border-left:4px solid ${statusColor};">
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:11px; font-weight:700; background:var(--color-surface-dim); padding:2px 8px; border-radius:4px; color:var(--color-text-secondary);">${ad.id}</span>
+              <span style="font-size:12px; font-weight:700; background:#F5F9EE; color:var(--color-primary); padding:2px 8px; border-radius:12px;">🏪 ${ad.storeName || ad.entrepreneurId}</span>
+              <span style="font-size:10.5px; background:var(--color-surface-dim); padding:2px 6px; border-radius:4px; color:var(--color-text-secondary);">${ad.adType || 'Promotion'}</span>
+            </div>
+            <h4 style="font-size:15px; font-weight:700; color:var(--color-text-primary); margin-top:6px;">${ad.title}</h4>
+            <p style="font-size:12px; color:var(--color-text-secondary); margin-top:2px; line-height:1.4;">${ad.description || ''}</p>
+          </div>
+          <span style="background:${statusBg}; color:${statusColor}; font-size:11px; font-weight:700; padding:4px 10px; border-radius:12px; white-space:nowrap;">
+            ${ad.status}
+          </span>
+        </div>
+
+        <!-- Media Display (Image or Video) -->
+        ${mediaSrc ? `
+          <div style="margin:10px 0; border-radius:10px; overflow:hidden; border:1px solid var(--color-border); background:#000; text-align:center;">
+            ${isVideo ? `
+              <video src="${mediaSrc}" controls style="max-height:180px; width:100%; display:block; object-fit:contain;"></video>
+            ` : `
+              <img src="${mediaSrc}" alt="${ad.title}" style="max-height:180px; width:100%; object-fit:cover; display:block;" onerror="this.onerror=null; this.src='images/placeholder.jpg';">
+            `}
+          </div>
+        ` : ''}
+
+        <!-- Details Grid -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px; margin:8px 0; background:var(--color-surface-dim); padding:8px 10px; border-radius:8px;">
+          <div><strong style="color:var(--color-text-tertiary);">Placement:</strong> ${ad.placement || 'home_carousel'}</div>
+          <div><strong style="color:var(--color-text-tertiary);">CTA:</strong> ${ad.ctaText || 'Shop Now'}</div>
+          ${ad.couponCode ? `<div><strong style="color:var(--color-text-tertiary);">Linked Coupon:</strong> <span class="coupon-code-badge" style="font-size:10px;">${ad.couponCode}</span></div>` : ''}
+          ${ad.discountInfo ? `<div><strong style="color:var(--color-text-tertiary);">Discount:</strong> ${ad.discountInfo}</div>` : ''}
+          <div><strong style="color:var(--color-text-tertiary);">Valid:</strong> ${ad.startDate || 'Now'} to ${ad.endDate || 'Ongoing'}</div>
+          <div><strong style="color:var(--color-text-tertiary);">Submitted:</strong> ${ad.createdAt ? new Date(ad.createdAt).toLocaleDateString() : 'Recent'}</div>
+        </div>
+
+        <!-- Metrics -->
+        <div style="display:flex; gap:12px; font-size:11px; color:var(--color-text-secondary); margin:6px 0;">
+          <span>👀 <strong>${ad.impressions || 0}</strong> Views</span>
+          <span>👆 <strong>${ad.clicks || 0}</strong> Clicks</span>
+          <span>📈 <strong>${ad.impressions ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : 0}%</strong> CTR</span>
+          <span>🛍️ <strong>${ad.ordersAttributed || 0}</strong> Orders</span>
+        </div>
+
+        <!-- Rejection Notice if any -->
+        ${ad.rejectionReason ? `
+          <div style="background:#FFEBEE; border:1px solid #FFCDD2; border-radius:6px; padding:8px 10px; font-size:11.5px; color:#C62828; margin:8px 0;">
+            <strong>Rejection Reason:</strong> ${ad.rejectionReason}
+          </div>
+        ` : ''}
+
+        <!-- Moderation Actions -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; border-top:1px solid var(--color-border); padding-top:10px;">
+          <div style="display:flex; gap:6px;">
+            ${ad.status !== 'Approved' ? `
+              <button class="btn btn-sm" style="font-size:11px; padding:4px 12px; background:#E8F5E9; color:#2E7D32; border:1px solid #C8E6C9; font-weight:700;" onclick="AdminModule.reviewAd('${ad.id}', 'Approved')">
+                <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">check_circle</span>
+                Approve Ad
+              </button>
+            ` : `
+              <button class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;" onclick="AdminModule.toggleAdStatus('${ad.id}')">
+                ${ad.status === 'Paused' ? 'Resume' : 'Pause'}
+              </button>
+            `}
+            ${ad.status !== 'Rejected' ? `
+              <button class="btn btn-sm" style="font-size:11px; padding:4px 12px; background:#FFEBEE; color:#C62828; border:1px solid #FFCDD2; font-weight:700;" onclick="AdminModule.promptRejectAd('${ad.id}')">
+                <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">cancel</span>
+                Reject Ad
+              </button>
+            ` : ''}
+          </div>
+
+          <button class="btn btn-sm btn-danger-outline" style="font-size:11px; padding:4px 10px; min-height:auto;" onclick="AdminModule.deleteAd('${ad.id}')" title="Permanently delete this advertisement">
+            <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  async reviewAd(adId, status, rejectionReason = null) {
+    const res = await window.apiClient.reviewAdminAd(adId, status, rejectionReason);
+    if (res && res.success) {
+      const idx = (store.data.advertisements || []).findIndex(a => a.id === adId);
+      if (idx !== -1) {
+        store.data.advertisements[idx] = {
+          ...store.data.advertisements[idx],
+          status,
+          rejectionReason: status === 'Rejected' ? rejectionReason : null
+        };
+        store.saveData();
+      }
+      AppUtils.showToast(`Advertisement ${status.toLowerCase()} successfully.`);
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast((res && res.message) || `Failed to set status to ${status}.`);
+    }
+  },
+
+  promptRejectAd(adId) {
+    const reason = prompt('Please specify the reason for rejecting this advertisement (sent to shop owner):', 'Inappropriate image or does not meet quality guidelines');
+    if (!reason || !reason.trim()) {
+      AppUtils.showToast('Rejection cancelled: reason is required.');
+      return;
+    }
+    this.reviewAd(adId, 'Rejected', reason.trim());
+  },
+
+  async toggleAdStatus(adId) {
+    const ad = (store.data.advertisements || []).find(a => a.id === adId);
+    if (!ad) return;
+    const newStatus = ad.status === 'Paused' ? 'Approved' : 'Paused';
+    this.reviewAd(adId, newStatus);
+  },
+
+  async deleteAd(adId) {
+    if (!confirm('Are you sure you want to permanently delete this advertisement?')) return;
+    const res = await window.apiClient.deleteAdminAd(adId);
+    if (res && res.success) {
+      const idx = (store.data.advertisements || []).findIndex(a => a.id === adId);
+      if (idx !== -1) {
+        store.data.advertisements.splice(idx, 1);
+        store.saveData();
+      }
+      AppUtils.showToast('Advertisement deleted successfully.');
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast((res && res.message) || 'Failed to delete advertisement.');
     }
   },
 

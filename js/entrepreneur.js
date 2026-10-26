@@ -10,6 +10,9 @@ const EntrepreneurModule = {
   dynamicCustomFields: [],
   offerFilter: 'all',
   editingOfferId: null,
+  adFilter: 'all',
+  editingAdId: null,
+  currentUploadedAdImageUrl: null,
 
   getEntrepreneur() {
     const user = store.getUser();
@@ -105,7 +108,7 @@ const EntrepreneurModule = {
         </div>
 
         <!-- Promotional Offers Quick Access Banner -->
-        <div style="background: linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; color:#FFF; display:flex; justify-content:space-between; align-items:center;">
+        <div style="background: linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:12px; color:#FFF; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;">
               <span>🏷️</span> Promotional Offers & Discounts
@@ -116,6 +119,21 @@ const EntrepreneurModule = {
           </div>
           <button class="btn btn-sm" style="background:#FFF; color:#2E451E; font-weight:700; border:none; padding:6px 12px; border-radius:var(--radius-full); font-size:11px; cursor:pointer;" onclick="AppRouter.navigate('screen-ent-offers')">
             Manage Offers
+          </button>
+        </div>
+
+        <!-- Advertisements Quick Access Banner -->
+        <div style="background: linear-gradient(135deg, #556B2F 0%, #283C14 100%); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; color:#FFF; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;">
+              <span>📢</span> My Shop Advertisements
+            </div>
+            <div style="font-size:11px; opacity:0.9; color:#F4EBD9; margin-top:2px;">
+              Promote your shop & products on the customer home carousel
+            </div>
+          </div>
+          <button class="btn btn-sm" style="background:#FFF; color:#283C14; font-weight:700; border:none; padding:6px 12px; border-radius:var(--radius-full); font-size:11px; cursor:pointer;" onclick="AppRouter.navigate('screen-ent-advertisements')">
+            Manage Ads
           </button>
         </div>
 
@@ -1180,6 +1198,14 @@ const EntrepreneurModule = {
             <div style="display:flex; align-items:center; gap:10px;">
               <span class="material-symbols-rounded" style="color:var(--color-primary);">local_offer</span>
               <span style="font-size:13px; font-weight:600;">🏷️ Offers & Discounts</span>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="AppRouter.navigate('screen-ent-advertisements')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">campaign</span>
+              <span style="font-size:13px; font-weight:600;">📢 My Advertisements</span>
             </div>
             <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
           </div>
@@ -2325,6 +2351,841 @@ const EntrepreneurModule = {
             <span style="background:#FFF; color:#2E451E; font-weight:700; padding:4px 10px; border-radius:var(--radius-full);">
               Shop Now >
             </span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="AppUtils.closeBottomSheet()">
+          Done
+        </button>
+      </div>
+    `);
+  },
+
+  // -------------------------------------------------------------------
+  // SCREEN: ENTREPRENEUR ADVERTISEMENT MANAGEMENT
+  // -------------------------------------------------------------------
+  renderAdvertisements(params = {}) {
+    const ent = this.getEntrepreneur();
+    const allAds = store.getEntrepreneurAds ? store.getEntrepreneurAds(ent.id) : (((store.data && store.data.advertisements) || []).filter(a => a.entrepreneurId === ent.id));
+    const now = new Date();
+
+    // KPI Metrics Calculation
+    const activeAds = allAds.filter(a => 
+      (a.status === 'Approved' || a.status === 'Active') && 
+      (!a.endDate || new Date(a.endDate) >= now) && 
+      (!a.startDate || new Date(a.startDate) <= now)
+    );
+    const pendingAds = allAds.filter(a => a.status === 'Pending Approval');
+    const approvedAds = allAds.filter(a => a.status === 'Approved' || a.status === 'Active');
+    const rejectedAds = allAds.filter(a => a.status === 'Rejected');
+    const pausedAds = allAds.filter(a => a.status === 'Paused');
+    const expiredAds = allAds.filter(a => a.status === 'Expired' || (a.endDate && new Date(a.endDate) < now));
+
+    const totalImpressions = allAds.reduce((sum, a) => sum + (a.impressions || 0), 0);
+    const totalClicks = allAds.reduce((sum, a) => sum + (a.clicks || 0), 0);
+    const avgCtr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : '0.0';
+    const totalOrdersAttributed = allAds.reduce((sum, a) => sum + (a.ordersAttributed || 0), 0);
+
+    // Active Filter
+    const activeFilter = this.adFilter || 'all';
+    let filteredAds = allAds;
+    if (activeFilter === 'active') filteredAds = activeAds;
+    else if (activeFilter === 'pending') filteredAds = pendingAds;
+    else if (activeFilter === 'approved') filteredAds = approvedAds;
+    else if (activeFilter === 'rejected') filteredAds = rejectedAds;
+    else if (activeFilter === 'paused') filteredAds = pausedAds;
+    else if (activeFilter === 'expired') filteredAds = expiredAds;
+
+    return `
+      <!-- Top App Bar -->
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-ent-dashboard')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">My Advertisements</span>
+        </div>
+        <div class="top-app-bar-actions">
+          <button class="btn btn-sm btn-primary" onclick="EntrepreneurModule.openCreateAdModal()" style="display:flex; align-items:center; gap:4px; font-weight:700;">
+            <span class="material-symbols-rounded" style="font-size:16px;">campaign</span>
+            <span>New Ad</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 12px; padding-bottom: 80px;">
+        <!-- Shop Identity Bar -->
+        <div style="background:#FFFDE7; border:1px solid #FFF59D; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">campaign</span>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);">${ent.businessName}</div>
+              <div style="font-size:11px; color:var(--color-text-secondary);">Promote your kitchen & craft studio on the customer home carousel</div>
+            </div>
+          </div>
+          <span class="chip-badge" style="background:#E8F5E9; color:var(--color-primary); font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+            Verified Seller
+          </span>
+        </div>
+
+        <!-- KPI Performance Grid -->
+        <div class="stat-card-grid" style="grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom:16px;">
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#E8F5E9; color:var(--color-primary);">
+              <span class="material-symbols-rounded">visibility</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${totalImpressions.toLocaleString()}</div>
+            <div class="stat-label">Total Impressions</div>
+          </div>
+
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#E1F5FE; color:var(--color-info);">
+              <span class="material-symbols-rounded">ads_click</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${totalClicks.toLocaleString()}</div>
+            <div class="stat-label">Total Ad Clicks</div>
+          </div>
+
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#FFF3E0; color:var(--color-warning);">
+              <span class="material-symbols-rounded">trending_up</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${avgCtr}%</div>
+            <div class="stat-label">Click-Through Rate</div>
+          </div>
+
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#F3E5F5; color:#7B1FA2;">
+              <span class="material-symbols-rounded">shopping_cart_checkout</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${totalOrdersAttributed}</div>
+            <div class="stat-label">Attributed Orders</div>
+          </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:14px; -webkit-overflow-scrolling:touch;">
+          <button class="chip-filter ${activeFilter === 'all' ? 'active' : ''}" onclick="EntrepreneurModule.setAdFilter('all')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'all' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'all' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'all' ? '#FFF' : 'var(--color-text-primary)'};">
+            All (${allAds.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'active' ? 'active' : ''}" onclick="EntrepreneurModule.setAdFilter('active')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'active' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'active' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'active' ? '#FFF' : 'var(--color-text-primary)'};">
+            Active (${activeAds.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'pending' ? 'active' : ''}" onclick="EntrepreneurModule.setAdFilter('pending')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'pending' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'pending' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'pending' ? '#FFF' : 'var(--color-text-primary)'};">
+            Pending (${pendingAds.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'rejected' ? 'active' : ''}" onclick="EntrepreneurModule.setAdFilter('rejected')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'rejected' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'rejected' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'rejected' ? '#FFF' : 'var(--color-text-primary)'};">
+            Rejected (${rejectedAds.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'paused' ? 'active' : ''}" onclick="EntrepreneurModule.setAdFilter('paused')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'paused' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'paused' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'paused' ? '#FFF' : 'var(--color-text-primary)'};">
+            Paused (${pausedAds.length})
+          </button>
+        </div>
+
+        <!-- Advertisements List -->
+        ${filteredAds.length === 0 ? `
+          <div class="empty-state" style="padding:40px 16px; text-align:center;">
+            <div style="width:64px; height:64px; border-radius:50%; background:#F1F8E9; color:var(--color-primary); display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+              <span class="material-symbols-rounded" style="font-size:32px;">campaign</span>
+            </div>
+            <h4 style="font-size:15px; font-weight:700; color:var(--color-text-primary); margin-bottom:4px;">No Advertisements Found</h4>
+            <p style="font-size:12px; color:var(--color-text-secondary); max-width:280px; margin:0 auto 16px auto;">
+              ${activeFilter === 'all' 
+                ? 'Promote your homemade delicacies or handcrafted treasures to local shoppers near you!' 
+                : `No advertisements currently under "${activeFilter}".`}
+            </p>
+            <button class="btn btn-primary btn-sm" onclick="EntrepreneurModule.openCreateAdModal()" style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span>
+              <span>Create Your First Advertisement</span>
+            </button>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            ${filteredAds.map(ad => {
+              const isApproved = ad.status === 'Approved' || ad.status === 'Active';
+              const isPending = ad.status === 'Pending Approval';
+              const isRejected = ad.status === 'Rejected';
+              const isPaused = ad.status === 'Paused';
+
+              return `
+                <div class="card" style="padding:14px; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#FFF; position:relative; overflow:hidden;">
+                  <!-- Top Row: Title, Type & Status Pill -->
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:8px;">
+                    <div>
+                      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary); margin:0;">
+                          ${ad.title}
+                        </h4>
+                        <span style="font-size:10px; background:#F5F9EE; color:var(--color-primary); font-weight:700; padding:2px 6px; border-radius:var(--radius-sm);">
+                          ${ad.adType || 'Shop Promotion'}
+                        </span>
+                      </div>
+                      ${ad.description ? `<p style="font-size:11px; color:var(--color-text-secondary); margin:4px 0 0 0;">${ad.description}</p>` : ''}
+                    </div>
+
+                    <!-- Status Pill -->
+                    <div>
+                      ${isApproved ? `
+                        <span style="background:#E8F5E9; color:#2E7D32; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:3px;">
+                          <span class="material-symbols-rounded" style="font-size:12px;">check_circle</span>
+                          Approved
+                        </span>
+                      ` : isPending ? `
+                        <span style="background:#FFF8E1; color:#F57F17; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:3px;">
+                          <span class="material-symbols-rounded" style="font-size:12px;">pending</span>
+                          Pending Review
+                        </span>
+                      ` : isRejected ? `
+                        <span style="background:#FFEBEE; color:#C62828; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:3px;">
+                          <span class="material-symbols-rounded" style="font-size:12px;">error</span>
+                          Action Required
+                        </span>
+                      ` : `
+                        <span style="background:#ECEFF1; color:#546E7A; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                          Paused
+                        </span>
+                      `}
+                    </div>
+                  </div>
+
+                  <!-- Rejection Notice (if rejected) -->
+                  ${isRejected ? `
+                    <div style="background:#FFEBEE; border:1px solid #FFCDD2; border-radius:var(--radius-sm); padding:10px 12px; margin:8px 0; display:flex; justify-content:space-between; align-items:center;">
+                      <div>
+                        <div style="font-size:11px; font-weight:700; color:#C62828;">⚠️ Rejection Reason from Admin:</div>
+                        <div style="font-size:11px; color:#B71C1C; margin-top:2px;">"${ad.rejectionReason || 'Please review image quality or promotional details.'}"</div>
+                      </div>
+                      <button class="btn btn-sm" style="background:#C62828; color:#FFF; font-size:10px; font-weight:700; border:none; padding:4px 8px; border-radius:var(--radius-full); cursor:pointer;" onclick="EntrepreneurModule.openEditAdModal('${ad.id}')">
+                        ✏️ Correct &amp; Resubmit
+                      </button>
+                    </div>
+                  ` : ''}
+
+                  <!-- Media Banner Preview Thumbnail -->
+                  ${ad.imageUrl ? `
+                    <div style="width:100%; height:110px; border-radius:var(--radius-sm); overflow:hidden; margin:8px 0; background:#2E451E; position:relative;">
+                      <img src="${ad.imageUrl}" alt="${ad.title}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='/uploads/banner_anita_cakes.svg'">
+                      <div style="position:absolute; bottom:6px; left:8px; background:rgba(0,0,0,0.6); color:#FFF; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                        CTA: "${ad.ctaText || 'Shop Now'}"
+                      </div>
+                      ${ad.discountText ? `
+                        <div style="position:absolute; top:6px; right:8px; background:var(--color-primary); color:#FFF; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                          ${ad.discountText}
+                        </div>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+
+                  <!-- Ad Details Badges -->
+                  <div style="display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; font-size:11px;">
+                    <span style="background:#FAFAFA; color:var(--color-text-secondary); border:1px solid #EEEEEE; padding:3px 8px; border-radius:var(--radius-sm);">
+                      📍 Placement: ${ad.placement === 'home_carousel' ? 'Main Carousel' : (ad.placement === 'category_page' ? 'Category Page' : 'Shop Page')}
+                    </span>
+                    ${ad.couponCode ? `
+                      <span style="background:#F5F9EE; color:var(--color-primary); font-family:monospace; font-weight:700; padding:3px 8px; border-radius:var(--radius-sm);">
+                        Coupon: ${ad.couponCode}
+                      </span>
+                    ` : ''}
+                    ${ad.endDate ? `
+                      <span style="background:#FAFAFA; color:var(--color-text-secondary); border:1px solid #EEEEEE; padding:3px 8px; border-radius:var(--radius-sm);">
+                        📅 Valid till ${new Date(ad.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    ` : ''}
+                  </div>
+
+                  <!-- Live Performance Bar -->
+                  <div style="background:#F9F8F3; border-radius:var(--radius-sm); padding:8px 10px; margin:8px 0; display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                    <div>
+                      <span style="color:var(--color-text-secondary);">Impressions:</span>
+                      <strong style="color:var(--color-text-primary);">${ad.impressions || 0}</strong>
+                    </div>
+                    <div>
+                      <span style="color:var(--color-text-secondary);">Clicks:</span>
+                      <strong style="color:var(--color-text-primary);">${ad.clicks || 0}</strong>
+                    </div>
+                    <div>
+                      <span style="color:var(--color-text-secondary);">CTR:</span>
+                      <strong style="color:var(--color-primary);">${ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : 0}%</strong>
+                    </div>
+                    <div>
+                      <span style="color:var(--color-text-secondary);">Orders:</span>
+                      <strong style="color:var(--color-text-primary);">${ad.ordersAttributed || 0}</strong>
+                    </div>
+                  </div>
+
+                  <!-- Actions Row -->
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid #F0EEE4;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <button class="btn btn-sm btn-text" onclick="EntrepreneurModule.previewAdInModal('${ad.id}')" style="display:flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;">visibility</span>
+                        Preview
+                      </button>
+
+                      <button class="btn btn-sm btn-text" onclick="EntrepreneurModule.openEditAdModal('${ad.id}')" style="display:flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;">edit</span>
+                        Edit
+                      </button>
+
+                      <button class="btn btn-sm btn-text" onclick="EntrepreneurModule.confirmDeleteAd('${ad.id}')" style="display:flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px; color:var(--color-error);">
+                        <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
+                        Delete
+                      </button>
+                    </div>
+
+                    <div>
+                      ${isApproved || isPaused ? `
+                        <button class="btn btn-sm ${isPaused ? 'btn-primary' : 'btn-outline'}" onclick="EntrepreneurModule.toggleAd('${ad.id}')" style="font-size:11px; padding:4px 10px;">
+                          ${isPaused ? 'Resume Ad' : 'Pause Ad'}
+                        </button>
+                      ` : isPending ? `
+                        <span style="font-size:10px; color:#F57F17; font-weight:600;">Under Review</span>
+                      ` : `
+                        <button class="btn btn-sm btn-outline" onclick="EntrepreneurModule.openEditAdModal('${ad.id}')" style="font-size:11px; padding:4px 10px;">
+                          Edit Ad
+                        </button>
+                      `}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('profile')}
+    `;
+  },
+
+  setAdFilter(filter) {
+    this.adFilter = filter;
+    AppRouter.navigate('screen-ent-advertisements');
+  },
+
+  // -------------------------------------------------------------------
+  // ADVERTISEMENT CREATION / EDIT MODAL WITH LIVE PREVIEW & UPLOAD
+  // -------------------------------------------------------------------
+  openCreateAdModal() {
+    this.editingAdId = null;
+    this.currentUploadedAdImageUrl = null;
+    this.showAdFormModal();
+  },
+
+  openEditAdModal(adId) {
+    this.editingAdId = adId;
+    const existing = store.getAdvertisementById ? store.getAdvertisementById(adId) : (((store.data && store.data.advertisements) || []).find(a => a.id === adId));
+    this.currentUploadedAdImageUrl = existing ? existing.imageUrl : null;
+    this.showAdFormModal(adId);
+  },
+
+  showAdFormModal(adId = null) {
+    const ent = this.getEntrepreneur();
+    const existing = adId ? (((store.data && store.data.advertisements) || []).find(a => a.id === adId)) : null;
+    const myProducts = store.getProducts({ entrepreneurId: ent.id });
+    const myOffers = ((store.data && store.data.offers) || []).filter(o => o.entrepreneurId === ent.id && o.active);
+
+    const title = existing ? existing.title : '';
+    const description = existing ? (existing.description || '') : '';
+    const adType = existing ? existing.adType : 'Shop Promotion';
+    const placement = existing ? existing.placement : 'home_carousel';
+    const targetCategory = existing ? (existing.targetCategory || '') : '';
+    const selectedProductIds = existing && existing.productIds ? existing.productIds : [];
+    const offerId = existing ? (existing.offerId || '') : '';
+    const discountText = existing ? (existing.discountText || '') : '';
+    const ctaText = existing ? existing.ctaText : 'Shop Now';
+    const ctaTarget = existing ? existing.ctaTarget : 'shop';
+    const startDate = existing && existing.startDate ? existing.startDate.substring(0, 10) : new Date().toISOString().substring(0, 10);
+    const endDate = existing && existing.endDate ? existing.endDate.substring(0, 10) : '';
+    const imageUrl = this.currentUploadedAdImageUrl || (existing ? existing.imageUrl : '/uploads/banner_anita_cakes.svg');
+
+    const contentHtml = `
+      <div style="max-height:82vh; overflow-y:auto; padding-right:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #F0EEE4; padding-bottom:8px;">
+          <div>
+            <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin:0;">
+              ${existing ? '✏️ Edit Advertisement' : '📢 Create New Advertisement'}
+            </h3>
+            <span style="font-size:11px; color:var(--color-text-secondary);">${ent.businessName}</span>
+          </div>
+          <button class="icon-action-btn" onclick="AppUtils.closeBottomSheet()">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+
+        <!-- LIVE CAROUSEL PREVIEW -->
+        <div style="background:#F9F8F3; border:1px solid #E6E1D3; border-radius:var(--radius-md); padding:12px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:11px; font-weight:700; color:var(--color-primary); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px;">
+              <span class="material-symbols-rounded" style="font-size:14px;">visibility</span>
+              Live Customer Carousel Preview
+            </span>
+            <span style="font-size:10px; color:var(--color-text-secondary);">Updates live as you type</span>
+          </div>
+
+          <!-- The Banner Card -->
+          <div id="ad-live-preview-card" style="background:linear-gradient(135deg, #4A6B32 0%, #233714 100%); border-radius:var(--radius-md); padding:14px; color:#FFF; position:relative; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.12);">
+            <div id="preview-ad-img-container" style="position:absolute; right:0; top:0; width:45%; height:100%; opacity:0.85; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+              <img id="preview-ad-img" src="${imageUrl}" alt="Preview" style="width:100%; height:100%; object-fit:cover; border-radius:0 var(--radius-md) var(--radius-md) 0;" onerror="this.src='/uploads/banner_anita_cakes.svg'">
+            </div>
+            <div style="position:relative; z-index:2; max-width:65%;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <span id="preview-ad-type-badge" style="background:rgba(255,255,255,0.22); color:#FFF; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                  ${discountText || adType}
+                </span>
+                <span style="font-size:10px; font-weight:600; color:#F4EBD9; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:var(--radius-full);">
+                  🏪 ${ent.businessName}
+                </span>
+              </div>
+              <div id="preview-ad-title" style="font-size:14px; font-weight:700; line-height:1.3;">
+                ${title || 'Your Eye-Catching Advertisement Title'}
+              </div>
+              <div id="preview-ad-desc" style="font-size:11px; opacity:0.9; color:#F4EBD9; margin-top:3px; max-height:36px; overflow:hidden;">
+                ${description || 'Promotional message showcasing your homemade delicacies or artisan crafts'}
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:10px;">
+                <span id="preview-ad-dates" style="opacity:0.85; color:#F4EBD9;">
+                  ${endDate ? `Valid till ${new Date(endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}` : 'Limited time deal'}
+                </span>
+                <button class="btn btn-sm" style="background:#FFF; color:#2E451E; font-weight:700; border:none; padding:4px 10px; border-radius:var(--radius-full); font-size:10px;" onclick="event.preventDefault()">
+                  <span id="preview-ad-cta">${ctaText}</span> &gt;
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM -->
+        <form id="entrepreneur-ad-form" onsubmit="EntrepreneurModule.saveAdvertisement(event)">
+          <!-- 1. Title -->
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Advertisement Title *</label>
+            <input type="text" id="ad-title" class="form-input" required 
+                   placeholder="e.g., Grand Festive Bakes — 15% Off Handcrafted Sweets" 
+                   value="${title}" 
+                   oninput="EntrepreneurModule.updateAdLivePreview()">
+          </div>
+
+          <!-- 2. Description -->
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Short Promotional Description</label>
+            <textarea id="ad-description" class="form-input" rows="2" 
+                      placeholder="e.g., Prepared fresh daily with pure ingredients by Anita Ramesh." 
+                      oninput="EntrepreneurModule.updateAdLivePreview()">${description}</textarea>
+          </div>
+
+          <!-- 3. Image / Banner Upload & Preview -->
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Upload Advertisement Banner Image *</label>
+            <div style="border:2px dashed #C8E6C9; border-radius:var(--radius-md); padding:14px; text-align:center; background:#FAFCF8; cursor:pointer;" onclick="document.getElementById('ad-file-input').click()">
+              <input type="file" id="ad-file-input" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" style="display:none;" onchange="EntrepreneurModule.handleAdMediaFile(this)">
+              <div id="ad-upload-prompt" style="display:${this.currentUploadedAdImageUrl ? 'none' : 'block'};">
+                <span class="material-symbols-rounded" style="font-size:32px; color:var(--color-primary);">cloud_upload</span>
+                <div style="font-size:12px; font-weight:700; color:var(--color-primary); margin-top:4px;">Click to Upload Banner Image or Video</div>
+                <div style="font-size:10px; color:var(--color-text-secondary); margin-top:2px;">Supports JPG, PNG, WEBP (Max 5MB) or MP4 (Max 15MB)</div>
+              </div>
+              <div id="ad-upload-preview" style="display:${this.currentUploadedAdImageUrl ? 'block' : 'none'};">
+                <img id="ad-uploaded-thumb" src="${imageUrl}" alt="Uploaded" style="max-height:90px; border-radius:var(--radius-sm); margin:0 auto 6px auto; display:block;">
+                <span style="font-size:11px; color:var(--color-primary); font-weight:700;">✓ Image ready! Click to change</span>
+              </div>
+              <div id="ad-upload-progress" style="display:none; font-size:11px; color:var(--color-primary); margin-top:4px;">
+                Uploading media... Please wait.
+              </div>
+            </div>
+            <input type="hidden" id="ad-image-url" value="${imageUrl}">
+          </div>
+
+          <!-- 4. Ad Type & Placement -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Ad Type *</label>
+              <select id="ad-type" class="form-input" onchange="EntrepreneurModule.updateAdLivePreview()">
+                <option value="Shop Promotion" ${adType === 'Shop Promotion' ? 'selected' : ''}>Shop Promotion</option>
+                <option value="Product Promotion" ${adType === 'Product Promotion' ? 'selected' : ''}>Product Promotion</option>
+                <option value="Festival Offer" ${adType === 'Festival Offer' ? 'selected' : ''}>Festival Offer</option>
+                <option value="New Collection" ${adType === 'New Collection' ? 'selected' : ''}>New Collection</option>
+                <option value="Special Announcement" ${adType === 'Special Announcement' ? 'selected' : ''}>Special Announcement</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Placement *</label>
+              <select id="ad-placement" class="form-input" onchange="EntrepreneurModule.updateAdLivePreview()">
+                <option value="home_carousel" ${placement === 'home_carousel' ? 'selected' : ''}>Main Home Carousel</option>
+                <option value="category_page" ${placement === 'category_page' ? 'selected' : ''}>Category Page Banner</option>
+                <option value="shop_page" ${placement === 'shop_page' ? 'selected' : ''}>My Shop Page Header</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 5. Link an Eligible Offer & Discount Text -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Promote Shop Offer</label>
+              <select id="ad-linked-offer" class="form-input" onchange="EntrepreneurModule.onAdOfferSelected(this.value)">
+                <option value="">-- None (No Coupon) --</option>
+                ${myOffers.map(o => `
+                  <option value="${o.id}" data-code="${o.code || ''}" data-badge="${o.badgeText || ''}" ${offerId === o.id ? 'selected' : ''}>
+                    ${o.code ? o.code + ' - ' : ''}${o.title}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Discount Tag / Badge</label>
+              <input type="text" id="ad-discount-text" class="form-input" 
+                     placeholder="e.g. 15% OFF, FESTIVE SPECIAL" 
+                     value="${discountText}" 
+                     oninput="EntrepreneurModule.updateAdLivePreview()">
+            </div>
+          </div>
+
+          <!-- 6. Applicable Products Checklist -->
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Promoted Products (Optional)</label>
+            <div style="border:1px solid #E6E1D3; border-radius:var(--radius-sm); padding:8px 10px; max-height:130px; overflow-y:auto; background:#FFF;">
+              ${myProducts.length === 0 ? `
+                <div style="font-size:11px; color:var(--color-text-secondary);">No products listed yet.</div>
+              ` : myProducts.map(p => `
+                <label style="display:flex; align-items:center; gap:8px; padding:3px 0; font-size:12px; cursor:pointer;">
+                  <input type="checkbox" name="ad-product-ids" value="${p.id}" ${selectedProductIds.includes(p.id) ? 'checked' : ''} style="accent-color:var(--color-primary);">
+                  <span style="flex:1;">${p.name}</span>
+                  <span style="font-weight:700; color:var(--color-primary);">₹${p.price}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 7. CTA Text & Destination -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">CTA Button Text *</label>
+              <select id="ad-cta-text" class="form-input" onchange="EntrepreneurModule.updateAdLivePreview()">
+                <option value="Shop Now" ${ctaText === 'Shop Now' ? 'selected' : ''}>Shop Now</option>
+                <option value="Explore Collection" ${ctaText === 'Explore Collection' ? 'selected' : ''}>Explore Collection</option>
+                <option value="Order Now" ${ctaText === 'Order Now' ? 'selected' : ''}>Order Now</option>
+                <option value="View Deals" ${ctaText === 'View Deals' ? 'selected' : ''}>View Deals</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Click Destination *</label>
+              <select id="ad-cta-target" class="form-input" onchange="EntrepreneurModule.updateAdLivePreview()">
+                <option value="shop" ${ctaTarget === 'shop' ? 'selected' : ''}>My Shop Page</option>
+                <option value="product" ${ctaTarget === 'product' ? 'selected' : ''}>Promoted Product</option>
+                <option value="category" ${ctaTarget === 'category' ? 'selected' : ''}>Category Listing</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 8. Start Date & Expiry Date -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Start Date *</label>
+              <input type="date" id="ad-start-date" class="form-input" required 
+                     value="${startDate}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Expiry Date</label>
+              <input type="date" id="ad-end-date" class="form-input" 
+                     value="${endDate}" 
+                     onchange="EntrepreneurModule.updateAdLivePreview()">
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="button" class="btn btn-outline" style="flex:1;" onclick="AppUtils.closeBottomSheet()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex:2; font-weight:700;">
+              ${existing ? '💾 Save & Resubmit' : '🚀 Submit for Admin Review'}
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    AppUtils.showBottomSheet(contentHtml);
+    setTimeout(() => this.updateAdLivePreview(), 50);
+  },
+
+  async handleAdMediaFile(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    // Client-side format & size validation
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
+    if (!allowed.includes(file.type)) {
+      AppUtils.showToast('Please select a valid image (JPG, PNG, WEBP) or video (MP4)');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      AppUtils.showToast('File size exceeds 15MB limit');
+      return;
+    }
+
+    const progressEl = document.getElementById('ad-upload-progress');
+    const promptEl = document.getElementById('ad-upload-prompt');
+    const previewEl = document.getElementById('ad-upload-preview');
+    const thumbEl = document.getElementById('ad-uploaded-thumb');
+
+    if (progressEl) progressEl.style.display = 'block';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Data = e.target.result;
+      try {
+        const res = await window.apiClient.uploadMedia(base64Data, file.name);
+        if (progressEl) progressEl.style.display = 'none';
+
+        if (res && res.success) {
+          this.currentUploadedAdImageUrl = res.url;
+          const urlInput = document.getElementById('ad-image-url');
+          if (urlInput) urlInput.value = res.url;
+
+          if (promptEl) promptEl.style.display = 'none';
+          if (previewEl) previewEl.style.display = 'block';
+          if (thumbEl) thumbEl.src = res.url;
+
+          this.updateAdLivePreview();
+          AppUtils.showToast('Banner uploaded successfully!');
+        } else {
+          AppUtils.showToast((res && res.message) || 'Upload failed');
+        }
+      } catch (err) {
+        if (progressEl) progressEl.style.display = 'none';
+        AppUtils.showToast(err.message || 'Media upload error');
+      }
+    };
+    reader.readAsDataURL(file);
+  },
+
+  onAdOfferSelected(offerId) {
+    const sel = document.getElementById('ad-linked-offer');
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.value) {
+      const badge = opt.getAttribute('data-badge');
+      const discountInput = document.getElementById('ad-discount-text');
+      if (discountInput && badge) discountInput.value = badge;
+    }
+    this.updateAdLivePreview();
+  },
+
+  updateAdLivePreview() {
+    const titleEl = document.getElementById('ad-title');
+    const descEl = document.getElementById('ad-description');
+    const typeEl = document.getElementById('ad-type');
+    const discEl = document.getElementById('ad-discount-text');
+    const ctaEl = document.getElementById('ad-cta-text');
+    const endEl = document.getElementById('ad-end-date');
+    const imgUrlEl = document.getElementById('ad-image-url');
+
+    const pTitle = document.getElementById('preview-ad-title');
+    const pDesc = document.getElementById('preview-ad-desc');
+    const pBadge = document.getElementById('preview-ad-type-badge');
+    const pCta = document.getElementById('preview-ad-cta');
+    const pDates = document.getElementById('preview-ad-dates');
+    const pImg = document.getElementById('preview-ad-img');
+
+    if (pTitle && titleEl) pTitle.textContent = titleEl.value.trim() || 'Your Eye-Catching Advertisement Title';
+    if (pDesc && descEl) pDesc.textContent = descEl.value.trim() || 'Promotional message showcasing your homemade delicacies or artisan crafts';
+    if (pBadge) {
+      const disc = discEl && discEl.value.trim();
+      const type = typeEl && typeEl.value;
+      pBadge.textContent = disc || type || 'Shop Promotion';
+    }
+    if (pCta && ctaEl) pCta.textContent = ctaEl.value || 'Shop Now';
+    if (pDates) {
+      pDates.textContent = endEl && endEl.value ? `Valid till ${new Date(endEl.value).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}` : 'Limited time deal';
+    }
+    if (pImg && imgUrlEl && imgUrlEl.value) {
+      pImg.src = imgUrlEl.value;
+    }
+  },
+
+  async saveAdvertisement(event) {
+    if (event) event.preventDefault();
+    const ent = this.getEntrepreneur();
+
+    const titleEl = document.getElementById('ad-title');
+    const descEl = document.getElementById('ad-description');
+    const typeEl = document.getElementById('ad-type');
+    const placeEl = document.getElementById('ad-placement');
+    const offerEl = document.getElementById('ad-linked-offer');
+    const discEl = document.getElementById('ad-discount-text');
+    const ctaTextEl = document.getElementById('ad-cta-text');
+    const ctaTargetEl = document.getElementById('ad-cta-target');
+    const startEl = document.getElementById('ad-start-date');
+    const endEl = document.getElementById('ad-end-date');
+    const imgUrlEl = document.getElementById('ad-image-url');
+
+    if (!titleEl || !titleEl.value.trim()) {
+      AppUtils.showToast('Please enter an advertisement title');
+      return;
+    }
+
+    const imgUrl = (imgUrlEl && imgUrlEl.value) || this.currentUploadedAdImageUrl || '/uploads/banner_anita_cakes.svg';
+    const checkedProds = document.querySelectorAll('input[name="ad-product-ids"]:checked');
+    const productIds = Array.from(checkedProds).map(cb => cb.value);
+
+    const payload = {
+      title: titleEl.value.trim(),
+      description: descEl ? descEl.value.trim() : '',
+      imageUrl: imgUrl,
+      adType: typeEl ? typeEl.value : 'Shop Promotion',
+      placement: placeEl ? placeEl.value : 'home_carousel',
+      offerId: offerEl && offerEl.value ? offerEl.value : null,
+      discountText: discEl ? discEl.value.trim() : null,
+      productIds,
+      ctaText: ctaTextEl ? ctaTextEl.value : 'Shop Now',
+      ctaTarget: ctaTargetEl ? ctaTargetEl.value : 'shop',
+      targetId: ctaTargetEl && ctaTargetEl.value === 'product' && productIds.length > 0 ? productIds[0] : ent.id,
+      startDate: startEl && startEl.value ? new Date(startEl.value).toISOString() : new Date().toISOString(),
+      endDate: endEl && endEl.value ? new Date(endEl.value + 'T23:59:59').toISOString() : null,
+      storeName: ent.businessName
+    };
+
+    try {
+      let res = null;
+      if (this.editingAdId) {
+        res = await window.apiClient.updateEntrepreneurAd(this.editingAdId, payload);
+      } else {
+        res = await window.apiClient.createEntrepreneurAd(payload);
+      }
+
+      if (res && res.success) {
+        AppUtils.closeBottomSheet();
+        AppUtils.showToast(res.message || 'Advertisement submitted for review!');
+
+        // Refresh list
+        const fresh = await window.apiClient.getEntrepreneurAds();
+        if (fresh && fresh.data) {
+          const other = ((store.data && store.data.advertisements) || []).filter(a => a.entrepreneurId !== ent.id);
+          store.data.advertisements = [...fresh.data, ...other];
+          store.saveData();
+        }
+        AppRouter.navigate('screen-ent-advertisements');
+      } else {
+        AppUtils.showToast((res && res.message) || 'Could not save advertisement');
+      }
+    } catch (e) {
+      AppUtils.showToast(e.message || 'Error saving advertisement');
+    }
+  },
+
+  async toggleAd(adId) {
+    try {
+      const res = await window.apiClient.toggleEntrepreneurAd(adId);
+      if (res && res.success) {
+        AppUtils.showToast(res.message || 'Advertisement status updated');
+        const target = ((store.data && store.data.advertisements) || []).find(a => a.id === adId);
+        if (target) {
+          target.status = res.data ? res.data.status : (target.status === 'Paused' ? 'Active' : 'Paused');
+          store.saveData();
+        }
+        AppRouter.navigate('screen-ent-advertisements');
+      } else {
+        AppUtils.showToast((res && res.message) || 'Could not toggle advertisement');
+      }
+    } catch (e) {
+      AppUtils.showToast(e.message || 'Error toggling advertisement');
+    }
+  },
+
+  confirmDeleteAd(adId) {
+    const ad = ((store.data && store.data.advertisements) || []).find(a => a.id === adId);
+    const title = ad ? ad.title : 'this advertisement';
+
+    AppUtils.showBottomSheet(`
+      <div style="text-align:center; padding:16px 8px;">
+        <div style="width:56px; height:56px; border-radius:50%; background:#FFEBEE; color:var(--color-error); display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+          <span class="material-symbols-rounded" style="font-size:28px;">delete_forever</span>
+        </div>
+        <h3 style="font-size:16px; font-weight:700; color:var(--color-text-primary); margin-bottom:6px;">Delete Advertisement?</h3>
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:16px;">
+          Are you sure you want to permanently delete "<strong>${title}</strong>"?
+        </p>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-outline" style="flex:1;" onclick="AppUtils.closeBottomSheet()">Cancel</button>
+          <button class="btn btn-danger" style="flex:1; background:var(--color-error); color:#FFF; font-weight:700;" onclick="EntrepreneurModule.executeDeleteAd('${adId}')">
+            Delete Permanently
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  async executeDeleteAd(adId) {
+    try {
+      const res = await window.apiClient.deleteEntrepreneurAd(adId);
+      AppUtils.closeBottomSheet();
+      if (res && res.success) {
+        AppUtils.showToast('Advertisement deleted successfully');
+        const idx = ((store.data && store.data.advertisements) || []).findIndex(a => a.id === adId);
+        if (idx !== -1) {
+          store.data.advertisements.splice(idx, 1);
+          store.saveData();
+        }
+        AppRouter.navigate('screen-ent-advertisements');
+      } else {
+        AppUtils.showToast((res && res.message) || 'Failed to delete advertisement');
+      }
+    } catch (e) {
+      AppUtils.closeBottomSheet();
+      AppUtils.showToast(e.message || 'Error deleting advertisement');
+    }
+  },
+
+  previewAdInModal(adId) {
+    const ent = this.getEntrepreneur();
+    const ad = ((store.data && store.data.advertisements) || []).find(a => a.id === adId);
+    if (!ad) return;
+
+    AppUtils.showBottomSheet(`
+      <div style="padding-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:15px; font-weight:700; color:var(--color-primary); margin:0;">
+            👁️ Live Advertisement Preview
+          </h3>
+          <button class="icon-action-btn" onclick="AppUtils.closeBottomSheet()">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+
+        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:12px;">
+          Here is how your advertisement appears to shoppers on the platform:
+        </div>
+
+        <!-- Carousel Card -->
+        <div style="background:linear-gradient(135deg, #4A6B32 0%, #223613 100%); border-radius:var(--radius-md); padding:14px; color:#FFF; position:relative; overflow:hidden; margin-bottom:14px; box-shadow:0 4px 12px rgba(0,0,0,0.12);">
+          ${ad.imageUrl ? `
+            <div style="position:absolute; right:0; top:0; width:45%; height:100%; opacity:0.85; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+              <img src="${ad.imageUrl}" alt="${ad.title}" style="width:100%; height:100%; object-fit:cover; border-radius:0 var(--radius-md) var(--radius-md) 0;" onerror="this.src='/uploads/banner_anita_cakes.svg'">
+            </div>
+          ` : ''}
+          <div style="position:relative; z-index:2; max-width:${ad.imageUrl ? '65%' : '100%'};">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+              <span style="background:rgba(255,255,255,0.22); color:#FFF; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                ${ad.discountText || ad.adType || 'FEATURED'}
+              </span>
+              <span style="font-size:10px; font-weight:600; color:#F4EBD9; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:var(--radius-full);">
+                🏪 ${ent.businessName}
+              </span>
+            </div>
+            <div style="font-size:14px; font-weight:700; line-height:1.3;">${ad.title}</div>
+            <div style="font-size:11px; opacity:0.9; color:#F4EBD9; margin-top:3px; max-height:40px; overflow:hidden;">${ad.description}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:10px;">
+              <span style="opacity:0.85; color:#F4EBD9;">
+                ${ad.endDate ? `Valid till ${new Date(ad.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}` : 'Limited time deal'}
+              </span>
+              <span style="background:#FFF; color:#2E451E; font-weight:700; padding:4px 10px; border-radius:var(--radius-full);">
+                ${ad.ctaText || 'Shop Now'} &gt;
+              </span>
+            </div>
           </div>
         </div>
 

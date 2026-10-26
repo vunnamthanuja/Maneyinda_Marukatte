@@ -701,6 +701,182 @@ class Database {
     };
   }
 
+  // -------------------------------------------------------------
+  // ENTREPRENEUR-UPLOADED ADVERTISEMENTS
+  // -------------------------------------------------------------
+  getAdvertisements(filter = {}) {
+    let list = this.data.advertisements || [];
+    const now = new Date();
+
+    if (filter.entrepreneurId) {
+      list = list.filter(ad => ad.entrepreneurId === filter.entrepreneurId);
+    }
+
+    if (filter.publicOnly) {
+      list = list.filter(ad => {
+        if (ad.status !== 'Approved' && ad.status !== 'Active') return false;
+        if (ad.startDate && new Date(ad.startDate) > now) return false;
+        if (ad.endDate && new Date(ad.endDate) < now) return false;
+        return true;
+      });
+    }
+
+    if (filter.status) {
+      list = list.filter(ad => (ad.status || '').toLowerCase() === filter.status.toLowerCase());
+    }
+
+    if (filter.placement) {
+      list = list.filter(ad => !ad.placement || ad.placement === filter.placement || ad.placement === 'all');
+    }
+
+    if (filter.category) {
+      list = list.filter(ad => !ad.targetCategory || ad.targetCategory.toLowerCase() === filter.category.toLowerCase());
+    }
+
+    return list;
+  }
+
+  getAdvertisementById(id) {
+    return (this.data.advertisements || []).find(ad => ad.id === id) || null;
+  }
+
+  createAdvertisement(adData) {
+    const newAd = {
+      id: 'AD-' + Math.floor(1000 + Math.random() * 9000),
+      entrepreneurId: adData.entrepreneurId,
+      storeName: adData.storeName || 'Local Shop',
+      title: adData.title,
+      description: adData.description || '',
+      imageUrl: adData.imageUrl || null,
+      videoUrl: adData.videoUrl || null,
+      mediaType: adData.mediaType || (adData.videoUrl ? 'video' : 'image'),
+      adType: adData.adType || 'Shop Promotion',
+      placement: adData.placement || 'home_carousel',
+      targetCategory: adData.targetCategory || null,
+      productIds: Array.isArray(adData.productIds) ? adData.productIds : [],
+      offerId: adData.offerId || null,
+      couponCode: adData.couponCode || null,
+      discountText: adData.discountText || null,
+      ctaText: adData.ctaText || 'Shop Now',
+      ctaTarget: adData.ctaTarget || 'shop',
+      targetId: adData.targetId || adData.entrepreneurId,
+      startDate: adData.startDate || new Date().toISOString(),
+      endDate: adData.endDate || null,
+      status: adData.status || 'Pending Approval',
+      rejectionReason: null,
+      reviewNotes: null,
+      impressions: 0,
+      clicks: 0,
+      ordersAttributed: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (!this.data.advertisements) this.data.advertisements = [];
+    this.data.advertisements.unshift(newAd);
+    this.persist();
+    return newAd;
+  }
+
+  updateAdvertisement(id, updates) {
+    const idx = (this.data.advertisements || []).findIndex(ad => ad.id === id);
+    if (idx !== -1) {
+      this.data.advertisements[idx] = {
+        ...this.data.advertisements[idx],
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      this.persist();
+      return this.data.advertisements[idx];
+    }
+    return null;
+  }
+
+  deleteAdvertisement(id) {
+    const idx = (this.data.advertisements || []).findIndex(ad => ad.id === id);
+    if (idx !== -1) {
+      const removed = this.data.advertisements.splice(idx, 1)[0];
+      this.persist();
+      return removed;
+    }
+    return null;
+  }
+
+  recordAdImpression(id) {
+    const ad = this.getAdvertisementById(id);
+    if (ad) {
+      ad.impressions = (ad.impressions || 0) + 1;
+      this.persist();
+      return ad.impressions;
+    }
+    return 0;
+  }
+
+  recordAdClick(id) {
+    const ad = this.getAdvertisementById(id);
+    if (ad) {
+      ad.clicks = (ad.clicks || 0) + 1;
+      this.persist();
+      return ad.clicks;
+    }
+    return 0;
+  }
+
+  recordAdOrder(id) {
+    const ad = this.getAdvertisementById(id);
+    if (ad) {
+      ad.ordersAttributed = (ad.ordersAttributed || 0) + 1;
+      this.persist();
+      return ad.ordersAttributed;
+    }
+    return 0;
+  }
+
+  // -------------------------------------------------------------
+  // NOTIFICATIONS SYSTEM
+  // -------------------------------------------------------------
+  getNotifications(filter = {}) {
+    let list = this.data.notifications || [];
+    if (filter.entrepreneurId) {
+      list = list.filter(n => n.entrepreneurId === filter.entrepreneurId);
+    }
+    if (filter.userId) {
+      list = list.filter(n => n.userId === filter.userId);
+    }
+    if (filter.role) {
+      list = list.filter(n => !n.role || n.role === filter.role);
+    }
+    return list;
+  }
+
+  createNotification(notifData) {
+    const newNotif = {
+      id: 'NOTIF-' + Date.now(),
+      title: notifData.title,
+      message: notifData.message,
+      type: notifData.type || 'info',
+      role: notifData.role || 'entrepreneur',
+      entrepreneurId: notifData.entrepreneurId || null,
+      userId: notifData.userId || null,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    };
+    if (!this.data.notifications) this.data.notifications = [];
+    this.data.notifications.unshift(newNotif);
+    this.persist();
+    return newNotif;
+  }
+
+  markNotificationRead(id) {
+    const notif = (this.data.notifications || []).find(n => n.id === id);
+    if (notif) {
+      notif.isRead = true;
+      this.persist();
+      return true;
+    }
+    return false;
+  }
+
 }
 
 module.exports = new Database();

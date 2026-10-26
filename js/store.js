@@ -904,6 +904,68 @@ const defaultSeedData = {
     }
   ],
 
+  // Entrepreneur-Uploaded Advertisements
+  advertisements: [
+    {
+      id: 'AD-1001',
+      entrepreneurId: 'ent_01',
+      storeName: "Anita's Bakery",
+      title: '🧁 Fresh Handcrafted Festive Cakes & Sweets',
+      description: 'Traditional homemade bakes and festive specials prepared fresh with pure ghee and lots of love by Anita Ramesh.',
+      imageUrl: '/uploads/banner_anita_cakes.svg',
+      videoUrl: null,
+      mediaType: 'image',
+      adType: 'Festival Offer',
+      placement: 'home_carousel',
+      targetCategory: 'Bakery & Sweets',
+      productIds: ['prod_01'],
+      offerId: 'OFFER-2001',
+      couponCode: 'ANITA15',
+      discountText: '15% OFF',
+      ctaText: 'Shop Now',
+      ctaTarget: 'shop',
+      targetId: 'ent_01',
+      startDate: '2026-01-01T00:00:00.000Z',
+      endDate: '2026-12-31T23:59:59.000Z',
+      status: 'Approved',
+      rejectionReason: null,
+      impressions: 58,
+      clicks: 16,
+      ordersAttributed: 4,
+      createdAt: '2026-10-26T06:00:00.000Z',
+      updatedAt: '2026-10-26T06:00:00.000Z'
+    },
+    {
+      id: 'AD-1002',
+      entrepreneurId: 'ent_02',
+      storeName: 'Lakshmi Crafts',
+      title: '🧵 Authentic Handwoven Jute & Terracotta Decor',
+      description: 'Discover eco-friendly handcrafted lifestyle products made by rural women artisans in Karnataka led by Lakshmi Devi.',
+      imageUrl: '/uploads/banner_lakshmi_crafts.svg',
+      videoUrl: null,
+      mediaType: 'image',
+      adType: 'New Collection',
+      placement: 'home_carousel',
+      targetCategory: 'Handmade Crafts',
+      productIds: ['prod_05'],
+      offerId: 'OFFER-2002',
+      couponCode: 'LAKSHMI20',
+      discountText: '20% OFF',
+      ctaText: 'Explore Crafts',
+      ctaTarget: 'shop',
+      targetId: 'ent_02',
+      startDate: '2026-01-01T00:00:00.000Z',
+      endDate: '2026-12-31T23:59:59.000Z',
+      status: 'Approved',
+      rejectionReason: null,
+      impressions: 45,
+      clicks: 11,
+      ordersAttributed: 2,
+      createdAt: '2026-10-26T06:00:00.000Z',
+      updatedAt: '2026-10-26T06:00:00.000Z'
+    }
+  ],
+
   // Promotional Announcements
   announcements: [
     {
@@ -1488,6 +1550,49 @@ class AppStore {
       item.isRead = true;
       this.saveData();
     }
+  }
+
+  // Entrepreneur-Uploaded Advertisements
+  getAdvertisements(placement = 'home_carousel', category = null) {
+    const list = this.data.advertisements || [];
+    const now = new Date();
+    return list.filter(ad => {
+      if (ad.status !== 'Approved' && ad.status !== 'Active') return false;
+      if (ad.startDate && new Date(ad.startDate) > now) return false;
+      if (ad.endDate && new Date(ad.endDate) < now) return false;
+      if (placement && ad.placement && ad.placement !== placement && ad.placement !== 'all') return false;
+      if (category && ad.targetCategory && ad.targetCategory.toLowerCase() !== category.toLowerCase()) return false;
+      return true;
+    });
+  }
+
+  getEntrepreneurAds(entrepreneurId) {
+    const list = this.data.advertisements || [];
+    return list.filter(ad => ad.entrepreneurId === entrepreneurId);
+  }
+
+  getAdvertisementById(id) {
+    return (this.data.advertisements || []).find(ad => ad.id === id) || null;
+  }
+
+  recordAdImpression(id) {
+    const ad = (this.data.advertisements || []).find(a => a.id === id);
+    if (ad) {
+      ad.impressions = (ad.impressions || 0) + 1;
+      this.saveData();
+      return ad.impressions;
+    }
+    return 0;
+  }
+
+  recordAdClick(id) {
+    const ad = (this.data.advertisements || []).find(a => a.id === id);
+    if (ad) {
+      ad.clicks = (ad.clicks || 0) + 1;
+      this.saveData();
+      return ad.clicks;
+    }
+    return 0;
   }
 }
 

@@ -14,6 +14,7 @@ const adminController = require('../controllers/adminController');
 const uploadController = require('../controllers/uploadController');
 const paymentController = require('../controllers/paymentController');
 const offerController = require('../controllers/offerController');
+const advertisementController = require('../controllers/advertisementController');
 const AuthMiddleware = require('../middleware/auth');
 
 class Router {
@@ -160,6 +161,26 @@ class Router {
     this.add('PATCH', '/api/entrepreneurs/me/offers/:id/toggle', entrepreneurGuard(offerController.toggleEntrepreneurOffer));
     this.add('DELETE', '/api/entrepreneurs/me/offers/:id', entrepreneurGuard(offerController.deleteEntrepreneurOffer));
     this.add('GET', '/api/entrepreneurs/me/offers/:id/performance', entrepreneurGuard(offerController.getOfferPerformance));
+
+    // --- Entrepreneur Advertisements (Self-Service & Protected) ---
+    this.add('GET', '/api/entrepreneurs/me/advertisements', entrepreneurGuard(advertisementController.getEntrepreneurAds));
+    this.add('GET', '/api/entrepreneurs/me/advertisements/:id', entrepreneurGuard(advertisementController.getEntrepreneurAdById));
+    this.add('POST', '/api/entrepreneurs/me/advertisements', entrepreneurGuard(advertisementController.createEntrepreneurAd));
+    this.add('PUT', '/api/entrepreneurs/me/advertisements/:id', entrepreneurGuard(advertisementController.updateEntrepreneurAd));
+    this.add('PATCH', '/api/entrepreneurs/me/advertisements/:id/toggle', entrepreneurGuard(advertisementController.toggleEntrepreneurAd));
+    this.add('DELETE', '/api/entrepreneurs/me/advertisements/:id', entrepreneurGuard(advertisementController.deleteEntrepreneurAd));
+    this.add('GET', '/api/entrepreneurs/me/advertisements/:id/performance', entrepreneurGuard(advertisementController.getAdPerformance));
+
+    // --- Public Advertisements & Analytics Tracking ---
+    this.add('GET', '/api/advertisements', advertisementController.getPublicAdvertisements);
+    this.add('GET', '/api/advertisements/:id', advertisementController.getAdvertisementById);
+    this.add('POST', '/api/advertisements/:id/impression', advertisementController.recordImpression);
+    this.add('POST', '/api/advertisements/:id/click', advertisementController.recordClick);
+
+    // --- Admin Advertisements Review & Moderation (Protected) ---
+    this.add('GET', '/api/admin/advertisements', adminGuard(advertisementController.getAdminAds));
+    this.add('PATCH', '/api/admin/advertisements/:id/review', adminGuard(advertisementController.reviewAdminAd));
+    this.add('DELETE', '/api/admin/advertisements/:id', adminGuard(advertisementController.deleteAdminAd));
 
     // --- Promotional Offers & Announcements ---
     this.add('GET', '/api/offers', offerController.getActiveOffers);

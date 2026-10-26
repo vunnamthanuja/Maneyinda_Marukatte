@@ -155,13 +155,66 @@ const CustomerModule = {
     AppRouter.navigate('screen-customer-search');
   },
 
-  // --- PROMOTIONAL ROTATING OFFERS BANNER ---
+  // --- PROMOTIONAL ROTATING OFFERS & ADVERTISEMENTS BANNER ---
   renderPromoBanner() {
+    // 1. Prioritize approved active entrepreneur advertisements
+    const ads = (store.getAdvertisements && store.getAdvertisements('home_carousel')) || [];
+
+    if (ads.length > 0) {
+      return `
+        <div class="promo-banner-container" id="promo-banner-container"
+             onmouseenter="CustomerModule.pauseBannerTimer()"
+             onmouseleave="CustomerModule.startBannerTimer()">
+          <div class="promo-banner-track" id="promo-banner-track">
+            ${ads.map((ad) => `
+              <div class="promo-slide" onclick="CustomerModule.handleAdClick('${ad.id}')" style="background: linear-gradient(135deg, #4A6B32 0%, #223613 100%); position:relative; overflow:hidden;">
+                ${ad.imageUrl ? `
+                  <div style="position:absolute; right:0; top:0; width:45%; height:100%; opacity:0.85; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+                    <img src="${ad.imageUrl}" alt="${ad.title}" style="width:100%; height:100%; object-fit:cover; border-radius:0 var(--radius-lg) var(--radius-lg) 0;" onerror="this.style.display='none'">
+                  </div>
+                ` : ''}
+                <div style="position:relative; z-index:2; max-width:${ad.imageUrl ? '65%' : '100%'};">
+                  <div class="promo-slide-header" style="margin-bottom:6px;">
+                    <span class="promo-badge-pill" style="background:rgba(255,255,255,0.22); color:#FFF; font-weight:700;">
+                      <span>${ad.discountText || ad.adType || 'FEATURED AD'}</span>
+                    </span>
+                    <span style="font-size:11px; font-weight:700; color:#F4EBD9; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:var(--radius-full);">
+                      🏪 ${ad.storeName}
+                    </span>
+                    ${ad.couponCode ? `<span class="promo-code-pill">${ad.couponCode}</span>` : ''}
+                  </div>
+                  <div>
+                    <div class="promo-slide-title" style="font-size:14px; line-height:1.3; font-weight:700;">${ad.title}</div>
+                    <div class="promo-slide-subtitle" style="font-size:11px; opacity:0.9; margin-top:3px; max-height:36px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${ad.description}</div>
+                  </div>
+                  <div class="promo-slide-footer" style="margin-top:10px;">
+                    <span style="font-size:10px; opacity:0.85; color:#F4EBD9;">
+                      ${ad.endDate ? `Valid till ${new Date(ad.endDate).toLocaleDateString('en-IN', { month:'short', day:'numeric' })}` : 'Limited time promotion'}
+                    </span>
+                    <button class="promo-cta-btn" onclick="event.stopPropagation(); CustomerModule.handleAdClick('${ad.id}')">
+                      <span>${ad.ctaText || 'Shop Now'}</span>
+                      <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="promo-carousel-dots" id="promo-carousel-dots">
+            ${ads.map((_, i) => `
+              <div class="promo-dot ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation(); CustomerModule.goToPromoSlide(${i})"></div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Fallback to active promotional offers
     const offers = (store.getOffers && store.getOffers(true)) || [];
     const bannerOffers = offers.filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated');
 
     if (bannerOffers.length === 0) {
-      // Non-discount welcome banner fallback with Namaste greeting motif
+      // 3. Fallback to friendly Namaste greeting
       return `
         <div class="promo-banner-container" style="background: linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); padding: 14px 16px; border-radius: var(--radius-lg); margin: 0 16px 16px 16px; color: #FFF; display: flex; align-items: center; justify-content: space-between;">
           <div style="display:flex; align-items:center; gap:12px;">
@@ -222,12 +275,18 @@ const CustomerModule = {
     this.promoActiveIndex = 0;
     this.updatePromoTrack();
     this.startBannerTimer();
+
+    // Record impressions for currently rendered active ads
+    const ads = (store.getAdvertisements && store.getAdvertisements('home_carousel')) || [];
+    if (ads.length > 0 && window.apiClient) {
+      ads.forEach(ad => window.apiClient.recordAdImpression(ad.id));
+    }
   },
 
   startBannerTimer() {
     this.pauseBannerTimer();
-    const offers = (store.getOffers && store.getOffers(true)) || [];
-    const count = offers.filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated').length;
+    const ads = (store.getAdvertisements && store.getAdvertisements('home_carousel')) || [];
+    const count = ads.length > 0 ? ads.length : ((store.getOffers && store.getOffers(true)) || []).filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated').length;
     if (count <= 1) return;
     this.promoTimer = setInterval(() => {
       this.promoActiveIndex = (this.promoActiveIndex + 1) % count;
@@ -286,6 +345,28 @@ const CustomerModule = {
       return;
     }
     AppRouter.navigate('screen-customer-search');
+  },
+
+  handleAdClick(adId) {
+    const ads = (store.data && store.data.advertisements) || [];
+    const ad = ads.find(a => a.id === adId);
+    if (!ad) return;
+
+    if (window.apiClient) {
+      window.apiClient.recordAdClick(ad.id);
+    }
+
+    if (ad.couponCode) this.presetCouponCode = ad.couponCode;
+
+    if (ad.ctaTarget === 'product' && ad.targetId) {
+      CustomerModule.viewProductDetails(ad.targetId);
+    } else if (ad.ctaTarget === 'category' && (ad.targetCategory || ad.targetId)) {
+      CustomerModule.viewCategoryListing(ad.targetCategory || ad.targetId);
+    } else if (ad.targetId || ad.entrepreneurId) {
+      CustomerModule.viewPublicStore(ad.targetId || ad.entrepreneurId);
+    } else {
+      AppRouter.navigate('screen-customer-search');
+    }
   },
 
   // --- PRODUCT-SPECIFIC & GENUINE OFFERS ---

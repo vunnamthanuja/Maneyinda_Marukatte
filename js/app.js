@@ -153,6 +153,7 @@ const AppRouter = {
       case 'screen-ent-reviews': html = EntrepreneurModule.renderReviews(); break;
       case 'screen-ent-payment-settings': html = EntrepreneurModule.renderPaymentSettings(); break;
       case 'screen-ent-offers': html = EntrepreneurModule.renderOffers(params); break;
+      case 'screen-ent-advertisements': html = EntrepreneurModule.renderAdvertisements(params); break;
 
       // Admin
       case 'screen-admin-login': html = AdminModule.renderLogin(); break;
@@ -168,6 +169,7 @@ const AppRouter = {
       case 'screen-admin-profile': html = AdminModule.renderProfile(); break;
       case 'screen-admin-payments': html = AdminModule.renderPayments(); break;
       case 'screen-admin-offers': html = AdminModule.renderOffers(); break;
+      case 'screen-admin-ads': html = AdminModule.renderAdvertisements(params); break;
 
       default:
         html = CustomerModule.renderHome();

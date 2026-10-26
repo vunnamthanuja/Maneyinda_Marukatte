@@ -866,6 +866,221 @@ class APIClient {
       return { success: true, data: removed };
     }
     return { success: false, message: 'Offer not found' };
+  },
+
+  // -------------------------------------------------------------------
+  // ADVERTISEMENT CLIENT METHODS
+  // -------------------------------------------------------------------
+
+  async getAdvertisements(placement = 'home_carousel', category = null) {
+    if (this.isOnline) {
+      let q = `?placement=${encodeURIComponent(placement)}`;
+      if (category) q += `&category=${encodeURIComponent(category)}`;
+      return await this.request(`/advertisements${q}`);
+    }
+    return {
+      success: true,
+      data: store.getAdvertisements(placement, category)
+    };
+  },
+
+  async recordAdImpression(id) {
+    if (this.isOnline) {
+      return await this.request(`/advertisements/${id}/impression`, { method: 'POST' }).catch(() => {});
+    }
+    return { success: true, impressions: store.recordAdImpression(id) };
+  },
+
+  async recordAdClick(id) {
+    if (this.isOnline) {
+      return await this.request(`/advertisements/${id}/click`, { method: 'POST' }).catch(() => {});
+    }
+    return { success: true, clicks: store.recordAdClick(id) };
+  },
+
+  // Entrepreneur Advertisements
+  async getEntrepreneurAds() {
+    if (this.isOnline) {
+      return await this.request('/entrepreneurs/me/advertisements');
+    }
+    const user = store.getUser && store.getUser();
+    const ownerId = (user && user.entrepreneurId) || (user && user.id);
+    const list = store.getEntrepreneurAds(ownerId);
+    return { success: true, count: list.length, data: list };
+  },
+
+  async getEntrepreneurAdById(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/advertisements/${id}`);
+    }
+    const ad = store.getAdvertisementById(id);
+    return ad ? { success: true, data: ad } : { success: false, message: 'Ad not found' };
+  },
+
+  async createEntrepreneurAd(adData) {
+    if (this.isOnline) {
+      return await this.request('/entrepreneurs/me/advertisements', {
+        method: 'POST',
+        body: JSON.stringify(adData)
+      });
+    }
+    if (!store.data.advertisements) store.data.advertisements = [];
+    const user = store.getUser && store.getUser();
+    const ownerId = (user && user.entrepreneurId) || (user && user.id) || 'ent_01';
+    const newAd = {
+      id: `AD-${Math.floor(1000 + Math.random() * 9000)}`,
+      entrepreneurId: ownerId,
+      status: 'Pending Approval',
+      impressions: 0,
+      clicks: 0,
+      ordersAttributed: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...adData
+    };
+    store.data.advertisements.unshift(newAd);
+    store.saveData();
+    return { success: true, data: newAd, message: 'Advertisement submitted for Admin approval.' };
+  },
+
+  async updateEntrepreneurAd(id, updates) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/advertisements/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+    }
+    const idx = (store.data.advertisements || []).findIndex(a => a.id === id);
+    if (idx !== -1) {
+      store.data.advertisements[idx] = {
+        ...store.data.advertisements[idx],
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      if (store.data.advertisements[idx].status === 'Rejected') {
+        store.data.advertisements[idx].status = 'Pending Approval';
+      }
+      store.saveData();
+      return { success: true, data: store.data.advertisements[idx] };
+    }
+    return { success: false, message: 'Advertisement not found' };
+  },
+
+  async toggleEntrepreneurAd(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/advertisements/${id}/toggle`, {
+        method: 'PATCH'
+      });
+    }
+    const idx = (store.data.advertisements || []).findIndex(a => a.id === id);
+    if (idx !== -1) {
+      const current = store.data.advertisements[idx].status;
+      store.data.advertisements[idx].status = current === 'Paused' ? 'Active' : 'Paused';
+      store.saveData();
+      return { success: true, data: store.data.advertisements[idx] };
+    }
+    return { success: false, message: 'Advertisement not found' };
+  },
+
+  async deleteEntrepreneurAd(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/advertisements/${id}`, {
+        method: 'DELETE'
+      });
+    }
+    const idx = (store.data.advertisements || []).findIndex(a => a.id === id);
+    if (idx !== -1) {
+      const removed = store.data.advertisements.splice(idx, 1)[0];
+      store.saveData();
+      return { success: true, data: removed };
+    }
+    return { success: false, message: 'Advertisement not found' };
+  },
+
+  async getAdPerformance(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/advertisements/${id}/performance`);
+    }
+    const ad = store.getAdvertisementById(id);
+    if (!ad) return { success: false, message: 'Ad not found' };
+    const impressions = ad.impressions || 0;
+    const clicks = ad.clicks || 0;
+    return {
+      success: true,
+      data: {
+        id: ad.id,
+        title: ad.title,
+        status: ad.status,
+        impressions,
+        clicks,
+        ctr: impressions > 0 ? ((clicks / impressions) * 100).toFixed(1) + '%' : '0.0%',
+        ordersAttributed: ad.ordersAttributed || 0
+      }
+    };
+  },
+
+  // Media Upload Helper
+  async uploadMedia(fileOrBase64, filename = 'banner.jpg') {
+    if (this.isOnline) {
+      return await this.request('/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename,
+          base64: fileOrBase64
+        })
+      });
+    }
+    // Offline simulation
+    return {
+      success: true,
+      url: typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('data:') ? fileOrBase64 : `/uploads/banner_${Date.now()}.jpg`,
+      filename,
+      message: 'Media uploaded successfully.'
+    };
+  },
+
+  // Admin Advertisements Review
+  async getAdminAds(status = null) {
+    if (this.isOnline) {
+      const q = status ? `?status=${encodeURIComponent(status)}` : '';
+      return await this.request(`/admin/advertisements${q}`);
+    }
+    let list = (store.data && store.data.advertisements) || [];
+    if (status) list = list.filter(a => a.status === status);
+    return { success: true, count: list.length, data: list };
+  },
+
+  async reviewAdminAd(id, status, rejectionReason = null, reviewNotes = null) {
+    if (this.isOnline) {
+      return await this.request(`/admin/advertisements/${id}/review`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, rejectionReason, reviewNotes })
+      });
+    }
+    const idx = (store.data.advertisements || []).findIndex(a => a.id === id);
+    if (idx !== -1) {
+      store.data.advertisements[idx].status = status;
+      store.data.advertisements[idx].rejectionReason = rejectionReason;
+      store.data.advertisements[idx].reviewNotes = reviewNotes;
+      store.saveData();
+      return { success: true, data: store.data.advertisements[idx] };
+    }
+    return { success: false, message: 'Ad not found' };
+  },
+
+  async deleteAdminAd(id) {
+    if (this.isOnline) {
+      return await this.request(`/admin/advertisements/${id}`, {
+        method: 'DELETE'
+      });
+    }
+    const idx = (store.data.advertisements || []).findIndex(a => a.id === id);
+    if (idx !== -1) {
+      const removed = store.data.advertisements.splice(idx, 1)[0];
+      store.saveData();
+      return { success: true, data: removed };
+    }
+    return { success: false, message: 'Ad not found' };
   }
 }
 

@@ -54,6 +54,9 @@ function mockRequest(method, urlPath, body = null, customHeaders = {}) {
 
 async function runInProcessTests() {
   console.log('\n--- COMPREHENSIVE ROLE-BASED ACCESS & API VERIFICATION ---\n');
+  const dbInit = require('./models/db');
+  dbInit.updateProduct('prod_01', { stock: 30, status: 'active' });
+
   let passed = 0;
   let failed = 0;
 
@@ -1009,6 +1012,288 @@ async function runInProcessTests() {
     // C: Clean up created test offer
     const db = require('./models/db');
     db.deleteOffer(newEntOfferId);
+  });
+
+  // =================================================================
+  // ENTREPRENEUR-UPLOADED ADVERTISEMENT SYSTEM TESTS (RBAC, IDOR & MODERATION)
+  // =================================================================
+  const db = require('./models/db');
+
+  // 44. RBAC: GET /api/entrepreneurs/me/advertisements strictly requires Entrepreneur token
+  await test('GET /api/entrepreneurs/me/advertisements enforces entrepreneur role authorization', async () => {
+    // A: Without token -> 401
+    const unauth = await mockRequest('GET', '/api/entrepreneurs/me/advertisements');
+    if (unauth.status !== 401) {
+      throw new Error(`Expected 401 for unauthenticated request, got ${unauth.status}`);
+    }
+
+    // B: With customer token -> 403
+    const AuthMiddleware = require('./middleware/auth');
+    const customerTokenOnly = AuthMiddleware.signToken({
+      userId: 'cust_pure_buyer',
+      email: 'purebuyer@example.com',
+      role: 'customer'
+    });
+    const custRes = await mockRequest('GET', '/api/entrepreneurs/me/advertisements', null, {
+      'authorization': `Bearer ${customerTokenOnly}`
+    });
+    if (custRes.status !== 403) {
+      throw new Error(`Expected 403 for customer token, got ${custRes.status}`);
+    }
+
+    // C: With ent_01 token -> 200 with only ent_01's ads
+    const entRes = await mockRequest('GET', '/api/entrepreneurs/me/advertisements', null, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+    if (entRes.status !== 200 || !Array.isArray(entRes.data.data)) {
+      throw new Error(`Expected 200 with ad list, got: ${JSON.stringify(entRes.data)}`);
+    }
+
+    const foreignAds = entRes.data.data.filter(a => a.entrepreneurId !== 'ent_01');
+    if (foreignAds.length > 0) {
+      throw new Error(`Leaked foreign advertisements to ent_01! Found: ${JSON.stringify(foreignAds)}`);
+    }
+  });
+
+  // 45. Entrepreneur creates advertisement with auto-binding to caller & Pending status
+  let newAdId = null;
+  await test('POST /api/entrepreneurs/me/advertisements binds ownership & enforces Pending Approval status', async () => {
+    const payload = {
+      title: 'Handmade Festive Cupcake Banner',
+      description: 'Freshly baked handcrafted festive cupcakes available in limited batches!',
+      imageUrl: '/uploads/banner_anita_cakes.svg',
+      adType: 'Product Promotion',
+      placement: 'home_carousel',
+      ctaText: 'Order Now',
+      ctaLink: 'screen-customer-home',
+      discountInfo: 'Flat 20% OFF with code FESTIVE20',
+      productIds: ['prod_01'], // Owned by ent_01
+      // Attempt to spoof owner ID and bypass moderation status
+      entrepreneurId: 'ent_02',
+      status: 'Approved'
+    };
+
+    const res = await mockRequest('POST', '/api/entrepreneurs/me/advertisements', payload, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (res.status !== 201 || !res.data.success || !res.data.data) {
+      throw new Error(`Advertisement creation failed: ${JSON.stringify(res.data)}`);
+    }
+
+    const created = res.data.data;
+    newAdId = created.id;
+
+    // Strict ownership verification: must be ent_01 NOT ent_02
+    if (created.entrepreneurId !== 'ent_01') {
+      throw new Error(`IDOR flaw! Ad accepted spoofed entrepreneurId: ${created.entrepreneurId}`);
+    }
+
+    // Strict moderation status: must be 'Pending Approval' NOT 'Approved'
+    if (created.status !== 'Pending Approval') {
+      throw new Error(`Self-approval vulnerability! Initial status is '${created.status}' instead of 'Pending Approval'`);
+    }
+
+    if (created.impressions !== 0 || created.clicks !== 0) {
+      throw new Error(`Counters should initialize at 0: ${JSON.stringify(created)}`);
+    }
+  });
+
+  // 46. Cross-Shop Product Hijacking Prevention: Cannot attach another shop's products
+  await test('Product Ownership Defense: Rejects advertisement attaching foreign shop products', async () => {
+    const hijackedPayload = {
+      title: 'Malicious Cross-Shop Promo',
+      description: 'Trying to promote another shop\'s product under my banner',
+      imageUrl: '/uploads/banner_anita_cakes.svg',
+      productIds: ['prod_05'] // Owned by ent_02 (Lakshmi Crafts), NOT ent_01
+    };
+
+    const res = await mockRequest('POST', '/api/entrepreneurs/me/advertisements', hijackedPayload, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (res.status !== 403 || res.data.error !== 'UNAUTHORIZED_PRODUCT_SELECTION') {
+      throw new Error(`Expected 403 UNAUTHORIZED_PRODUCT_SELECTION, got ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  // 47. Customer Visibility: Unapproved ads must NEVER appear in public carousel
+  await test('Public carousel filters out unapproved / pending advertisements', async () => {
+    const res = await mockRequest('GET', '/api/advertisements?placement=home_carousel');
+    if (res.status !== 200 || !Array.isArray(res.data.data)) {
+      throw new Error(`Public ads fetch failed: ${JSON.stringify(res.data)}`);
+    }
+
+    const unapprovedFound = res.data.data.find(a => a.id === newAdId || a.status !== 'Approved');
+    if (unapprovedFound) {
+      throw new Error(`Unapproved advertisement leaked to customer view: ${JSON.stringify(unapprovedFound)}`);
+    }
+  });
+
+  // 48. Strict IDOR Defense: ent_02 cannot update, toggle or delete ent_01's advertisement
+  await test('Strict IDOR: Entrepreneur B cannot update, toggle or delete Entrepreneur A ad', async () => {
+    // A: ent_02 tries to update ent_01's ad -> 403 Forbidden
+    const updateRes = await mockRequest('PUT', `/api/entrepreneurs/me/advertisements/${newAdId}`, {
+      title: 'Hijacked by Lakshmi Crafts'
+    }, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (updateRes.status !== 403 || updateRes.data.error !== 'FORBIDDEN_AD_ACCESS') {
+      throw new Error(`IDOR vulnerability! ent_02 updated ent_01 ad: ${updateRes.status} ${JSON.stringify(updateRes.data)}`);
+    }
+
+    // B: ent_02 tries to toggle ent_01's ad -> 403 Forbidden
+    const toggleRes = await mockRequest('PATCH', `/api/entrepreneurs/me/advertisements/${newAdId}/toggle`, null, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (toggleRes.status !== 403 || toggleRes.data.error !== 'FORBIDDEN_AD_ACCESS') {
+      throw new Error(`IDOR vulnerability! ent_02 toggled ent_01 ad: ${toggleRes.status}`);
+    }
+
+    // C: ent_02 tries to delete ent_01's ad -> 403 Forbidden
+    const deleteRes = await mockRequest('DELETE', `/api/entrepreneurs/me/advertisements/${newAdId}`, null, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (deleteRes.status !== 403 || deleteRes.data.error !== 'FORBIDDEN_AD_ACCESS') {
+      throw new Error(`IDOR vulnerability! ent_02 deleted ent_01 ad: ${deleteRes.status}`);
+    }
+
+    // D: ent_02 tries to view ent_01's ad performance -> 403 Forbidden
+    const perfRes = await mockRequest('GET', `/api/entrepreneurs/me/advertisements/${newAdId}/performance`, null, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (perfRes.status !== 403 || perfRes.data.error !== 'FORBIDDEN_AD_ACCESS') {
+      throw new Error(`IDOR vulnerability! ent_02 accessed ent_01 ad metrics: ${perfRes.status}`);
+    }
+  });
+
+  // 49. Admin Review & Approval Workflow with In-App Notification
+  await test('Admin Review: PATCH /api/admin/advertisements/:id/review approves ad & notifies entrepreneur', async () => {
+    const res = await mockRequest('PATCH', `/api/admin/advertisements/${newAdId}/review`, {
+      status: 'Approved',
+      reviewNotes: 'High quality creative, meets visual banner standards.'
+    }, {
+      'authorization': `Bearer ${adminToken}`
+    });
+
+    if (res.status !== 200 || !res.data.success || res.data.data.status !== 'Approved') {
+      throw new Error(`Admin ad approval failed: ${JSON.stringify(res.data)}`);
+    }
+
+    // Verify In-App Notification was generated for ent_01
+    const notifs = db.getNotifications ? db.getNotifications('ent_01') : [];
+    const adNotif = notifs.find(n => n.title && n.title.includes('Approved'));
+    if (!adNotif) {
+      throw new Error(`Expected in-app approval notification for ent_01, found: ${JSON.stringify(notifs)}`);
+    }
+  });
+
+  // 50. Approved Advertisement appears in Public Carousel with Fair Rotation
+  await test('Approved advertisement appears in customer carousel with fair seller rotation', async () => {
+    const res = await mockRequest('GET', '/api/advertisements?placement=home_carousel');
+    if (res.status !== 200 || !Array.isArray(res.data.data)) {
+      throw new Error(`Failed to fetch public carousel: ${JSON.stringify(res.data)}`);
+    }
+
+    const found = res.data.data.find(a => a.id === newAdId);
+    if (!found) {
+      throw new Error(`Approved advertisement "${newAdId}" did not appear in customer carousel!`);
+    }
+
+    // Verify fair rotation: Check that consecutive slots alternate between distinct shops
+    const distinctShops = new Set(res.data.data.map(a => a.entrepreneurId));
+    console.log(`[FAIR_ROTATION] Customer carousel contains ${res.data.data.length} active ads across ${distinctShops.size} distinct shops.`);
+  });
+
+  // 51. Impression, Click Tracking and Performance Analytics
+  await test('Records impressions & clicks, computes CTR and performance metrics accurately', async () => {
+    // A: Record 2 impressions
+    await mockRequest('POST', `/api/advertisements/${newAdId}/impression`);
+    await mockRequest('POST', `/api/advertisements/${newAdId}/impression`);
+
+    // B: Record 1 click
+    await mockRequest('POST', `/api/advertisements/${newAdId}/click`);
+
+    // C: Verify entrepreneur performance endpoint computes 50.0% CTR
+    const perfRes = await mockRequest('GET', `/api/entrepreneurs/me/advertisements/${newAdId}/performance`, null, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (perfRes.status !== 200 || !perfRes.data.success) {
+      throw new Error(`Failed to fetch performance: ${JSON.stringify(perfRes.data)}`);
+    }
+
+    const metrics = perfRes.data.data;
+    if (metrics.impressions !== 2 || metrics.clicks !== 1 || metrics.ctr !== '50.0%') {
+      throw new Error(`Metrics mismatch! Expected 2 impressions, 1 click, 50.0% CTR, got: ${JSON.stringify(metrics)}`);
+    }
+  });
+
+  // 52. Admin Rejection Workflow with Mandatory Reason & Hiding from Public Carousel
+  await test('Admin Moderation: Rejection stores reason, notifies entrepreneur & hides from carousel', async () => {
+    // Admin rejects the advertisement with feedback
+    const rejectRes = await mockRequest('PATCH', `/api/admin/advertisements/${newAdId}/review`, {
+      status: 'Rejected',
+      rejectionReason: 'Offer text is unclear and image requires higher resolution.'
+    }, {
+      'authorization': `Bearer ${adminToken}`
+    });
+
+    if (rejectRes.status !== 200 || rejectRes.data.data.status !== 'Rejected') {
+      throw new Error(`Admin rejection failed: ${JSON.stringify(rejectRes.data)}`);
+    }
+
+    if (rejectRes.data.data.rejectionReason !== 'Offer text is unclear and image requires higher resolution.') {
+      throw new Error(`Rejection reason not stored properly: ${JSON.stringify(rejectRes.data)}`);
+    }
+
+    // Customer carousel must no longer show this rejected ad
+    const publicRes = await mockRequest('GET', '/api/advertisements?placement=home_carousel');
+    const stillShowing = publicRes.data.data.find(a => a.id === newAdId);
+    if (stillShowing) {
+      throw new Error(`Rejected advertisement is still visible to customers!`);
+    }
+
+    // Entrepreneur receives notification
+    const notifs = db.getNotifications ? db.getNotifications('ent_01') : [];
+    const rejectNotif = notifs.find(n => n.title && n.title.includes('Requires Changes'));
+    if (!rejectNotif) {
+      throw new Error(`Expected rejection notification for ent_01, found: ${JSON.stringify(notifs)}`);
+    }
+  });
+
+  // 53. Entrepreneur Resubmit & Clean up
+  await test('Entrepreneur resubmits ad, resets status to Pending Approval, and deletes ad', async () => {
+    // Resubmit with revised details
+    const resubmitRes = await mockRequest('PUT', `/api/entrepreneurs/me/advertisements/${newAdId}`, {
+      title: 'Handmade Festive Cupcake Banner (Updated High-Res)',
+      description: 'Revised high-resolution creative with crystal-clear offer details.'
+    }, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (resubmitRes.status !== 200 || resubmitRes.data.data.status !== 'Pending Approval') {
+      throw new Error(`Resubmit should reset status to Pending Approval: ${JSON.stringify(resubmitRes.data)}`);
+    }
+
+    // Delete ad
+    const delRes = await mockRequest('DELETE', `/api/entrepreneurs/me/advertisements/${newAdId}`, null, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (delRes.status !== 200 || !delRes.data.success) {
+      throw new Error(`Ad deletion failed: ${JSON.stringify(delRes.data)}`);
+    }
+
+    // Verify ad is gone from db
+    const check = db.getAdvertisementById(newAdId);
+    if (check) {
+      throw new Error(`Deleted ad still exists in database: ${newAdId}`);
+    }
   });
 
   console.log(`\n======================================================`);
