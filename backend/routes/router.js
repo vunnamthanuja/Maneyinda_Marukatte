@@ -61,7 +61,27 @@ class Router {
       });
     };
 
+    // Root route: Serve frontend index.html
+    this.add('GET', '/', (req, res) => {
+      const fs = require('fs');
+      const path = require('path');
+      const candidates = [
+        path.join(__dirname, '../../index.html'),
+        path.join(__dirname, '../index.html'),
+        path.join(process.cwd(), 'index.html')
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) {
+          if (res.setHeader) res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          return res.end(fs.readFileSync(p));
+        }
+      }
+      if (res.setHeader) res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.end('<!DOCTYPE html><html><body>Maneyindha Marukatte</body></html>');
+    });
+
     this.add('GET', '/api', indexHandler);
+    this.add('GET', '/api/', indexHandler);
 
     // Health check
     this.add('GET', '/api/health', (req, res) => {

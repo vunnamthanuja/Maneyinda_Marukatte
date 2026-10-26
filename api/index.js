@@ -26,8 +26,23 @@ const MIME_TYPES = {
   '.webm': 'video/webm'
 };
 
+let staticIndexHtml = '';
+try {
+  staticIndexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+} catch (e1) {
+  try {
+    staticIndexHtml = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+  } catch (e2) {}
+}
+
 function tryServeStatic(pathname, res) {
   let relative = (pathname === '/' || pathname === '' || pathname === '/index.html') ? 'index.html' : pathname.replace(/^\/+/, '');
+  if (relative === 'index.html' && staticIndexHtml) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(staticIndexHtml);
+    return true;
+  }
+
   const searchRoots = [
     process.cwd(),
     path.join(__dirname, '..')
@@ -41,6 +56,12 @@ function tryServeStatic(pathname, res) {
       res.end(fs.readFileSync(fullPath));
       return true;
     }
+  }
+
+  if (relative === 'index.html') {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.end(staticIndexHtml);
+    return true;
   }
   return false;
 }
