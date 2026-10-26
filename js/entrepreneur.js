@@ -8,6 +8,8 @@ const EntrepreneurModule = {
   earningsTimeFilter: 'month',
   activeProductModalId: null,
   dynamicCustomFields: [],
+  offerFilter: 'all',
+  editingOfferId: null,
 
   getEntrepreneur() {
     const user = store.getUser();
@@ -99,6 +101,21 @@ const EntrepreneurModule = {
           </div>
           <button class="btn btn-sm btn-outline" onclick="AppRouter.navigate('screen-ent-availability')">
             Manage
+          </button>
+        </div>
+
+        <!-- Promotional Offers Quick Access Banner -->
+        <div style="background: linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:16px; color:#FFF; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;">
+              <span>🏷️</span> Promotional Offers & Discounts
+            </div>
+            <div style="font-size:11px; opacity:0.9; color:#F4EBD9; margin-top:2px;">
+              Create shop coupons, discount badges & festive deals
+            </div>
+          </div>
+          <button class="btn btn-sm" style="background:#FFF; color:#2E451E; font-weight:700; border:none; padding:6px 12px; border-radius:var(--radius-full); font-size:11px; cursor:pointer;" onclick="AppRouter.navigate('screen-ent-offers')">
+            Manage Offers
           </button>
         </div>
 
@@ -1159,6 +1176,14 @@ const EntrepreneurModule = {
             <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
           </div>
 
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="AppRouter.navigate('screen-ent-offers')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">local_offer</span>
+              <span style="font-size:13px; font-weight:600;">🏷️ Offers & Discounts</span>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+
           <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="AppRouter.navigate('screen-ent-reviews')">
             <div style="display:flex; align-items:center; gap:10px;">
               <span class="material-symbols-rounded" style="color:var(--color-primary);">star</span>
@@ -1512,5 +1537,801 @@ const EntrepreneurModule = {
         </button>
       </div>
     `;
+  },
+
+  // -------------------------------------------------------------------
+  // SCREEN: ENTREPRENEUR OFFERS & DISCOUNTS MANAGEMENT
+  // -------------------------------------------------------------------
+  renderOffers(params = {}) {
+    const ent = this.getEntrepreneur();
+    const allOffers = ((store.data && store.data.offers) || []).filter(o => o.entrepreneurId === ent.id);
+    const now = new Date();
+
+    // KPI Metrics Calculation
+    const activeOffers = allOffers.filter(o => 
+      o.active && 
+      (!o.endDate || new Date(o.endDate) >= now) && 
+      (!o.startDate || new Date(o.startDate) <= now) &&
+      o.moderationStatus !== 'deactivated'
+    );
+    const scheduledOffers = allOffers.filter(o => o.startDate && new Date(o.startDate) > now);
+    const expiredOffers = allOffers.filter(o => o.endDate && new Date(o.endDate) < now);
+    const inactiveOffers = allOffers.filter(o => !o.active || o.moderationStatus === 'deactivated');
+
+    const totalRedemptions = allOffers.reduce((sum, o) => sum + (o.usageCount || 0), 0);
+    const totalOrdersCount = allOffers.reduce((sum, o) => sum + (o.ordersCount || 0), 0);
+    const totalSavings = allOffers.reduce((sum, o) => sum + (o.totalSavedAmount || 0), 0);
+
+    // Active Tab Filtering
+    const activeFilter = this.offerFilter || 'all';
+    let filteredOffers = allOffers;
+    if (activeFilter === 'active') filteredOffers = activeOffers;
+    else if (activeFilter === 'scheduled') filteredOffers = scheduledOffers;
+    else if (activeFilter === 'expired') filteredOffers = expiredOffers;
+    else if (activeFilter === 'inactive') filteredOffers = inactiveOffers;
+
+    return `
+      <!-- Top App Bar -->
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-ent-dashboard')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Offers & Discounts</span>
+        </div>
+        <div class="top-app-bar-actions">
+          <button class="btn btn-sm btn-primary" onclick="EntrepreneurModule.openCreateOfferModal()" style="display:flex; align-items:center; gap:4px; font-weight:700;">
+            <span class="material-symbols-rounded" style="font-size:16px;">add</span>
+            <span>New Offer</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 12px; padding-bottom: 80px;">
+        <!-- Shop Identity Bar -->
+        <div style="background:#FFFDE7; border:1px solid #FFF59D; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">store</span>
+            <div>
+              <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);">${ent.businessName}</div>
+              <div style="font-size:11px; color:var(--color-text-secondary);">Manage shop-level discounts & promotional coupons</div>
+            </div>
+          </div>
+          <span class="chip-badge" style="background:#E8F5E9; color:var(--color-primary); font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+            Verified Shop
+          </span>
+        </div>
+
+        <!-- 4 Offer Performance Summary Cards -->
+        <div class="stat-card-grid" style="grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom:16px;">
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#E8F5E9; color:var(--color-primary);">
+              <span class="material-symbols-rounded">local_offer</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${activeOffers.length}</div>
+            <div class="stat-label">Active Promotions</div>
+          </div>
+
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#FFF3E0; color:var(--color-warning);">
+              <span class="material-symbols-rounded">receipt_long</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${totalRedemptions}</div>
+            <div class="stat-label">Total Redemptions</div>
+          </div>
+
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#E1F5FE; color:var(--color-info);">
+              <span class="material-symbols-rounded">shopping_bag</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">${totalOrdersCount}</div>
+            <div class="stat-label">Orders Generated</div>
+          </div>
+
+          <div class="stat-card" style="padding:12px;">
+            <div class="stat-icon-wrap" style="background:#F3E5F5; color:#7B1FA2;">
+              <span class="material-symbols-rounded">savings</span>
+            </div>
+            <div class="stat-value" style="font-size:18px;">₹${totalSavings.toLocaleString()}</div>
+            <div class="stat-label">Customer Savings</div>
+          </div>
+        </div>
+
+        <!-- Status Filter Tabs -->
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:14px; -webkit-overflow-scrolling:touch;">
+          <button class="chip-filter ${activeFilter === 'all' ? 'active' : ''}" onclick="EntrepreneurModule.setOfferFilter('all')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'all' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'all' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'all' ? '#FFF' : 'var(--color-text-primary)'};">
+            All (${allOffers.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'active' ? 'active' : ''}" onclick="EntrepreneurModule.setOfferFilter('active')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'active' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'active' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'active' ? '#FFF' : 'var(--color-text-primary)'};">
+            Active (${activeOffers.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'scheduled' ? 'active' : ''}" onclick="EntrepreneurModule.setOfferFilter('scheduled')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'scheduled' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'scheduled' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'scheduled' ? '#FFF' : 'var(--color-text-primary)'};">
+            Scheduled (${scheduledOffers.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'expired' ? 'active' : ''}" onclick="EntrepreneurModule.setOfferFilter('expired')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'expired' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'expired' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'expired' ? '#FFF' : 'var(--color-text-primary)'};">
+            Expired (${expiredOffers.length})
+          </button>
+          <button class="chip-filter ${activeFilter === 'inactive' ? 'active' : ''}" onclick="EntrepreneurModule.setOfferFilter('inactive')" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:var(--radius-full); cursor:pointer; white-space:nowrap; border:1px solid ${activeFilter === 'inactive' ? 'var(--color-primary)' : 'var(--color-border)'}; background:${activeFilter === 'inactive' ? 'var(--color-primary)' : '#FFF'}; color:${activeFilter === 'inactive' ? '#FFF' : 'var(--color-text-primary)'};">
+            Inactive (${inactiveOffers.length})
+          </button>
+        </div>
+
+        <!-- Offers Cards List -->
+        ${filteredOffers.length === 0 ? `
+          <div class="empty-state" style="padding:40px 16px; text-align:center;">
+            <div style="width:64px; height:64px; border-radius:50%; background:#F1F8E9; color:var(--color-primary); display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+              <span class="material-symbols-rounded" style="font-size:32px;">local_offer</span>
+            </div>
+            <h4 style="font-size:15px; font-weight:700; color:var(--color-text-primary); margin-bottom:4px;">No Offers Found</h4>
+            <p style="font-size:12px; color:var(--color-text-secondary); max-width:280px; margin:0 auto 16px auto;">
+              ${activeFilter === 'all' 
+                ? 'Attract more local buyers by launching festive discounts or shop coupons!' 
+                : `No offers currently under the "${activeFilter}" tab.`}
+            </p>
+            <button class="btn btn-primary btn-sm" onclick="EntrepreneurModule.openCreateOfferModal()" style="display:inline-flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span>
+              <span>Create Your First Offer</span>
+            </button>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${filteredOffers.map(o => {
+              const isDeactivated = o.moderationStatus === 'deactivated';
+              const isFlagged = o.moderationStatus === 'flagged';
+              const isCurrentlyActive = o.active && !isDeactivated && (!o.endDate || new Date(o.endDate) >= now) && (!o.startDate || new Date(o.startDate) <= now);
+
+              return `
+                <div class="card" style="padding:14px; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#FFF; position:relative; overflow:hidden;">
+                  <!-- Top Row: Title, Code & Moderation Pill -->
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:8px;">
+                    <div>
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary); margin:0;">
+                          ${o.title}
+                        </h4>
+                        ${o.code ? `
+                          <span style="display:inline-flex; align-items:center; gap:4px; background:#F5F9EE; border:1px dashed var(--color-primary); color:var(--color-primary); font-family:monospace; font-weight:700; font-size:11px; padding:2px 8px; border-radius:var(--radius-full); cursor:pointer;" onclick="EntrepreneurModule.copyCouponCode('${o.code}')" title="Click to copy code">
+                            <span>${o.code}</span>
+                            <span class="material-symbols-rounded" style="font-size:12px;">content_copy</span>
+                          </span>
+                        ` : ''}
+                      </div>
+                      ${o.description ? `<p style="font-size:11px; color:var(--color-text-secondary); margin:4px 0 0 0;">${o.description}</p>` : ''}
+                    </div>
+
+                    <!-- Status Pill -->
+                    <div>
+                      ${isDeactivated ? `
+                        <span style="background:#FFEBEE; color:#C62828; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:3px;">
+                          <span class="material-symbols-rounded" style="font-size:12px;">block</span>
+                          Deactivated
+                        </span>
+                      ` : isFlagged ? `
+                        <span style="background:#FFF8E1; color:#F57F17; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:3px;">
+                          <span class="material-symbols-rounded" style="font-size:12px;">flag</span>
+                          Under Review
+                        </span>
+                      ` : isCurrentlyActive ? `
+                        <span style="background:#E8F5E9; color:#2E7D32; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full); display:inline-flex; align-items:center; gap:3px;">
+                          <span class="material-symbols-rounded" style="font-size:12px;">check_circle</span>
+                          Active
+                        </span>
+                      ` : `
+                        <span style="background:#ECEFF1; color:#546E7A; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                          Paused
+                        </span>
+                      `}
+                    </div>
+                  </div>
+
+                  <!-- Details Badges Row -->
+                  <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; font-size:11px;">
+                    <span style="background:#F5F9EE; color:var(--color-primary); font-weight:700; padding:3px 8px; border-radius:var(--radius-sm);">
+                      🏷️ ${o.badgeText || (o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`)}
+                      ${o.maxDiscount ? ` (Cap: ₹${o.maxDiscount})` : ''}
+                    </span>
+
+                    <span style="background:#FAFAFA; color:var(--color-text-secondary); border:1px solid #EEEEEE; padding:3px 8px; border-radius:var(--radius-sm);">
+                      ${o.scope === 'product' ? `📦 ${(o.productIds && o.productIds.length) || 1} Selected Products` : '🏪 All Shop Products'}
+                    </span>
+
+                    ${o.minOrderAmount ? `
+                      <span style="background:#FAFAFA; color:var(--color-text-secondary); border:1px solid #EEEEEE; padding:3px 8px; border-radius:var(--radius-sm);">
+                        Min Order: ₹${o.minOrderAmount}
+                      </span>
+                    ` : ''}
+
+                    ${o.endDate ? `
+                      <span style="background:#FAFAFA; color:var(--color-text-secondary); border:1px solid #EEEEEE; padding:3px 8px; border-radius:var(--radius-sm);">
+                        📅 Valid till ${new Date(o.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    ` : `
+                      <span style="background:#FAFAFA; color:var(--color-text-secondary); border:1px solid #EEEEEE; padding:3px 8px; border-radius:var(--radius-sm);">
+                        📅 Ongoing
+                      </span>
+                    `}
+                  </div>
+
+                  <!-- Performance Metrics Bar -->
+                  <div style="background:#F9F8F3; border-radius:var(--radius-sm); padding:8px 10px; margin:8px 0; display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                    <div>
+                      <span style="color:var(--color-text-secondary);">Used:</span> 
+                      <strong style="color:var(--color-text-primary);">${o.usageCount || 0}</strong>
+                      ${o.usageLimit ? `<span style="color:var(--color-text-tertiary);"> / ${o.usageLimit}</span>` : ''}
+                    </div>
+                    <div>
+                      <span style="color:var(--color-text-secondary);">Orders:</span> 
+                      <strong style="color:var(--color-text-primary);">${o.ordersCount || 0}</strong>
+                    </div>
+                    <div>
+                      <span style="color:var(--color-text-secondary);">Customer Savings:</span> 
+                      <strong style="color:var(--color-primary);">₹${o.totalSavedAmount || 0}</strong>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons Row -->
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid #F0EEE4;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <button class="btn btn-sm btn-text" onclick="EntrepreneurModule.previewOfferInModal('${o.id}')" style="display:flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;">visibility</span>
+                        Preview
+                      </button>
+
+                      <button class="btn btn-sm btn-text" onclick="EntrepreneurModule.openEditOfferModal('${o.id}')" style="display:flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px;">
+                        <span class="material-symbols-rounded" style="font-size:14px;">edit</span>
+                        Edit
+                      </button>
+
+                      <button class="btn btn-sm btn-text" onclick="EntrepreneurModule.confirmDeleteOffer('${o.id}')" style="display:flex; align-items:center; gap:4px; font-size:11px; padding:4px 8px; color:var(--color-error);">
+                        <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
+                        Delete
+                      </button>
+                    </div>
+
+                    <div>
+                      ${!isDeactivated ? `
+                        <button class="btn btn-sm ${o.active ? 'btn-outline' : 'btn-primary'}" onclick="EntrepreneurModule.toggleOffer('${o.id}')" style="font-size:11px; padding:4px 10px;">
+                          ${o.active ? 'Pause Offer' : 'Activate Offer'}
+                        </button>
+                      ` : `
+                        <span style="font-size:10px; color:#C62828;">Contact Admin to Re-enable</span>
+                      `}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('profile')}
+    `;
+  },
+
+  setOfferFilter(filter) {
+    this.offerFilter = filter;
+    AppRouter.navigate('screen-ent-offers');
+  },
+
+  copyCouponCode(code) {
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+    AppUtils.showToast(`Coupon code "${code}" copied to clipboard!`);
+  },
+
+  // -------------------------------------------------------------------
+  // OFFER CREATION & EDIT MODAL WITH LIVE REAL-TIME PREVIEW
+  // -------------------------------------------------------------------
+  openCreateOfferModal() {
+    this.editingOfferId = null;
+    this.showOfferFormModal();
+  },
+
+  openEditOfferModal(offerId) {
+    this.editingOfferId = offerId;
+    this.showOfferFormModal(offerId);
+  },
+
+  showOfferFormModal(offerId = null) {
+    const ent = this.getEntrepreneur();
+    const existing = offerId ? ((store.data && store.data.offers) || []).find(o => o.id === offerId) : null;
+    const myProducts = store.getProducts({ entrepreneurId: ent.id });
+
+    const title = existing ? existing.title : '';
+    const description = existing ? (existing.description || '') : '';
+    const discountType = existing ? existing.discountType : 'percentage';
+    const discountValue = existing ? existing.discountValue : 15;
+    const maxDiscount = existing && existing.maxDiscount ? existing.maxDiscount : '';
+    const minOrderAmount = existing && existing.minOrderAmount ? existing.minOrderAmount : '';
+    const scope = existing ? existing.scope : 'shop';
+    const selectedProductIds = existing && existing.productIds ? existing.productIds : (existing && existing.targetProductId ? [existing.targetProductId] : []);
+    const code = existing ? (existing.code || '') : '';
+    const startDate = existing && existing.startDate ? existing.startDate.substring(0, 10) : new Date().toISOString().substring(0, 10);
+    const endDate = existing && existing.endDate ? existing.endDate.substring(0, 10) : '';
+    const usageLimit = existing && existing.usageLimit ? existing.usageLimit : '';
+
+    const contentHtml = `
+      <div style="max-height:82vh; overflow-y:auto; padding-right:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #F0EEE4; padding-bottom:8px;">
+          <div>
+            <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin:0;">
+              ${existing ? '✏️ Edit Promotional Offer' : '🏷️ Create New Shop Offer'}
+            </h3>
+            <span style="font-size:11px; color:var(--color-text-secondary);">${ent.businessName}</span>
+          </div>
+          <button class="icon-action-btn" onclick="AppUtils.closeBottomSheet()">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+
+        <!-- LIVE PREVIEW ACCORDION / CONTAINER -->
+        <div style="background:#F9F8F3; border:1px solid #E6E1D3; border-radius:var(--radius-md); padding:12px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:11px; font-weight:700; color:var(--color-primary); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:4px;">
+              <span class="material-symbols-rounded" style="font-size:14px;">visibility</span>
+              Live Customer Preview
+            </span>
+            <span style="font-size:10px; color:var(--color-text-secondary);">Updates live as you type</span>
+          </div>
+
+          <!-- Customer Home Banner Preview -->
+          <div style="font-size:10px; font-weight:600; color:var(--color-text-secondary); margin-bottom:4px;">Home Banner View:</div>
+          <div id="offer-preview-banner" style="background:linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); border-radius:var(--radius-md); padding:12px; color:#FFF; margin-bottom:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span id="preview-badge-pill" style="background:rgba(255,255,255,0.2); font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                ${discountType === 'percentage' ? `${discountValue}% OFF` : `₹${discountValue} OFF`}
+              </span>
+              <span style="font-size:10px; font-weight:600; color:#F4EBD9; background:rgba(0,0,0,0.25); padding:2px 8px; border-radius:var(--radius-full);">
+                🏪 ${ent.businessName}
+              </span>
+              <span id="preview-code-pill" style="font-family:monospace; background:#FFF; color:#2E451E; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                ${code || 'SPECIAL DEAL'}
+              </span>
+            </div>
+            <div id="preview-title" style="font-size:13px; font-weight:700; margin-top:4px;">
+              ${title || 'Your Promotional Offer Title'}
+            </div>
+            <div id="preview-desc" style="font-size:11px; opacity:0.9; color:#F4EBD9; margin-top:2px;">
+              ${description || 'Promotional description of your festive offer'}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:10px;">
+              <span id="preview-conditions" style="opacity:0.85; color:#F4EBD9;">
+                ${minOrderAmount ? `Min order ₹${minOrderAmount}` : 'No minimum order required'}
+              </span>
+              <button class="btn btn-sm" style="background:#FFF; color:#2E451E; font-weight:700; border:none; padding:4px 10px; border-radius:var(--radius-full); font-size:10px;" onclick="event.preventDefault()">
+                Shop Now >
+              </button>
+            </div>
+          </div>
+
+          <!-- Product Card Preview -->
+          <div style="font-size:10px; font-weight:600; color:var(--color-text-secondary); margin-bottom:4px;">Product Card View:</div>
+          <div style="background:#FFF; border:1px solid #E6E1D3; border-radius:var(--radius-md); padding:10px; display:flex; align-items:center; gap:12px;">
+            <div style="width:50px; height:50px; border-radius:var(--radius-sm); background:#E8F5E9; display:flex; align-items:center; justify-content:center; color:var(--color-primary); flex-shrink:0;">
+              <span class="material-symbols-rounded" style="font-size:26px;">local_mall</span>
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span id="preview-card-badge" style="background:#E8F5E9; color:var(--color-primary); font-size:10px; font-weight:700; padding:2px 6px; border-radius:var(--radius-sm);">
+                  ${discountType === 'percentage' ? `${discountValue}% OFF` : `₹${discountValue} OFF`}
+                </span>
+                <span style="font-size:12px; font-weight:600; color:var(--color-text-primary);">Sample Shop Product</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;">
+                <span id="preview-card-discounted" style="font-size:14px; font-weight:700; color:var(--color-primary);">₹382</span>
+                <span id="preview-card-original" style="font-size:11px; text-decoration:line-through; color:var(--color-text-tertiary);">₹450</span>
+                <span id="preview-card-savings" style="font-size:10px; color:#2E7D32; font-weight:600;">Save ₹68</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM FIELDS -->
+        <form id="entrepreneur-offer-form" onsubmit="EntrepreneurModule.saveOffer(event)">
+          <!-- 1. Offer Title -->
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Offer Title *</label>
+            <input type="text" id="offer-title" class="form-input" required 
+                   placeholder="e.g., Grand Diwali Sweets Discount" 
+                   value="${title}" 
+                   oninput="EntrepreneurModule.updateOfferPreview()">
+          </div>
+
+          <!-- 2. Promotional Description -->
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Promotional Description</label>
+            <textarea id="offer-description" class="form-input" rows="2" 
+                      placeholder="e.g., Get 15% off traditional handcrafted festive sweets freshly prepared this week." 
+                      oninput="EntrepreneurModule.updateOfferPreview()">${description}</textarea>
+          </div>
+
+          <!-- 3. Discount Type & Value Row -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Discount Type *</label>
+              <select id="offer-discount-type" class="form-input" onchange="EntrepreneurModule.updateOfferPreview()">
+                <option value="percentage" ${discountType === 'percentage' ? 'selected' : ''}>Percentage (%)</option>
+                <option value="fixed" ${discountType === 'fixed' || discountType === 'flat' ? 'selected' : ''}>Fixed Amount (₹)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Discount Value *</label>
+              <input type="number" id="offer-discount-value" class="form-input" required min="1" max="10000"
+                     value="${discountValue}" 
+                     oninput="EntrepreneurModule.updateOfferPreview()">
+            </div>
+          </div>
+
+          <!-- 4. Max Discount & Minimum Order -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="form-group" id="max-discount-container">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Max Discount Cap (₹)</label>
+              <input type="number" id="offer-max-discount" class="form-input" min="0"
+                     placeholder="e.g., 150 (Optional)" 
+                     value="${maxDiscount}" 
+                     oninput="EntrepreneurModule.updateOfferPreview()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Min Order Subtotal (₹)</label>
+              <input type="number" id="offer-min-order" class="form-input" min="0"
+                     placeholder="e.g., 299 (Optional)" 
+                     value="${minOrderAmount}" 
+                     oninput="EntrepreneurModule.updateOfferPreview()">
+            </div>
+          </div>
+
+          <!-- 5. Scope: All Shop Products vs Selected Products -->
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px; font-weight:700;">Applicable Products *</label>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                <input type="radio" name="offer-scope" value="shop" ${scope !== 'product' ? 'checked' : ''} 
+                       onchange="document.getElementById('product-checklist-container').style.display='none'; EntrepreneurModule.updateOfferPreview();">
+                <span>Apply to <strong>All Eligible Products</strong> in my shop (${myProducts.length} items)</span>
+              </label>
+
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                <input type="radio" name="offer-scope" value="product" ${scope === 'product' ? 'checked' : ''} 
+                       onchange="document.getElementById('product-checklist-container').style.display='block'; EntrepreneurModule.updateOfferPreview();">
+                <span>Apply only to <strong>Selected Products</strong></span>
+              </label>
+            </div>
+
+            <!-- Product Selection Checklist -->
+            <div id="product-checklist-container" style="display:${scope === 'product' ? 'block' : 'none'}; border:1px solid #E6E1D3; border-radius:var(--radius-sm); padding:8px 10px; margin-top:8px; max-height:160px; overflow-y:auto; background:#FFF;">
+              <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:6px;">Select products from your catalog:</div>
+              ${myProducts.length === 0 ? `
+                <div style="font-size:12px; color:var(--color-text-tertiary); padding:6px 0;">No products listed yet. Please add products first.</div>
+              ` : myProducts.map(p => `
+                <label style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:12px; cursor:pointer; border-bottom:1px solid #F5F5F5;">
+                  <input type="checkbox" name="selected-product-ids" value="${p.id}" ${selectedProductIds.includes(p.id) ? 'checked' : ''} style="accent-color:var(--color-primary);" onchange="EntrepreneurModule.updateOfferPreview()">
+                  <span style="flex:1;">${p.name}</span>
+                  <span style="font-weight:700; color:var(--color-primary);">₹${p.price}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- 6. Start Date & End Date -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Start Date *</label>
+              <input type="date" id="offer-start-date" class="form-input" required 
+                     value="${startDate}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Expiry Date</label>
+              <input type="date" id="offer-end-date" class="form-input" 
+                     value="${endDate}">
+            </div>
+          </div>
+
+          <!-- 7. Optional Coupon Code & Usage Limit -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Coupon Code</label>
+              <input type="text" id="offer-code" class="form-input" 
+                     placeholder="e.g. ANITA15 (Optional)" 
+                     style="text-transform:uppercase;" 
+                     value="${code}" 
+                     oninput="this.value = this.value.toUpperCase(); EntrepreneurModule.updateOfferPreview();">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:12px; font-weight:700;">Usage Limit</label>
+              <input type="number" id="offer-usage-limit" class="form-input" min="1" 
+                     placeholder="e.g. 50 orders (Optional)" 
+                     value="${usageLimit}">
+            </div>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="button" class="btn btn-outline" style="flex:1;" onclick="AppUtils.closeBottomSheet()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex:2; font-weight:700;">
+              ${existing ? '💾 Save Changes' : '🚀 Publish Offer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    AppUtils.showBottomSheet(contentHtml);
+    setTimeout(() => this.updateOfferPreview(), 50);
+  },
+
+  updateOfferPreview() {
+    const titleEl = document.getElementById('offer-title');
+    const descEl = document.getElementById('offer-description');
+    const typeEl = document.getElementById('offer-discount-type');
+    const valEl = document.getElementById('offer-discount-value');
+    const maxEl = document.getElementById('offer-max-discount');
+    const minEl = document.getElementById('offer-min-order');
+    const codeEl = document.getElementById('offer-code');
+    const maxContainer = document.getElementById('max-discount-container');
+
+    if (!titleEl || !valEl) return;
+
+    const title = titleEl.value.trim() || 'Your Promotional Offer Title';
+    const desc = (descEl && descEl.value.trim()) || 'Promotional description of your festive offer';
+    const type = (typeEl && typeEl.value) || 'percentage';
+    const val = Number(valEl.value) || 10;
+    const maxVal = maxEl && maxEl.value ? Number(maxEl.value) : null;
+    const minVal = minEl && minEl.value ? Number(minEl.value) : null;
+    const code = (codeEl && codeEl.value.trim()) || '';
+
+    if (maxContainer) {
+      maxContainer.style.display = type === 'percentage' ? 'block' : 'none';
+    }
+
+    const badgeText = type === 'percentage' ? `${val}% OFF` : `₹${val} OFF`;
+
+    // 1. Update Home Banner Preview
+    const pTitle = document.getElementById('preview-title');
+    const pDesc = document.getElementById('preview-desc');
+    const pBadge = document.getElementById('preview-badge-pill');
+    const pCode = document.getElementById('preview-code-pill');
+    const pCond = document.getElementById('preview-conditions');
+
+    if (pTitle) pTitle.textContent = title;
+    if (pDesc) pDesc.textContent = desc;
+    if (pBadge) pBadge.textContent = badgeText;
+    if (pCode) pCode.textContent = code ? code.toUpperCase() : 'SPECIAL DEAL';
+    if (pCond) {
+      pCond.textContent = minVal ? `Min order ₹${minVal}` : (maxVal ? `Max discount ₹${maxVal}` : 'No minimum order required');
+    }
+
+    // 2. Update Product Card Preview (using sample ₹450 product)
+    const cardBadge = document.getElementById('preview-card-badge');
+    const cardDisc = document.getElementById('preview-card-discounted');
+    const cardOrig = document.getElementById('preview-card-original');
+    const cardSave = document.getElementById('preview-card-savings');
+
+    const samplePrice = 450;
+    let discAmt = 0;
+    if (type === 'percentage') {
+      discAmt = Math.round((samplePrice * val) / 100);
+      if (maxVal) discAmt = Math.min(discAmt, maxVal);
+    } else {
+      discAmt = Math.min(samplePrice, val);
+    }
+    const finalPrice = Math.max(0, samplePrice - discAmt);
+
+    if (cardBadge) cardBadge.textContent = badgeText;
+    if (cardDisc) cardDisc.textContent = `₹${finalPrice}`;
+    if (cardOrig) cardOrig.textContent = `₹${samplePrice}`;
+    if (cardSave) cardSave.textContent = `Save ₹${discAmt}`;
+  },
+
+  async saveOffer(event) {
+    if (event) event.preventDefault();
+    const ent = this.getEntrepreneur();
+
+    const titleEl = document.getElementById('offer-title');
+    const descEl = document.getElementById('offer-description');
+    const typeEl = document.getElementById('offer-discount-type');
+    const valEl = document.getElementById('offer-discount-value');
+    const maxEl = document.getElementById('offer-max-discount');
+    const minEl = document.getElementById('offer-min-order');
+    const startEl = document.getElementById('offer-start-date');
+    const endEl = document.getElementById('offer-end-date');
+    const codeEl = document.getElementById('offer-code');
+    const limitEl = document.getElementById('offer-usage-limit');
+
+    const scopeRadio = document.querySelector('input[name="offer-scope"]:checked');
+    const scope = scopeRadio ? scopeRadio.value : 'shop';
+
+    const selectedCheckboxes = document.querySelectorAll('input[name="selected-product-ids"]:checked');
+    const selectedProductIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+    if (!titleEl || !titleEl.value.trim()) {
+      AppUtils.showToast('Please enter an offer title');
+      return;
+    }
+
+    const discountVal = Number(valEl.value);
+    if (isNaN(discountVal) || discountVal <= 0) {
+      AppUtils.showToast('Please enter a valid discount value');
+      return;
+    }
+
+    if (scope === 'product' && selectedProductIds.length === 0) {
+      AppUtils.showToast('Please select at least one product for this offer');
+      return;
+    }
+
+    const offerPayload = {
+      title: titleEl.value.trim(),
+      description: descEl ? descEl.value.trim() : '',
+      discountType: typeEl ? typeEl.value : 'percentage',
+      discountValue: discountVal,
+      maxDiscount: maxEl && maxEl.value ? Number(maxEl.value) : null,
+      minOrderAmount: minEl && minEl.value ? Number(minEl.value) : 0,
+      scope: scope,
+      productIds: scope === 'product' ? selectedProductIds : [],
+      startDate: startEl && startEl.value ? new Date(startEl.value).toISOString() : new Date().toISOString(),
+      endDate: endEl && endEl.value ? new Date(endEl.value + 'T23:59:59').toISOString() : null,
+      code: codeEl && codeEl.value.trim() ? codeEl.value.trim().toUpperCase() : null,
+      usageLimit: limitEl && limitEl.value ? Number(limitEl.value) : null,
+      storeName: ent.businessName
+    };
+
+    try {
+      let res = null;
+      if (this.editingOfferId) {
+        res = await apiClient.updateEntrepreneurOffer(this.editingOfferId, offerPayload);
+      } else {
+        res = await apiClient.createEntrepreneurOffer(offerPayload);
+      }
+
+      if (res && res.success) {
+        AppUtils.closeBottomSheet();
+        AppUtils.showToast(res.message || 'Offer published successfully!');
+
+        // Refresh offers from API or store
+        const freshOffers = await apiClient.getEntrepreneurOffers();
+        if (freshOffers && freshOffers.data) {
+          // Sync with store
+          const otherOffers = ((store.data && store.data.offers) || []).filter(o => o.entrepreneurId !== ent.id);
+          store.data.offers = [...freshOffers.data, ...otherOffers];
+          store.saveData();
+        }
+
+        AppRouter.navigate('screen-ent-offers');
+      } else {
+        AppUtils.showToast((res && res.message) || 'Failed to save offer');
+      }
+    } catch (e) {
+      console.error('[OFFER_SAVE_ERROR]', e);
+      AppUtils.showToast(e.message || 'Error saving offer. Please try again.');
+    }
+  },
+
+  async toggleOffer(offerId) {
+    try {
+      const res = await apiClient.toggleEntrepreneurOffer(offerId);
+      if (res && res.success) {
+        AppUtils.showToast(res.message || 'Offer status updated');
+        // Refresh local store
+        const target = ((store.data && store.data.offers) || []).find(o => o.id === offerId);
+        if (target) {
+          target.active = res.data ? res.data.active : !target.active;
+          store.saveData();
+        }
+        AppRouter.navigate('screen-ent-offers');
+      } else {
+        AppUtils.showToast((res && res.message) || 'Could not update offer status');
+      }
+    } catch (e) {
+      AppUtils.showToast(e.message || 'Failed to toggle offer');
+    }
+  },
+
+  confirmDeleteOffer(offerId) {
+    const offer = ((store.data && store.data.offers) || []).find(o => o.id === offerId);
+    const offerName = offer ? offer.title : 'this offer';
+
+    AppUtils.showBottomSheet(`
+      <div style="text-align:center; padding:16px 8px;">
+        <div style="width:56px; height:56px; border-radius:50%; background:#FFEBEE; color:var(--color-error); display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+          <span class="material-symbols-rounded" style="font-size:28px;">delete_forever</span>
+        </div>
+        <h3 style="font-size:16px; font-weight:700; color:var(--color-text-primary); margin-bottom:6px;">Delete Offer?</h3>
+        <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:16px;">
+          Are you sure you want to permanently delete "<strong>${offerName}</strong>"? This action cannot be undone.
+        </p>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-outline" style="flex:1;" onclick="AppUtils.closeBottomSheet()">Cancel</button>
+          <button class="btn btn-danger" style="flex:1; background:var(--color-error); color:#FFF; font-weight:700;" onclick="EntrepreneurModule.executeDeleteOffer('${offerId}')">
+            Delete Permanently
+          </button>
+        </div>
+      </div>
+    `);
+  },
+
+  async executeDeleteOffer(offerId) {
+    try {
+      const res = await apiClient.deleteEntrepreneurOffer(offerId);
+      AppUtils.closeBottomSheet();
+      if (res && res.success) {
+        AppUtils.showToast(res.message || 'Offer deleted successfully');
+        const idx = ((store.data && store.data.offers) || []).findIndex(o => o.id === offerId);
+        if (idx !== -1) {
+          store.data.offers.splice(idx, 1);
+          store.saveData();
+        }
+        AppRouter.navigate('screen-ent-offers');
+      } else {
+        AppUtils.showToast((res && res.message) || 'Failed to delete offer');
+      }
+    } catch (e) {
+      AppUtils.closeBottomSheet();
+      AppUtils.showToast(e.message || 'Failed to delete offer');
+    }
+  },
+
+  previewOfferInModal(offerId) {
+    const ent = this.getEntrepreneur();
+    const offer = ((store.data && store.data.offers) || []).find(o => o.id === offerId);
+    if (!offer) return;
+
+    AppUtils.showBottomSheet(`
+      <div style="padding-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:15px; font-weight:700; color:var(--color-primary); margin:0;">
+            👁️ Customer View Preview
+          </h3>
+          <button class="icon-action-btn" onclick="AppUtils.closeBottomSheet()">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+
+        <div style="font-size:11px; color:var(--color-text-secondary); margin-bottom:12px;">
+          Here is how your offer "${offer.title}" appears to shoppers on the platform:
+        </div>
+
+        <!-- Banner preview -->
+        <div style="background:linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); border-radius:var(--radius-md); padding:14px; color:#FFF; margin-bottom:14px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="background:rgba(255,255,255,0.2); font-size:11px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+              ${offer.badgeText || (offer.discountType === 'percentage' ? `${offer.discountValue}% OFF` : `₹${offer.discountValue} OFF`)}
+            </span>
+            <span style="font-size:10px; font-weight:600; color:#F4EBD9; background:rgba(0,0,0,0.25); padding:2px 8px; border-radius:var(--radius-full);">
+              🏪 ${ent.businessName}
+            </span>
+            ${offer.code ? `
+              <span style="font-family:monospace; background:#FFF; color:#2E451E; font-size:10px; font-weight:700; padding:2px 8px; border-radius:var(--radius-full);">
+                ${offer.code}
+              </span>
+            ` : ''}
+          </div>
+          <div style="font-size:14px; font-weight:700; margin-top:4px;">${offer.title}</div>
+          <div style="font-size:11px; opacity:0.9; color:#F4EBD9; margin-top:2px;">
+            ${offer.description || 'Special store promotion from local women entrepreneurs'}
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:10px;">
+            <span style="opacity:0.85; color:#F4EBD9;">
+              ${offer.minOrderAmount ? `Min order ₹${offer.minOrderAmount}` : 'Limited time deal'}
+            </span>
+            <span style="background:#FFF; color:#2E451E; font-weight:700; padding:4px 10px; border-radius:var(--radius-full);">
+              Shop Now >
+            </span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="AppUtils.closeBottomSheet()">
+          Done
+        </button>
+      </div>
+    `);
   }
 };

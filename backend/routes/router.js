@@ -124,6 +124,12 @@ class Router {
       AuthMiddleware.requireAdmin(req, res, () => handler(req, res));
     };
 
+    // --- Entrepreneur Self-Service (STRICT SERVER-SIDE AUTHORIZATION GUARD) ---
+    // Every entrepreneur endpoint strictly checks cryptographic token & entrepreneur identity
+    const entrepreneurGuard = (handler) => (req, res) => {
+      AuthMiddleware.requireEntrepreneur(req, res, () => handler(req, res));
+    };
+
     this.add('GET', '/api/admin/verification-queue', adminGuard(adminController.getVerificationQueue));
     this.add('POST', '/api/admin/verify/:id', adminGuard(adminController.verifyEntrepreneur));
     this.add('POST', '/api/admin/assign-badge/:id', adminGuard(adminController.assignBadge));
@@ -146,6 +152,15 @@ class Router {
     this.add('GET', '/api/admin/payments', adminGuard(paymentController.getAllTransactions));
     this.add('POST', '/api/admin/payments/:orderId/refund', adminGuard(paymentController.processRefund));
 
+    // --- Entrepreneur Offers Management (Self-Service & Protected) ---
+    this.add('GET', '/api/entrepreneurs/me/offers', entrepreneurGuard(offerController.getEntrepreneurOffers));
+    this.add('GET', '/api/entrepreneurs/me/offers/:id', entrepreneurGuard(offerController.getEntrepreneurOfferById));
+    this.add('POST', '/api/entrepreneurs/me/offers', entrepreneurGuard(offerController.createEntrepreneurOffer));
+    this.add('PUT', '/api/entrepreneurs/me/offers/:id', entrepreneurGuard(offerController.updateEntrepreneurOffer));
+    this.add('PATCH', '/api/entrepreneurs/me/offers/:id/toggle', entrepreneurGuard(offerController.toggleEntrepreneurOffer));
+    this.add('DELETE', '/api/entrepreneurs/me/offers/:id', entrepreneurGuard(offerController.deleteEntrepreneurOffer));
+    this.add('GET', '/api/entrepreneurs/me/offers/:id/performance', entrepreneurGuard(offerController.getOfferPerformance));
+
     // --- Promotional Offers & Announcements ---
     this.add('GET', '/api/offers', offerController.getActiveOffers);
     this.add('GET', '/api/offers/:id', offerController.getOfferById);
@@ -155,6 +170,7 @@ class Router {
     this.add('POST', '/api/admin/offers', adminGuard(offerController.createOffer));
     this.add('PUT', '/api/admin/offers/:id', adminGuard(offerController.updateOffer));
     this.add('PATCH', '/api/admin/offers/:id/toggle', adminGuard(offerController.toggleOffer));
+    this.add('PATCH', '/api/admin/offers/:id/moderate', adminGuard(offerController.moderateOffer));
     this.add('DELETE', '/api/admin/offers/:id', adminGuard(offerController.deleteOffer));
   }
 

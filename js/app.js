@@ -152,6 +152,7 @@ const AppRouter = {
       case 'screen-ent-availability': html = EntrepreneurModule.renderAvailability(); break;
       case 'screen-ent-reviews': html = EntrepreneurModule.renderReviews(); break;
       case 'screen-ent-payment-settings': html = EntrepreneurModule.renderPaymentSettings(); break;
+      case 'screen-ent-offers': html = EntrepreneurModule.renderOffers(params); break;
 
       // Admin
       case 'screen-admin-login': html = AdminModule.renderLogin(); break;

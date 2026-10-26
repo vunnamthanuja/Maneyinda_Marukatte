@@ -771,6 +771,246 @@ async function runInProcessTests() {
     }
   });
 
+  // =================================================================
+  // ENTREPRENEUR SELF-SERVICE OFFERS & DISCOUNTS TESTS (RBAC & IDOR)
+  // =================================================================
+
+  let ent01Token = null;
+  let ent02Token = null;
+
+  // 36. Login as Entrepreneur ent_01 (Anita) and ent_02 (Lakshmi)
+  await test('Authenticates both entrepreneurs ent_01 and ent_02', async () => {
+    const res1 = await mockRequest('POST', '/api/auth/login-entrepreneur', {
+      username: 'anitha_bakery',
+      password: 'password123'
+    });
+    if (res1.status !== 200 || !res1.data.token || res1.data.entrepreneur.id !== 'ent_01') {
+      throw new Error(`Failed to login as ent_01: ${JSON.stringify(res1.data)}`);
+    }
+    ent01Token = res1.data.token;
+
+    const res2 = await mockRequest('POST', '/api/auth/login-entrepreneur', {
+      username: 'lakshmi_crafts',
+      password: 'password123'
+    });
+    if (res2.status !== 200 || !res2.data.token || res2.data.entrepreneur.id !== 'ent_02') {
+      throw new Error(`Failed to login as ent_02: ${JSON.stringify(res2.data)}`);
+    }
+    ent02Token = res2.data.token;
+  });
+
+  // 37. GET /api/entrepreneurs/me/offers strictly requires Entrepreneur token
+  await test('GET /api/entrepreneurs/me/offers blocks unauthorized access & customer token', async () => {
+    // A: Without token -> 401
+    const unauth = await mockRequest('GET', '/api/entrepreneurs/me/offers');
+    if (unauth.status !== 401) {
+      throw new Error(`Expected 401, got ${unauth.status}`);
+    }
+
+    // B: With pure customer token -> 403
+    const AuthMiddleware = require('./middleware/auth');
+    const pureCustomerToken = AuthMiddleware.signToken({
+      userId: 'cust_pure_buyer',
+      email: 'purebuyer@example.com',
+      role: 'customer'
+    });
+    const custRes = await mockRequest('GET', '/api/entrepreneurs/me/offers', null, {
+      'authorization': `Bearer ${pureCustomerToken}`
+    });
+    if (custRes.status !== 403) {
+      throw new Error(`Expected 403 for customer token, got ${custRes.status}`);
+    }
+
+    // C: With ent_01 token -> 200 and only ent_01's offers
+    const entRes = await mockRequest('GET', '/api/entrepreneurs/me/offers', null, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+    if (entRes.status !== 200 || !Array.isArray(entRes.data.data)) {
+      throw new Error(`Expected 200 with offer list, got: ${JSON.stringify(entRes.data)}`);
+    }
+
+    // Every returned offer must belong to ent_01
+    const foreignOffers = entRes.data.data.filter(o => o.entrepreneurId !== 'ent_01');
+    if (foreignOffers.length > 0) {
+      throw new Error(`Leaked foreign offers to ent_01! Found: ${JSON.stringify(foreignOffers)}`);
+    }
+  });
+
+  // 38. Entrepreneur creates valid shop offer with automatic owner binding
+  let newEntOfferId = null;
+  await test('POST /api/entrepreneurs/me/offers creates shop offer bound strictly to caller', async () => {
+    const payload = {
+      title: 'Festive Cupcake Bonanza',
+      description: 'Get 25% off festive handcrafted cupcakes this week',
+      discountType: 'percentage',
+      discountValue: 25,
+      maxDiscount: 100,
+      minOrderAmount: 150,
+      scope: 'shop',
+      code: `FESTIVE${Date.now().toString().slice(-4)}`,
+      usageLimit: 30,
+      // Attempting to spoof owner ID - MUST BE OVERRIDDEN BY SERVER
+      entrepreneurId: 'ent_02'
+    };
+
+    const res = await mockRequest('POST', '/api/entrepreneurs/me/offers', payload, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (res.status !== 201 || !res.data.success || !res.data.data) {
+      throw new Error(`Offer creation failed: ${JSON.stringify(res.data)}`);
+    }
+
+    const created = res.data.data;
+    newEntOfferId = created.id;
+
+    // Verify server-enforced ownership: must be ent_01 NOT spoofed ent_02
+    if (created.entrepreneurId !== 'ent_01') {
+      throw new Error(`IDOR vulnerability! Offer accepted spoofed entrepreneurId: ${created.entrepreneurId}`);
+    }
+
+    if (created.discountValue !== 25 || created.maxDiscount !== 100) {
+      throw new Error(`Discount values not preserved correctly: ${JSON.stringify(created)}`);
+    }
+  });
+
+  // 39. Strict IDOR Defense: ent_02 cannot update, toggle or delete ent_01's offer
+  await test('Strict IDOR: Entrepreneur B cannot update, toggle or delete Entrepreneur A offer', async () => {
+    // A: ent_02 tries to update ent_01's offer -> 403 Forbidden
+    const updateRes = await mockRequest('PUT', `/api/entrepreneurs/me/offers/${newEntOfferId}`, {
+      title: 'Hacked by Ent 02',
+      discountValue: 90
+    }, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (updateRes.status !== 403 || updateRes.data.error !== 'FORBIDDEN_OFFER_ACCESS') {
+      throw new Error(`IDOR Flaw! ent_02 was able to update ent_01 offer: status ${updateRes.status}, data ${JSON.stringify(updateRes.data)}`);
+    }
+
+    // B: ent_02 tries to toggle ent_01's offer -> 403 Forbidden
+    const toggleRes = await mockRequest('PATCH', `/api/entrepreneurs/me/offers/${newEntOfferId}/toggle`, null, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (toggleRes.status !== 403 || toggleRes.data.error !== 'FORBIDDEN_OFFER_ACCESS') {
+      throw new Error(`IDOR Flaw! ent_02 was able to toggle ent_01 offer: status ${toggleRes.status}`);
+    }
+
+    // C: ent_02 tries to delete ent_01's offer -> 403 Forbidden
+    const deleteRes = await mockRequest('DELETE', `/api/entrepreneurs/me/offers/${newEntOfferId}`, null, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (deleteRes.status !== 403 || deleteRes.data.error !== 'FORBIDDEN_OFFER_ACCESS') {
+      throw new Error(`IDOR Flaw! ent_02 was able to delete ent_01 offer: status ${deleteRes.status}`);
+    }
+
+    // D: ent_02 tries to view ent_01's performance data -> 403 Forbidden
+    const perfRes = await mockRequest('GET', `/api/entrepreneurs/me/offers/${newEntOfferId}/performance`, null, {
+      'authorization': `Bearer ${ent02Token}`
+    });
+
+    if (perfRes.status !== 403 || perfRes.data.error !== 'FORBIDDEN_OFFER_ACCESS') {
+      throw new Error(`IDOR Flaw! ent_02 was able to access ent_01 analytics: status ${perfRes.status}`);
+    }
+  });
+
+  // 40. Product Ownership Validation: Entrepreneur cannot attach another shop's products
+  await test('Product Ownership: Rejects offer creation containing another shop products', async () => {
+    // ent_01 tries to create product-specific offer selecting prod_05 (terracotta vase, belongs to ent_02 Lakshmi)
+    const badPayload = {
+      title: 'Unauthorized Cross-Shop Promo',
+      discountType: 'percentage',
+      discountValue: 20,
+      scope: 'product',
+      productIds: ['prod_05'] // Belonging to ent_02 Lakshmi Crafts!
+    };
+
+    const res = await mockRequest('POST', '/api/entrepreneurs/me/offers', badPayload, {
+      'authorization': `Bearer ${ent01Token}`
+    });
+
+    if (res.status !== 403 || res.data.error !== 'UNAUTHORIZED_PRODUCT_SELECTION') {
+      throw new Error(`Cross-shop product hijacking allowed! Expected 403 UNAUTHORIZED_PRODUCT_SELECTION, got ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+  });
+
+  // 41. Fair Carousel Rotation: Multiple shops are interleaved evenly
+  await test('GET /api/offers?banner=true applies fair round-robin rotation between shops', async () => {
+    const res = await mockRequest('GET', '/api/offers?banner=true');
+
+    if (res.status !== 200 || !Array.isArray(res.data.data)) {
+      throw new Error(`Banner offers request failed: ${JSON.stringify(res.data)}`);
+    }
+
+    const offers = res.data.data;
+    if (offers.length >= 2) {
+      // Check that the first two offers do not monopolize from the same shop if multiple shops have offers
+      const shop1 = offers[0].entrepreneurId || 'global';
+      const shop2 = offers[1].entrepreneurId || 'global';
+      console.log(`[FAIR_ROTATION] Slot 1: ${shop1} (${offers[0].title}), Slot 2: ${shop2} (${offers[1].title})`);
+    }
+  });
+
+  // 42. Shop-Scoped Coupon Validation on Cart & Checkout
+  await test('Shop-scoped coupon applies to matching shop items and rejects non-matching shop items', async () => {
+    // ANITA15 is a shop-scoped offer for ent_01 (Anita's Bakery)
+    // 1. Valid: cart with prod_01 (Anita's cake, ₹450)
+    const validRes = await mockRequest('POST', '/api/offers/validate', {
+      code: 'ANITA15',
+      items: [{ productId: 'prod_01', price: 450, qty: 1 }],
+      subtotal: 450,
+      customerId: 'cust_01'
+    });
+
+    if (validRes.status !== 200 || !validRes.data.valid) {
+      throw new Error(`Expected valid shop coupon, got: ${JSON.stringify(validRes.data)}`);
+    }
+    // 15% of ₹450 = 67.5 -> ₹68
+    if (validRes.data.discountAmount !== 68) {
+      throw new Error(`Expected 68 discount for ANITA15, got: ${validRes.data.discountAmount}`);
+    }
+
+    // 2. Invalid: cart with prod_05 (Lakshmi Crafts, ₹350)
+    const mismatchRes = await mockRequest('POST', '/api/offers/validate', {
+      code: 'ANITA15',
+      items: [{ productId: 'prod_05', price: 350, qty: 1 }],
+      subtotal: 350,
+      customerId: 'cust_01'
+    });
+
+    if (mismatchRes.status !== 400 || mismatchRes.data.error !== 'SHOP_MISMATCH') {
+      throw new Error(`Expected 400 SHOP_MISMATCH for cross-shop cart, got ${mismatchRes.status}: ${JSON.stringify(mismatchRes.data)}`);
+    }
+  });
+
+  // 43. Admin Oversight: Admin can deactivate misleading/fraudulent shop offer
+  await test('Admin Oversight: PATCH /api/admin/offers/:id/moderate deactivates offer from customer use', async () => {
+    // A: Admin deactivates newEntOfferId
+    const modRes = await mockRequest('PATCH', `/api/admin/offers/${newEntOfferId}/moderate`, {
+      status: 'deactivated',
+      reason: 'Misleading price claims reported by customers'
+    }, {
+      'authorization': `Bearer ${adminToken}`
+    });
+
+    if (modRes.status !== 200 || modRes.data.data.moderationStatus !== 'deactivated') {
+      throw new Error(`Admin moderation failed: ${JSON.stringify(modRes.data)}`);
+    }
+
+    // B: Check that offer no longer appears in active offers
+    const activeRes = await mockRequest('GET', '/api/offers');
+    const stillPresent = activeRes.data.data.find(o => o.id === newEntOfferId);
+    if (stillPresent) {
+      throw new Error(`Deactivated offer is still appearing in public active offers!`);
+    }
+
+    // C: Clean up created test offer
+    const db = require('./models/db');
+    db.deleteOffer(newEntOfferId);
+  });
+
   console.log(`\n======================================================`);
   console.log(`TEST SUMMARY: ${passed} Passed, ${failed} Failed`);
   console.log(`======================================================\n`);

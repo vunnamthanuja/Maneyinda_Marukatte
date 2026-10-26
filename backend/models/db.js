@@ -459,18 +459,29 @@ class Database {
   // -------------------------------------------------------------
   getOffers(filter = {}) {
     let list = this.data.offers || [];
+
+    if (filter.entrepreneurId) {
+      list = list.filter(o => o.entrepreneurId === filter.entrepreneurId);
+    }
+
     if (filter.activeOnly) {
       const now = new Date();
       list = list.filter(o => {
         if (!o.active) return false;
+        if (o.moderationStatus === 'deactivated') return false;
         if (o.startDate && new Date(o.startDate) > now) return false;
         if (o.endDate && new Date(o.endDate) < now) return false;
+        if (o.validFrom && new Date(o.validFrom) > now) return false;
+        if (o.validUntil && new Date(o.validUntil) < now) return false;
+        if (o.usageLimit && (o.usageCount || 0) >= o.usageLimit) return false;
         return true;
       });
     }
+
     if (filter.bannerOnly) {
-      list = list.filter(o => o.bannerEnabled !== false);
+      list = list.filter(o => o.bannerEnabled !== false && o.moderationStatus !== 'deactivated');
     }
+
     return list;
   }
 
@@ -491,20 +502,30 @@ class Database {
       description: offerData.description || '',
       discountType: offerData.discountType || 'percentage',
       discountValue: Number(offerData.discountValue) || 10,
+      maxDiscount: offerData.maxDiscount ? Number(offerData.maxDiscount) : null,
       minOrderAmount: Number(offerData.minOrderAmount) || 0,
       scope: offerData.scope || 'global',
+      entrepreneurId: offerData.entrepreneurId || null,
+      storeName: offerData.storeName || null,
+      productIds: Array.isArray(offerData.productIds) ? offerData.productIds : (offerData.targetProductId ? [offerData.targetProductId] : []),
       targetCategory: offerData.targetCategory || null,
-      targetProductId: offerData.targetProductId || null,
-      targetEntrepreneurId: offerData.targetEntrepreneurId || null,
-      badgeText: offerData.badgeText || `${offerData.discountValue}% OFF`,
+      targetProductId: offerData.targetProductId || (Array.isArray(offerData.productIds) && offerData.productIds[0]) || null,
+      targetEntrepreneurId: offerData.targetEntrepreneurId || offerData.entrepreneurId || null,
+      badgeText: offerData.badgeText || (offerData.discountType === 'fixed' || offerData.discountType === 'flat' ? `₹${offerData.discountValue} OFF` : `${offerData.discountValue}% OFF`),
       startDate: offerData.startDate || new Date().toISOString(),
       endDate: offerData.endDate || null,
+      usageLimit: offerData.usageLimit ? Number(offerData.usageLimit) : null,
+      usageCount: 0,
+      ordersCount: 0,
+      totalSavedAmount: 0,
       active: typeof offerData.active === 'boolean' ? offerData.active : true,
       bannerEnabled: typeof offerData.bannerEnabled === 'boolean' ? offerData.bannerEnabled : true,
       bannerColor: offerData.bannerColor || '#4A6B32',
       icon: offerData.icon || 'local_offer',
       ctaText: offerData.ctaText || 'Shop Now',
-      ctaLink: offerData.ctaLink || 'screen-customer-home',
+      ctaLink: offerData.ctaLink || (offerData.entrepreneurId ? `screen-customer-home` : 'screen-customer-home'),
+      moderationStatus: offerData.moderationStatus || 'approved',
+      moderationReason: offerData.moderationReason || null,
       createdAt: new Date().toISOString(),
       ...offerData
     };
@@ -522,6 +543,19 @@ class Database {
       this.data.offers[idx] = { ...this.data.offers[idx], ...updates, updatedAt: new Date().toISOString() };
       this.persist();
       return this.data.offers[idx];
+    }
+    return null;
+  }
+
+  recordOfferUsage(offerIdOrCode, discountAmount = 0) {
+    const offer = this.getOfferById(offerIdOrCode) || this.getOfferByCode(offerIdOrCode);
+    if (offer) {
+      offer.usageCount = (offer.usageCount || 0) + 1;
+      offer.ordersCount = (offer.ordersCount || 0) + 1;
+      offer.totalSavedAmount = (offer.totalSavedAmount || 0) + (Number(discountAmount) || 0);
+      offer.updatedAt = new Date().toISOString();
+      this.persist();
+      return offer;
     }
     return null;
   }
@@ -545,12 +579,30 @@ class Database {
       return { valid: false, error: 'OFFER_INACTIVE', message: 'This promotional offer is currently inactive.' };
     }
 
+    if (offer.moderationStatus === 'deactivated') {
+      return { valid: false, error: 'OFFER_DEACTIVATED', message: 'This promotional offer is no longer available.' };
+    }
+
     const now = new Date();
     if (offer.startDate && new Date(offer.startDate) > now) {
       return { valid: false, error: 'OFFER_NOT_STARTED', message: 'This promotional offer has not started yet.' };
     }
     if (offer.endDate && new Date(offer.endDate) < now) {
       return { valid: false, error: 'OFFER_EXPIRED', message: 'This promotional offer has expired.' };
+    }
+    if (offer.validFrom && new Date(offer.validFrom) > now) {
+      return { valid: false, error: 'OFFER_NOT_STARTED', message: 'This promotional offer has not started yet.' };
+    }
+    if (offer.validUntil && new Date(offer.validUntil) < now) {
+      return { valid: false, error: 'OFFER_EXPIRED', message: 'This promotional offer has expired.' };
+    }
+
+    if (offer.usageLimit && (offer.usageCount || 0) >= offer.usageLimit) {
+      return {
+        valid: false,
+        error: 'USAGE_LIMIT_EXCEEDED',
+        message: 'This promotional offer has reached its maximum redemption limit.'
+      };
     }
 
     if (subtotal < (offer.minOrderAmount || 0)) {
@@ -578,6 +630,23 @@ class Database {
         };
       }
       eligibleAmount = subtotal;
+    } else if (offer.scope === 'shop') {
+      const targetEntId = offer.entrepreneurId || offer.targetEntrepreneurId;
+      const matchingItems = (items || []).filter(i => {
+        const prod = this.getProductById(i.productId);
+        return prod && prod.entrepreneurId === targetEntId;
+      });
+      if (matchingItems.length === 0) {
+        return {
+          valid: false,
+          error: 'SHOP_MISMATCH',
+          message: `This coupon applies only to items from "${offer.storeName || 'the participating shop'}".`
+        };
+      }
+      eligibleAmount = matchingItems.reduce((sum, item) => {
+        const prod = this.getProductById(item.productId);
+        return sum + ((prod ? prod.price : item.price) * item.qty);
+      }, 0);
     } else if (offer.scope === 'category') {
       const matchingItems = (items || []).filter(i => {
         const prod = this.getProductById(i.productId);
@@ -595,7 +664,8 @@ class Database {
         return sum + ((prod ? prod.price : item.price) * item.qty);
       }, 0);
     } else if (offer.scope === 'product') {
-      const matchingItems = (items || []).filter(i => i.productId === offer.targetProductId);
+      const eligibleIds = offer.productIds || (offer.targetProductId ? [offer.targetProductId] : []);
+      const matchingItems = (items || []).filter(i => eligibleIds.includes(i.productId));
       if (matchingItems.length === 0) {
         return {
           valid: false,
@@ -614,6 +684,9 @@ class Database {
     let discount = 0;
     if (offer.discountType === 'percentage') {
       discount = Math.round((eligibleAmount * offer.discountValue) / 100);
+      if (offer.maxDiscount && Number(offer.maxDiscount) > 0) {
+        discount = Math.min(discount, Number(offer.maxDiscount));
+      }
     } else {
       discount = Math.min(offer.discountValue, eligibleAmount);
     }

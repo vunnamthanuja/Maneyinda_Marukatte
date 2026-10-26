@@ -158,8 +158,26 @@ const CustomerModule = {
   // --- PROMOTIONAL ROTATING OFFERS BANNER ---
   renderPromoBanner() {
     const offers = (store.getOffers && store.getOffers(true)) || [];
-    const bannerOffers = offers.filter(o => o.showInBanner);
-    if (bannerOffers.length === 0) return '';
+    const bannerOffers = offers.filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated');
+
+    if (bannerOffers.length === 0) {
+      // Non-discount welcome banner fallback with Namaste greeting motif
+      return `
+        <div class="promo-banner-container" style="background: linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); padding: 14px 16px; border-radius: var(--radius-lg); margin: 0 16px 16px 16px; color: #FFF; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:28px;">🙏</span>
+            <div>
+              <div style="font-size:14px; font-weight:700;">Welcome to Maneyindha Marukatte</div>
+              <div style="font-size:12px; opacity:0.85; color:#F4EBD9;">Discover homemade delights & handcrafted treasures from local women entrepreneurs</div>
+            </div>
+          </div>
+          <button class="promo-cta-btn" onclick="AppRouter.navigate('screen-customer-search')">
+            <span>Explore Shops</span>
+            <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+          </button>
+        </div>
+      `;
+    }
 
     return `
       <div class="promo-banner-container" id="promo-banner-container"
@@ -167,20 +185,21 @@ const CustomerModule = {
            onmouseleave="CustomerModule.startBannerTimer()">
         <div class="promo-banner-track" id="promo-banner-track">
           ${bannerOffers.map((o) => `
-            <div class="promo-slide" onclick="CustomerModule.handlePromoClick('${o.id}')" style="background:${o.bannerBg || 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)'};">
+            <div class="promo-slide" onclick="CustomerModule.handlePromoClick('${o.id}')" style="background:${o.bannerBg || o.bannerColor || 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)'};">
               <div class="promo-slide-header">
                 <span class="promo-badge-pill">
-                  <span>${o.badgeText || 'SPECIAL OFFER'}</span>
+                  <span>${o.badgeText || (o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`)}</span>
                 </span>
-                <span class="promo-code-pill">${o.code}</span>
+                ${o.storeName ? `<span style="font-size:11px; font-weight:600; color:#F4EBD9; background:rgba(0,0,0,0.2); padding:2px 8px; border-radius:var(--radius-full);">🏪 ${o.storeName}</span>` : ''}
+                ${o.code ? `<span class="promo-code-pill">${o.code}</span>` : ''}
               </div>
               <div>
                 <div class="promo-slide-title">${o.title}</div>
-                <div class="promo-slide-subtitle">${o.subtitle}</div>
+                <div class="promo-slide-subtitle">${o.subtitle || o.description || 'Special offer from local women entrepreneurs'}</div>
               </div>
               <div class="promo-slide-footer">
                 <span style="font-size:10px; opacity:0.85; color:#F4EBD9;">
-                  ${o.minOrderAmount ? `Min order ₹${o.minOrderAmount}` : 'Limited time deal'}
+                  ${o.minOrderAmount ? `Min order ₹${o.minOrderAmount}` : (o.endDate ? `Valid till ${new Date(o.endDate).toLocaleDateString('en-IN', { month:'short', day:'numeric' })}` : 'Limited time deal')}
                 </span>
                 <button class="promo-cta-btn" onclick="event.stopPropagation(); CustomerModule.handlePromoClick('${o.id}')">
                   <span>${o.ctaText || 'Shop Now'}</span>
@@ -208,7 +227,7 @@ const CustomerModule = {
   startBannerTimer() {
     this.pauseBannerTimer();
     const offers = (store.getOffers && store.getOffers(true)) || [];
-    const count = offers.filter(o => o.showInBanner).length;
+    const count = offers.filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated').length;
     if (count <= 1) return;
     this.promoTimer = setInterval(() => {
       this.promoActiveIndex = (this.promoActiveIndex + 1) % count;
@@ -245,29 +264,65 @@ const CustomerModule = {
     const offer = offers.find(o => o.id === offerId);
     if (!offer) return;
 
-    this.presetCouponCode = offer.code;
+    if (offer.code) this.presetCouponCode = offer.code;
 
-    if (offer.scope === 'category' && offer.targetId) {
-      CustomerModule.viewCategoryListing(offer.targetId);
-    } else if (offer.scope === 'shop' && offer.targetId) {
-      CustomerModule.viewPublicStore(offer.targetId);
+    if (offer.scope === 'shop' || offer.entrepreneurId) {
+      const entId = offer.entrepreneurId || offer.targetId || offer.targetEntrepreneurId;
+      if (entId) {
+        CustomerModule.viewPublicStore(entId);
+        return;
+      }
+    } else if (offer.scope === 'product') {
+      const pid = (offer.productIds && offer.productIds[0]) || offer.targetProductId || offer.targetId;
+      if (pid) {
+        CustomerModule.viewProductDetails(pid);
+        return;
+      }
+    } else if (offer.scope === 'category' && (offer.targetCategory || offer.targetId)) {
+      CustomerModule.viewCategoryListing(offer.targetCategory || offer.targetId);
+      return;
     } else if (offer.ctaCategory && offer.ctaCategory !== 'All') {
       CustomerModule.viewCategoryListing(offer.ctaCategory);
-    } else {
-      AppRouter.navigate('screen-customer-search');
+      return;
     }
+    AppRouter.navigate('screen-customer-search');
   },
 
   // --- PRODUCT-SPECIFIC & GENUINE OFFERS ---
   getProductOffer(product) {
     if (!product) return null;
     const offers = (store.getOffers && store.getOffers(true)) || [];
-    let matched = offers.find(o => o.scope === 'product' && o.targetId === product.id);
+
+    // 1. Match specific product
+    let matched = offers.find(o => {
+      if (o.moderationStatus === 'deactivated') return false;
+      if (o.scope === 'product') {
+        if (o.targetId === product.id || o.targetProductId === product.id) return true;
+        if (Array.isArray(o.productIds) && o.productIds.includes(product.id)) return true;
+      }
+      return false;
+    });
+
+    // 2. Match shop-wide offer
     if (!matched) {
-      matched = offers.find(o => o.scope === 'shop' && o.targetId === product.entrepreneurId);
+      matched = offers.find(o => {
+        if (o.moderationStatus === 'deactivated') return false;
+        if (o.scope === 'shop') {
+          return (o.targetId === product.entrepreneurId || o.entrepreneurId === product.entrepreneurId || o.targetEntrepreneurId === product.entrepreneurId);
+        }
+        return false;
+      });
     }
+
+    // 3. Match category offer
     if (!matched) {
-      matched = offers.find(o => o.scope === 'category' && o.targetId === product.category);
+      matched = offers.find(o => {
+        if (o.moderationStatus === 'deactivated') return false;
+        if (o.scope === 'category') {
+          return (o.targetId === product.category || (o.targetCategory && o.targetCategory.toLowerCase() === (product.category || '').toLowerCase()));
+        }
+        return false;
+      });
     }
 
     if (!matched) return null;
@@ -275,15 +330,15 @@ const CustomerModule = {
     let discountAmount = 0;
     if (matched.discountType === 'percentage') {
       discountAmount = Math.round((product.price * matched.discountValue) / 100);
-      if (matched.maxDiscount) discountAmount = Math.min(discountAmount, matched.maxDiscount);
+      if (matched.maxDiscount) discountAmount = Math.min(discountAmount, Number(matched.maxDiscount));
     } else {
-      discountAmount = Math.min(product.price, matched.discountValue);
+      discountAmount = Math.min(product.price, Number(matched.discountValue));
     }
 
     const discountedPrice = Math.max(0, product.price - discountAmount);
     return {
       offer: matched,
-      tagText: matched.tagText || matched.badgeText || `${matched.discountValue}% OFF`,
+      tagText: matched.tagText || matched.badgeText || (matched.discountType === 'percentage' ? `${matched.discountValue}% OFF` : `₹${matched.discountValue} OFF`),
       originalPrice: product.price,
       discountedPrice,
       discountAmount

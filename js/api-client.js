@@ -724,6 +724,135 @@ class APIClient {
     return { success: false, message: 'Offer not found' };
   }
 
+  async getEntrepreneurOffers() {
+    if (this.isOnline) {
+      return await this.request('/entrepreneurs/me/offers');
+    }
+    const user = store.getUser && store.getUser();
+    const ownerId = (user && user.entrepreneurId) || (user && user.id);
+    const list = ((store.data && store.data.offers) || []).filter(o => o.entrepreneurId === ownerId);
+    return { success: true, count: list.length, data: list };
+  },
+
+  async getEntrepreneurOfferById(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/offers/${id}`);
+    }
+    const offer = ((store.data && store.data.offers) || []).find(o => o.id === id);
+    return offer ? { success: true, data: offer } : { success: false, message: 'Offer not found' };
+  },
+
+  async createEntrepreneurOffer(offerData) {
+    if (this.isOnline) {
+      return await this.request('/entrepreneurs/me/offers', {
+        method: 'POST',
+        body: JSON.stringify(offerData)
+      });
+    }
+    if (!store.data.offers) store.data.offers = [];
+    const user = store.getUser && store.getUser();
+    const ownerId = (user && user.entrepreneurId) || (user && user.id) || 'ent_01';
+    const newOffer = {
+      id: `OFFER-${Math.floor(1000 + Math.random() * 9000)}`,
+      entrepreneurId: ownerId,
+      active: true,
+      moderationStatus: 'approved',
+      usageCount: 0,
+      ordersCount: 0,
+      totalSavedAmount: 0,
+      createdAt: new Date().toISOString(),
+      ...offerData
+    };
+    store.data.offers.unshift(newOffer);
+    store.saveData();
+    return { success: true, data: newOffer, message: 'Offer created successfully.' };
+  },
+
+  async updateEntrepreneurOffer(id, updates) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/offers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      store.data.offers[idx] = { ...store.data.offers[idx], ...updates, updatedAt: new Date().toISOString() };
+      store.saveData();
+      return { success: true, data: store.data.offers[idx] };
+    }
+    return { success: false, message: 'Offer not found' };
+  },
+
+  async toggleEntrepreneurOffer(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/offers/${id}/toggle`, {
+        method: 'PATCH'
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      store.data.offers[idx].active = !store.data.offers[idx].active;
+      store.saveData();
+      return { success: true, data: store.data.offers[idx] };
+    }
+    return { success: false, message: 'Offer not found' };
+  },
+
+  async deleteEntrepreneurOffer(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/offers/${id}`, {
+        method: 'DELETE'
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      const removed = store.data.offers.splice(idx, 1)[0];
+      store.saveData();
+      return { success: true, data: removed };
+    }
+    return { success: false, message: 'Offer not found' };
+  },
+
+  async getEntrepreneurOfferPerformance(id) {
+    if (this.isOnline) {
+      return await this.request(`/entrepreneurs/me/offers/${id}/performance`);
+    }
+    const offer = ((store.data && store.data.offers) || []).find(o => o.id === id);
+    if (!offer) return { success: false, message: 'Offer not found' };
+    return {
+      success: true,
+      data: {
+        id: offer.id,
+        title: offer.title,
+        code: offer.code,
+        active: offer.active,
+        usageCount: offer.usageCount || 0,
+        ordersCount: offer.ordersCount || 0,
+        totalSavedAmount: offer.totalSavedAmount || 0,
+        usageLimit: offer.usageLimit || null
+      }
+    };
+  },
+
+  async moderateAdminOffer(id, status, reason = '') {
+    if (this.isOnline) {
+      return await this.request(`/admin/offers/${id}/moderate`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, reason })
+      });
+    }
+    const idx = (store.data.offers || []).findIndex(o => o.id === id);
+    if (idx !== -1) {
+      store.data.offers[idx].moderationStatus = status;
+      store.data.offers[idx].moderationReason = reason;
+      if (status === 'deactivated') store.data.offers[idx].active = false;
+      store.saveData();
+      return { success: true, data: store.data.offers[idx] };
+    }
+    return { success: false, message: 'Offer not found' };
+  },
+
   async deleteAdminOffer(id) {
     if (this.isOnline) {
       return await this.request(`/admin/offers/${id}`, {

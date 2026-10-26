@@ -160,6 +160,10 @@ const orderController = {
       paymentDetails: body.paymentDetails || null
     });
 
+    if (appliedCoupon && discountAmount > 0) {
+      db.recordOfferUsage(appliedCoupon, discountAmount);
+    }
+
     db.addActivityLog(`Order #${newOrder.id} placed for ₹${grandTotal} with ${newOrder.storeName}`);
 
     return res.status(201).json({

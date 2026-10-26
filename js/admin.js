@@ -1491,20 +1491,30 @@ const AdminModule = {
 
         <div style="display:flex; flex-direction:column; gap:10px;">
           ${offers.map(o => `
-            <div class="card" style="padding:14px; border-left:4px solid ${o.active ? 'var(--color-primary)' : 'var(--color-border)'};">
+            <div class="card" style="padding:14px; border-left:4px solid ${o.moderationStatus === 'deactivated' ? 'var(--color-error)' : (o.active ? 'var(--color-primary)' : 'var(--color-border)')};">
               <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
                 <div>
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="coupon-code-badge">${o.code}</span>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span class="coupon-code-badge">${o.code || 'NO CODE'}</span>
                     <span style="font-size:13px; font-weight:700; color:var(--color-text-primary);">${o.title}</span>
+                    ${o.storeName ? `<span style="font-size:11px; background:#F5F9EE; color:var(--color-primary); padding:2px 8px; border-radius:12px; font-weight:600;">🏪 ${o.storeName}</span>` : ''}
                   </div>
                   <div style="font-size:11.5px; color:var(--color-text-secondary); margin-top:4px;">
-                    ${o.subtitle}
+                    ${o.subtitle || o.description || ''}
                   </div>
                 </div>
-                <span class="status-chip ${o.active ? 'chip-delivered' : 'chip-cancelled'}" style="font-size:10px;">
-                  ${o.active ? 'Active' : 'Inactive'}
-                </span>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                  <span class="status-chip ${o.active ? 'chip-delivered' : 'chip-cancelled'}" style="font-size:10px;">
+                    ${o.active ? 'Active' : 'Inactive'}
+                  </span>
+                  ${o.moderationStatus === 'deactivated' ? `
+                    <span style="background:#FFEBEE; color:#C62828; font-size:9px; font-weight:700; padding:1px 6px; border-radius:10px;">Deactivated</span>
+                  ` : o.moderationStatus === 'flagged' ? `
+                    <span style="background:#FFF8E1; color:#F57F17; font-size:9px; font-weight:700; padding:1px 6px; border-radius:10px;">Flagged</span>
+                  ` : `
+                    <span style="background:#E8F5E9; color:#2E7D32; font-size:9px; font-weight:700; padding:1px 6px; border-radius:10px;">Approved</span>
+                  `}
+                </div>
               </div>
 
               <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; font-size:11px;">
@@ -1512,7 +1522,7 @@ const AdminModule = {
                   ${o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} FLAT OFF`}
                 </span>
                 <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
-                  Scope: ${o.scope}${o.targetId ? ` (${o.targetId})` : ''}
+                  Scope: ${o.scope}${o.targetId ? ` (${o.targetId})` : (o.productIds ? ` (${o.productIds.length} prods)` : '')}
                 </span>
                 ${o.minOrderAmount ? `
                   <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
@@ -1520,17 +1530,35 @@ const AdminModule = {
                   </span>
                 ` : ''}
                 <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
-                  Banner: ${o.showInBanner ? 'Yes' : 'No'}
+                  Banner: ${o.showInBanner || o.bannerEnabled ? 'Yes' : 'No'}
+                </span>
+                <span style="background:var(--color-surface-dim); padding:3px 8px; border-radius:4px; color:var(--color-text-secondary);">
+                  Used: ${o.usageCount || 0} times
                 </span>
               </div>
 
-              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px; border-top:1px solid var(--color-border); padding-top:8px;">
-                <button class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px; min-height:auto;" onclick="AdminModule.toggleOfferStatus('${o.id}')">
-                  ${o.active ? 'Deactivate' : 'Activate'}
-                </button>
-                <button class="btn btn-sm btn-danger-outline" style="font-size:11px; padding:4px 10px; min-height:auto;" onclick="AdminModule.deleteOffer('${o.id}')">
-                  Delete
-                </button>
+              <!-- Admin Moderation & Action Buttons -->
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; border-top:1px solid var(--color-border); padding-top:8px;">
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-sm" style="font-size:10px; padding:3px 8px; background:#E8F5E9; color:#2E7D32; border:none;" onclick="AdminModule.moderateOffer('${o.id}', 'approved')" title="Approve Offer">
+                    ✓ Approve
+                  </button>
+                  <button class="btn btn-sm" style="font-size:10px; padding:3px 8px; background:#FFF8E1; color:#F57F17; border:none;" onclick="AdminModule.moderateOffer('${o.id}', 'flagged')" title="Flag for Review">
+                    ⚑ Flag
+                  </button>
+                  <button class="btn btn-sm" style="font-size:10px; padding:3px 8px; background:#FFEBEE; color:#C62828; border:none;" onclick="AdminModule.moderateOffer('${o.id}', 'deactivated')" title="Deactivate Fraudulent/Misleading Offer">
+                    ⊘ Deactivate
+                  </button>
+                </div>
+
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-sm btn-outline" style="font-size:10px; padding:3px 8px; min-height:auto;" onclick="AdminModule.toggleOfferStatus('${o.id}')">
+                    ${o.active ? 'Pause' : 'Resume'}
+                  </button>
+                  <button class="btn btn-sm btn-danger-outline" style="font-size:10px; padding:3px 8px; min-height:auto;" onclick="AdminModule.deleteOffer('${o.id}')">
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           `).join('')}
@@ -1641,6 +1669,28 @@ const AdminModule = {
       AppRouter.renderActiveScreen();
     } else {
       AppUtils.showToast('Could not delete offer.');
+    }
+  },
+
+  async moderateOffer(id, status) {
+    let reason = '';
+    if (status === 'deactivated' || status === 'flagged') {
+      reason = prompt(`Please enter the moderation reason for setting this offer to ${status}:`, 'Misleading / policy violation') || '';
+    }
+
+    const res = await window.apiClient.moderateAdminOffer(id, status, reason);
+    if (res && res.success) {
+      const target = (store.data.offers || []).find(o => o.id === id);
+      if (target) {
+        target.moderationStatus = status;
+        target.moderationReason = reason;
+        if (status === 'deactivated') target.active = false;
+        store.saveData();
+      }
+      AppUtils.showToast(`Offer moderation updated to "${status}".`);
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast((res && res.message) || 'Failed to moderate offer.');
     }
   },
 
