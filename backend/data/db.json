@@ -140,6 +140,18 @@
       "role": "customer",
       "emailVerified": true,
       "emailVerifiedAt": "2026-10-26T06:01:33.497Z"
+    },
+    {
+      "id": "cust_1793019495508",
+      "savedAddresses": [],
+      "wishlist": [],
+      "cart": [],
+      "name": "vunnamthanuja20",
+      "email": "vunnamthanuja20@gmail.com",
+      "phone": "",
+      "role": "customer",
+      "emailVerified": true,
+      "emailVerifiedAt": "2026-10-26T12:58:15.507Z"
     }
   ],
   "categories": [
@@ -10066,6 +10078,11 @@
   ],
   "activityLogs": [
     {
+      "id": "act_1793019495517",
+      "text": "New customer registered: vunnamthanuja20 (vunnamthanuja20@gmail.com)",
+      "time": "Just now"
+    },
+    {
       "id": "act_1793019358547",
       "text": "Shop owner (ent_01) deleted advertisement \"Handmade Festive Cupcake Banner (Updated High-Res)\" [AD-6967]",
       "time": "Just now"
@@ -10308,11 +10325,6 @@
     {
       "id": "act_1793017432894",
       "text": "Promotional offer TESTFEST25 set to active=false by Admin",
-      "time": "Just now"
-    },
-    {
-      "id": "act_1793017432881",
-      "text": "Promotional offer created by Admin: TESTFEST25 (🎉 Festival Special)",
       "time": "Just now"
     }
   ],
@@ -11057,15 +11069,15 @@
   "otps": {
     "vunnamthanuja20@gmail.com": {
       "email": "vunnamthanuja20@gmail.com",
-      "otpHashed": "45e5c7e3d17a07bcb6b0e041b6e4f79985d11403c4b82438a3ad03396c7f242e",
-      "expiresAt": 1793018233367,
+      "otpHashed": "b375809c2542e5d2ad3514b76b2673ee37748d295812ad38c748a0ef5d454dd1",
+      "expiresAt": 1793019772818,
       "purpose": "login",
       "attemptsRemaining": 5,
-      "isConsumed": false,
-      "isVerified": false,
-      "verifiedAt": null,
-      "lastSentAt": 1793017933367,
-      "resendCooldownUntil": 1793017993367
+      "isConsumed": true,
+      "isVerified": true,
+      "verifiedAt": "2026-10-26T12:58:15.507Z",
+      "lastSentAt": 1793019472818,
+      "resendCooldownUntil": 1793019487818
     }
   }
 }
