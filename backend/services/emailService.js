@@ -218,32 +218,29 @@ class EmailService {
     const hasResend = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_'));
     const hasBrevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.length > 20);
 
-    // On Vercel / serverless: outgoing raw TCP socket port 465 is blocked by AWS/Vercel firewall.
-    // Therefore, prefer Resend HTTPS REST API first on Vercel.
-    if (isVercel && hasResend) {
-      console.log(`[EMAIL] Running on Vercel serverless. Dispathing via Resend HTTPS API to ${cleanTo}...`);
+    // 1. Direct SMTP (Google Workspace / Gmail TLS on port 465)
+    // Sends directly through user's authenticated Google account into recipient's Primary Inbox
+    if (hasSmtp) {
+      console.log(`[EMAIL] Attempting direct Google SMTP delivery to ${cleanTo}...`);
+      const smtpResult = await this.sendViaSmtp(cleanTo, otp, purpose);
+      if (smtpResult.success) {
+        console.log(`[EMAIL:SMTP] Successfully delivered via SMTP to ${cleanTo}`);
+        return smtpResult;
+      }
+      console.warn(`[EMAIL] SMTP delivery failed (${smtpResult.message}), cascading to Resend HTTPS fallback...`);
+    }
+
+    // 2. Resend HTTPS REST API (Cloud fallback for serverless environments)
+    if (hasResend) {
+      console.log(`[EMAIL] Dispatching via Resend HTTPS API to ${cleanTo}...`);
       const resendResult = await this.sendViaResend(cleanTo, otp, purpose);
       if (resendResult.success) return resendResult;
-      console.warn(`[EMAIL] Resend API reported (${resendResult.message}), checking fallbacks...`);
-      if (hasBrevo) return await this.sendViaBrevo(cleanTo, otp, purpose);
-      if (hasSmtp) return await this.sendViaSmtp(cleanTo, otp, purpose);
-      return resendResult;
+      console.warn(`[EMAIL] Resend API reported (${resendResult.message}), checking Brevo fallback...`);
     }
 
-    // When running locally: prefer direct SMTP (can send to ANY email address via Gmail App Password)
-    if (hasSmtp) {
-      console.log(`[EMAIL] Dispatching via SMTP (TLS port 465) to ${cleanTo}...`);
-      const smtpResult = await this.sendViaSmtp(cleanTo, otp, purpose);
-      if (smtpResult.success) return smtpResult;
-      console.warn(`[EMAIL] SMTP failed (${smtpResult.message}), attempting Resend fallback...`);
-      if (hasResend) {
-        return await this.sendViaResend(cleanTo, otp, purpose);
-      }
-      return smtpResult;
-    }
-
-    if (hasResend) {
-      return await this.sendViaResend(cleanTo, otp, purpose);
+    // 3. Brevo HTTPS REST API
+    if (hasBrevo) {
+      return await this.sendViaBrevo(cleanTo, otp, purpose);
     }
 
     if (hasBrevo) {
@@ -258,7 +255,7 @@ class EmailService {
     const payload = JSON.stringify({
       from,
       to: [cleanTo],
-      subject: 'Verify Your Email – Maneyindha Marukatte',
+      subject: `Your Verification Code: ${otp} – Maneyindha Marukatte`,
       html: this.generateOtpTemplate(otp, cleanTo, purpose)
     });
 
@@ -354,7 +351,7 @@ class EmailService {
     const payload = JSON.stringify({
       sender: { name: fromName, email: fromEmail },
       to: [{ email: cleanTo }],
-      subject: 'Verify Your Email – Maneyindha Marukatte',
+      subject: `Your Verification Code: ${otp} – Maneyindha Marukatte`,
       htmlContent: this.generateOtpTemplate(otp, cleanTo, purpose)
     });
 
@@ -423,7 +420,7 @@ class EmailService {
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
     const from = this.getFromAddress('smtp');
-    const subject = 'Verify Your Email – Maneyindha Marukatte';
+    const subject = `Your Verification Code: ${otp} – Maneyindha Marukatte`;
     const html = this.generateOtpTemplate(otp, cleanTo, purpose);
 
     console.log(`[EMAIL:SMTP] Connecting to ${host}:${port} for ${cleanTo}...`);

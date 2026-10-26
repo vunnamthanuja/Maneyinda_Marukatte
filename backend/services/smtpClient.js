@@ -45,14 +45,14 @@ class SmtpClient {
             host,
             port: portNum,
             rejectUnauthorized: false,
-            timeout: 10000
+            timeout: 4500
           }, onConnect);
         } else {
           // Standard TCP (e.g. port 587 or 25)
           socket = net.connect({
             host,
             port: portNum,
-            timeout: 10000
+            timeout: 4500
           }, onConnect);
         }
       } catch (err) {
