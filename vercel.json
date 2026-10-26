@@ -8,6 +8,18 @@
     {
       "source": "/uploads/:path*",
       "destination": "/api/index.js"
+    },
+    {
+      "source": "/css/:path*",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/js/:path*",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/api/index.js"
     }
   ]
 }

@@ -54,12 +54,13 @@ module.exports = async (req, res) => {
   }
 
   // Debug route to verify deployment, headers, and static bundle
-  if (req.url.startsWith('/api/debug')) {
+  const checkUrl = req.url || '';
+  if (checkUrl.includes('/api/debug')) {
     let staticBundle = null;
     try { staticBundle = require('./static-bundle.json'); } catch (e) {}
     return res.status(200).json({
       success: true,
-      deployment: '6e21354+',
+      deployment: 'v2.3-rewrites-live',
       url: req.url,
       headers: req.headers,
       hasBundle: !!staticBundle,
@@ -70,6 +71,7 @@ module.exports = async (req, res) => {
   const host = req.headers.host || 'localhost';
   const rawUrl = req.headers['x-vercel-original-url'] ||
                  req.headers['x-forwarded-uri'] ||
+                 req.headers['x-matched-path'] ||
                  req.url;
   const parsedUrl = new URL(rawUrl, `https://${host}`);
   let pathname = parsedUrl.pathname;
@@ -85,7 +87,8 @@ module.exports = async (req, res) => {
       parsedUrl.pathname,
       req.url.split('?')[0],
       req.headers['x-vercel-original-url'] ? new URL(req.headers['x-vercel-original-url'], `https://${host}`).pathname : null,
-      req.headers['x-forwarded-uri'] ? new URL(req.headers['x-forwarded-uri'], `https://${host}`).pathname : null
+      req.headers['x-forwarded-uri'] ? new URL(req.headers['x-forwarded-uri'], `https://${host}`).pathname : null,
+      req.headers['x-matched-path'] ? new URL(req.headers['x-matched-path'], `https://${host}`).pathname : null
     ].filter(Boolean);
 
     for (const p of candidatePaths) {

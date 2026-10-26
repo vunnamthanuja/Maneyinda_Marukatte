@@ -45,6 +45,13 @@ const MIME_TYPES = {
 
 const bundle = {};
 
+// Read all CSS files to embed into inlined index.html
+const themeCss = fs.readFileSync(path.join(rootDir, 'css', 'theme.css'), 'utf8');
+const layoutCss = fs.readFileSync(path.join(rootDir, 'css', 'layout.css'), 'utf8');
+const compCss = fs.readFileSync(path.join(rootDir, 'css', 'components.css'), 'utf8');
+const screensCss = fs.readFileSync(path.join(rootDir, 'css', 'screens.css'), 'utf8');
+const combinedCss = [themeCss, layoutCss, compCss, screensCss].join('\n\n');
+
 function addFileToBundle(relPath) {
   const fullPath = path.join(rootDir, relPath);
   if (!fs.existsSync(fullPath)) return;
@@ -56,7 +63,14 @@ function addFileToBundle(relPath) {
   } else {
     const ext = path.extname(relPath).toLowerCase();
     const isText = ['.html', '.css', '.js', '.json', '.svg'].includes(ext);
-    const content = isText ? fs.readFileSync(fullPath, 'utf8') : fs.readFileSync(fullPath).toString('base64');
+    let content = isText ? fs.readFileSync(fullPath, 'utf8') : fs.readFileSync(fullPath).toString('base64');
+    
+    // For index.html, inject the compiled CSS directly into the <head> to guarantee immediate, flash-free styling
+    if (relPath === 'index.html') {
+      const inlineStyleBlock = `\n  <!-- Inlined Design System CSS (Guaranteed Instant Styling) -->\n  <style id="theme-system-inline">\n${combinedCss}\n  </style>\n`;
+      content = content.replace('  <!-- Design System CSS (Material Design 3 & Android 390x844 px) -->', inlineStyleBlock + '  <!-- Design System CSS (Material Design 3 & Android 390x844 px) -->');
+    }
+
     const route = '/' + relPath.replace(/^\/+/, '');
     bundle[route] = {
       mime: MIME_TYPES[ext] || 'text/plain',
