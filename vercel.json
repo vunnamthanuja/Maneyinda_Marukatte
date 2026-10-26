@@ -1,9 +1,5 @@
 {
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "{css/**,js/**,assets/**,index.html,public/**}"
-    }
-  },
+  "outputDirectory": "public",
   "rewrites": [
     {
       "source": "/api/(.*)",
