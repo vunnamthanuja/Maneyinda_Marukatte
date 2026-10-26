@@ -14,7 +14,7 @@
     "rest-api",
     "nodejs"
   ],
-  "author": "Maneyinda Marukatte Engineering Team",
+  "author": "Thanuja Vunnam",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
