@@ -99,7 +99,10 @@ module.exports = async (req, res) => {
   // Handle static assets & index.html if routed to serverless function
   if (!pathname.startsWith('/api') && !pathname.startsWith('/uploads')) {
     let relativePath = (pathname === '/' || pathname === '') ? 'index.html' : pathname.replace(/^\/+/, '');
-    const safePath = path.normalize(path.join(__dirname, '..', relativePath));
+    let safePath = path.normalize(path.join(__dirname, '..', relativePath));
+    if (!fs.existsSync(safePath)) {
+      safePath = path.normalize(path.join(__dirname, '..', 'public', relativePath));
+    }
 
     if (fs.existsSync(safePath) && fs.statSync(safePath).isFile()) {
       const ext = path.extname(safePath).toLowerCase();

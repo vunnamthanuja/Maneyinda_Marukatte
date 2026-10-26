@@ -1,0 +1,679 @@
+/* =====================================================================
+   MANEYINDA MARUKATTE - SCREEN SPECIFIC STYLES
+   Material Design 3 Android 390 x 844 Mobile Layout
+===================================================================== */
+
+/* -------------------------------------------------------------
+   SPLASH & WELCOME
+------------------------------------------------------------- */
+.splash-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 60px 24px 36px 24px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 30%, #FFFDF5 0%, #F5F0DC 100%);
+}
+
+.splash-brand-core {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.splash-logo-art {
+  width: 140px;
+  height: 140px;
+  background: #FFFDF5;
+  border-radius: 50%;
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(54, 91, 31, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoSoftScale 2.2s ease-in-out infinite alternate;
+  border: 3px solid var(--color-soft-yellow);
+}
+
+.splash-logo-art svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes logoSoftScale {
+  0% { transform: scale(0.96); box-shadow: 0 8px 20px rgba(54, 91, 31, 0.15); }
+  100% { transform: scale(1.04); box-shadow: 0 16px 36px rgba(54, 91, 31, 0.25); }
+}
+
+.splash-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.5px;
+}
+
+.splash-tagline {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-secondary);
+  max-width: 260px;
+  line-height: 1.4;
+}
+
+.welcome-illus-card {
+  width: 100%;
+  height: 200px;
+  background: #F3EEDD;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 18px 0;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.auth-divider::before, .auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+/* -------------------------------------------------------------
+   CUSTOMER HOME
+------------------------------------------------------------- */
+.home-header-bar {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg-warm);
+}
+
+.home-greeting-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-user-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.delivery-location-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-primary);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.search-bar-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin: 10px 16px 14px 16px;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 10px 0;
+}
+
+.section-header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Horizontal Scroll Container for Popular Products */
+.horizontal-product-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0 12px 0;
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  scrollbar-width: none;
+}
+.horizontal-product-track::-webkit-scrollbar {
+  display: none;
+}
+
+.horizontal-product-track .product-card {
+  min-width: 170px;
+  max-width: 170px;
+  flex-shrink: 0;
+}
+
+/* 2-Column Grid for Search, Wishlist & Trending */
+.two-column-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding-bottom: 20px;
+}
+
+/* -------------------------------------------------------------
+   PRODUCT DETAILS
+------------------------------------------------------------- */
+.product-carousel-wrap {
+  width: 100%;
+  height: 240px;
+  background: #EAE6D6;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.carousel-slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carousel-indicator-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+}
+
+.carousel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.carousel-dot.active {
+  background: #FFFFFF;
+  width: 16px;
+  border-radius: 4px;
+}
+
+.product-detail-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-soft-yellow);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  margin-right: 6px;
+}
+
+.seller-info-banner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0;
+}
+
+.seller-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.stepper-btn {
+  width: 38px;
+  height: 38px;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepper-btn:active {
+  background: var(--color-soft-yellow);
+}
+
+.stepper-value {
+  width: 36px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.after-sales-box {
+  background: #F8FAF4;
+  border: 1.5px solid #CCDDC0;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin: 14px 0;
+}
+
+.after-sales-box .after-sales-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.after-sales-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  font-size: 12px;
+}
+
+.after-sales-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+}
+
+/* -------------------------------------------------------------
+   CART & CHECKOUT
+------------------------------------------------------------- */
+.cart-store-group {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cart-store-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--color-border);
+  margin-bottom: 10px;
+}
+
+.cart-item-row {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #F0EEE4;
+}
+
+.cart-item-row:last-child {
+  border-bottom: none;
+}
+
+.cart-item-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+  margin-top: 14px;
+  cursor: pointer;
+}
+
+.cart-item-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: #EAE6D6;
+}
+
+.cart-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cart-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.cart-sticky-summary {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 14px 16px;
+  margin: 0 -16px -20px -16px;
+  box-shadow: var(--shadow-sheet);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.order-summary-row.total-row {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
+
+/* -------------------------------------------------------------
+   MY ORDERS & TIMELINE
+------------------------------------------------------------- */
+.order-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-status-timeline {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin: 20px 8px;
+}
+
+.timeline-track-line {
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: var(--color-border);
+  z-index: 1;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+  position: relative;
+}
+
+.timeline-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+  transition: all var(--transition-normal);
+}
+
+.timeline-step.completed .timeline-dot {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.timeline-step.active .timeline-dot {
+  border-color: var(--color-accent);
+  background: var(--color-soft-yellow);
+  color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(233, 185, 73, 0.35);
+}
+
+.timeline-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+  max-width: 65px;
+}
+
+/* -------------------------------------------------------------
+   NOTIFICATIONS
+------------------------------------------------------------- */
+.notif-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px 0;
+}
+
+.notif-item-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+.notif-item-card.unread {
+  background: #FCFBF5;
+  border-left: 3.5px solid var(--color-accent);
+}
+
+.unread-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* -------------------------------------------------------------
+   MANEYINDA AI GUIDE (HELP & SUPPORT CHAT)
+------------------------------------------------------------- */
+.ai-chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 60px 0;
+}
+
+.ai-bubble {
+  max-width: 85%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ai-bubble-assistant {
+  align-self: flex-start;
+  background: #F3F7EB;
+  border: 1px solid #D6E4C6;
+  border-top-left-radius: 4px;
+  color: var(--color-text-primary);
+}
+
+.ai-bubble-user {
+  align-self: flex-end;
+  background: var(--color-primary);
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.ai-quick-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.ai-quick-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-secondary);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------
+   DOCUMENT UPLOAD BOXES (ENTREPRENEUR REGISTRATION)
+------------------------------------------------------------- */
+.doc-upload-box {
+  border: 2px dashed #C8C3AB;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  text-align: center;
+  background: #FAF8F0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 12px;
+}
+
+.doc-upload-box:hover {
+  border-color: var(--color-primary);
+  background: #F4F7EE;
+}
+
+.doc-preview-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+/* -------------------------------------------------------------
+   ADMIN SCREENS & ANALYTICS CHARTS
+------------------------------------------------------------- */
+.admin-badge-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FEF7DA;
+  border: 1px solid #E9B949;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  margin: 8px 0;
+}
+
+.simple-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 140px;
+  padding: 12px 6px 4px 6px;
+  border-bottom: 2px solid var(--color-border);
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.chart-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-bar-fill {
+  width: 100%;
+  max-width: 24px;
+  background: var(--color-primary);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.4s ease;
+  min-height: 4px;
+}
+
+.chart-bar-col.accent .chart-bar-fill {
+  background: var(--color-accent);
+}
+
+.chart-bar-label {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-weight: 500;
+}
+
+.chart-bar-val {
+  font-size: 10px;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}

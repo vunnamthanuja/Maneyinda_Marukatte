@@ -1,0 +1,3302 @@
+/* =====================================================================
+   MANEYINDA MARUKATTE - CUSTOMER MODULE
+   Home, Search, Product Details, Wishlist, Cart, Checkout,
+   Address Book, Orders, Reviews, Notifications & AI Guide
+===================================================================== */
+
+const CustomerModule = {
+  activeSearchQuery: '',
+  searchFilterCategory: 'all',
+  selectedCartItemKeys: [], // Format: "productId|customizationHash"
+  selectedOrderTab: 'active',
+  carouselActiveIndex: 0,
+  activeDetailQty: 1,
+  activeDetailCustomization: {},
+  promoActiveIndex: 0,
+  promoTimer: null,
+  appliedCoupon: null,
+  presetCouponCode: '',
+
+  // -------------------------------------------------------------
+  // SCREEN 1: CUSTOMER HOME
+  // -------------------------------------------------------------
+  renderHome() {
+    const user = store.getUser();
+    const selAddr = store.getSelectedAddress();
+    const unreadCount = store.getUnreadNotificationsCount(user.id, 'customer');
+    const wishlistCount = store.getWishlist().length;
+    const popularProducts = store.getProducts({ activeOnly: true });
+    const trendingProducts = AppAI.calculateTrendingProducts(popularProducts, store.getOrders(), '7days');
+
+    setTimeout(() => CustomerModule.initPromoBanner(), 60);
+
+    return `
+      <!-- Home Header -->
+      <div class="home-header-bar">
+        <div class="home-greeting-wrap">
+          <span class="home-user-name">👋 ${(window.AppLang && AppLang.t('welcome')) || 'Welcome'}, ${user.name ? user.name.split(' ')[0] : 'Customer'}</span>
+          <button class="delivery-location-btn" onclick="CustomerModule.openLocationBottomSheet()">
+            <span class="material-symbols-rounded" style="font-size:16px;">location_on</span>
+            <span>${(window.AppLang && AppLang.t('deliverTo')) || 'Deliver to:'} <strong>${selAddr ? selAddr.label : 'Select Location'}</strong></span>
+            <span class="material-symbols-rounded" style="font-size:16px;">expand_more</span>
+          </button>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-wishlist')">
+            <span class="material-symbols-rounded">favorite</span>
+            ${wishlistCount > 0 ? `<span class="badge-counter">${wishlistCount}</span>` : ''}
+          </button>
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-notifications')">
+            <span class="material-symbols-rounded">notifications</span>
+            ${unreadCount > 0 ? `<span class="badge-counter">${unreadCount}</span>` : ''}
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Bar Trigger -->
+      <div class="search-bar-trigger" onclick="AppRouter.navigate('screen-customer-search')">
+        <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">search</span>
+        <span>${(window.AppLang && AppLang.t('searchPlaceholder')) || 'Search Products, Stores or Categories...'}</span>
+      </div>
+
+      <!-- Culturally Welcoming Namaste Card (Mobile Dismissible Strip) -->
+      ${this.renderNamasteCard()}
+
+      <!-- Promotional Rotating Offers Banner (Warm Cream & Olive Green Theme) -->
+      ${this.renderPromoBanner()}
+
+      <div class="screen-content" style="padding-top:0; padding-bottom:70px;">
+        <!-- Categories Quick Horizontal List -->
+        <div class="filter-chip-row" style="margin-bottom:6px;">
+          ${store.data.categories.filter(c => c.active).map(cat => `
+            <button class="filter-chip" onclick="CustomerModule.viewCategoryListing('${cat.name}')">
+              <span class="material-symbols-rounded" style="font-size:15px; vertical-align:middle; margin-right:4px;">${cat.icon || 'category'}</span>
+              ${(window.AppLang && AppLang.tCategory(cat.name)) || cat.name}
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Section: Popular Products (Horizontally Scrollable, NO View All) -->
+        <div class="section-header-row">
+          <h3 class="section-header-title">
+            <span class="material-symbols-rounded" style="color:var(--color-accent); font-size:20px;">local_fire_department</span>
+            ${(window.AppLang && AppLang.t('popularProducts')) || '🔥 Popular Products'}
+          </h3>
+        </div>
+
+        ${popularProducts.length === 0 ? `
+          <div class="empty-state" style="padding:24px 0;">
+            <span class="material-symbols-rounded empty-state-icon">storefront</span>
+            <div class="empty-state-title">No Products Available Yet</div>
+            <div class="empty-state-desc">Products from local entrepreneurs will appear here soon.</div>
+          </div>
+        ` : `
+          <div class="horizontal-product-track">
+            ${popularProducts.map(p => this.renderProductCard(p)).join('')}
+          </div>
+        `}
+
+        <!-- Section: Trending This Week (Data-Driven AI Algorithm) -->
+        <div class="section-header-row" style="margin-top:20px;">
+          <h3 class="section-header-title">
+            <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">trending_up</span>
+            ${(window.AppLang && AppLang.t('trendingThisWeek')) || '🔥 Trending This Week'}
+          </h3>
+        </div>
+
+        <div class="two-column-product-grid">
+          ${trendingProducts.slice(0, 4).map(p => this.renderProductCard(p, true)).join('')}
+        </div>
+      </div>
+
+      ${this.renderBottomNav('home')}
+    `;
+  },
+
+  // --- NAMASTE CULTURAL GREETING ---
+  renderNamasteCard() {
+    const isDismissed = sessionStorage.getItem('NAMASTE_DISMISSED') === 'true';
+    if (isDismissed) return '';
+
+    return `
+      <div id="namaste-mobile-card" class="namaste-welcome-card" role="region" aria-label="Cultural Welcome">
+        <button class="namaste-dismiss-btn" onclick="CustomerModule.dismissNamaste(false)" title="Dismiss welcome greeting">
+          <span class="material-symbols-rounded" style="font-size:16px;">close</span>
+        </button>
+        <div class="namaste-icon-wrap">🙏</div>
+        <div style="flex:1;">
+          <div class="namaste-card-title">
+            <span>Namaste! Welcome to Maneyindha Marukatte</span>
+          </div>
+          <div class="namaste-card-desc">
+            Discover homemade delights and handmade treasures from women entrepreneurs near you.
+          </div>
+          <div class="namaste-card-actions">
+            <button class="namaste-cta-btn" onclick="CustomerModule.exploreLocalShops()">
+              <span>Explore Local Shops</span>
+              <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  dismissNamaste(isDesktop = false) {
+    sessionStorage.setItem('NAMASTE_DISMISSED', 'true');
+    const mCard = document.getElementById('namaste-mobile-card');
+    if (mCard) mCard.classList.add('dismissed');
+    const dCard = document.getElementById('namaste-desktop-sidebar');
+    if (dCard) dCard.classList.add('dismissed');
+  },
+
+  exploreLocalShops() {
+    AppRouter.navigate('screen-customer-search');
+  },
+
+  // --- PROMOTIONAL ROTATING OFFERS & ADVERTISEMENTS BANNER ---
+  renderPromoBanner() {
+    // 1. Prioritize approved active entrepreneur advertisements
+    const ads = (store.getAdvertisements && store.getAdvertisements('home_carousel')) || [];
+
+    if (ads.length > 0) {
+      return `
+        <div class="promo-banner-container" id="promo-banner-container"
+             onmouseenter="CustomerModule.pauseBannerTimer()"
+             onmouseleave="CustomerModule.startBannerTimer()">
+          <div class="promo-banner-track" id="promo-banner-track">
+            ${ads.map((ad) => `
+              <div class="promo-slide" onclick="CustomerModule.handleAdClick('${ad.id}')" style="background: linear-gradient(135deg, #4A6B32 0%, #223613 100%); position:relative; overflow:hidden;">
+                ${ad.imageUrl ? `
+                  <div style="position:absolute; right:0; top:0; width:45%; height:100%; opacity:0.85; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+                    <img src="${ad.imageUrl}" alt="${ad.title}" style="width:100%; height:100%; object-fit:cover; border-radius:0 var(--radius-lg) var(--radius-lg) 0;" onerror="this.style.display='none'">
+                  </div>
+                ` : ''}
+                <div style="position:relative; z-index:2; max-width:${ad.imageUrl ? '65%' : '100%'};">
+                  <div class="promo-slide-header" style="margin-bottom:6px;">
+                    <span class="promo-badge-pill" style="background:rgba(255,255,255,0.22); color:#FFF; font-weight:700;">
+                      <span>${ad.discountText || ad.adType || 'FEATURED AD'}</span>
+                    </span>
+                    <span style="font-size:11px; font-weight:700; color:#F4EBD9; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:var(--radius-full);">
+                      🏪 ${ad.storeName}
+                    </span>
+                    ${ad.couponCode ? `<span class="promo-code-pill">${ad.couponCode}</span>` : ''}
+                  </div>
+                  <div>
+                    <div class="promo-slide-title" style="font-size:14px; line-height:1.3; font-weight:700;">${ad.title}</div>
+                    <div class="promo-slide-subtitle" style="font-size:11px; opacity:0.9; margin-top:3px; max-height:36px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${ad.description}</div>
+                  </div>
+                  <div class="promo-slide-footer" style="margin-top:10px;">
+                    <span style="font-size:10px; opacity:0.85; color:#F4EBD9;">
+                      ${ad.endDate ? `Valid till ${new Date(ad.endDate).toLocaleDateString('en-IN', { month:'short', day:'numeric' })}` : 'Limited time promotion'}
+                    </span>
+                    <button class="promo-cta-btn" onclick="event.stopPropagation(); CustomerModule.handleAdClick('${ad.id}')">
+                      <span>${ad.ctaText || 'Shop Now'}</span>
+                      <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="promo-carousel-dots" id="promo-carousel-dots">
+            ${ads.map((_, i) => `
+              <div class="promo-dot ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation(); CustomerModule.goToPromoSlide(${i})"></div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Fallback to active promotional offers
+    const offers = (store.getOffers && store.getOffers(true)) || [];
+    const bannerOffers = offers.filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated');
+
+    if (bannerOffers.length === 0) {
+      // 3. Fallback to friendly Namaste greeting
+      return `
+        <div class="promo-banner-container" style="background: linear-gradient(135deg, #4A6B32 0%, #2E451E 100%); padding: 14px 16px; border-radius: var(--radius-lg); margin: 0 16px 16px 16px; color: #FFF; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:28px;">🙏</span>
+            <div>
+              <div style="font-size:14px; font-weight:700;">Welcome to Maneyindha Marukatte</div>
+              <div style="font-size:12px; opacity:0.85; color:#F4EBD9;">Discover homemade delights & handcrafted treasures from local women entrepreneurs</div>
+            </div>
+          </div>
+          <button class="promo-cta-btn" onclick="AppRouter.navigate('screen-customer-search')">
+            <span>Explore Shops</span>
+            <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="promo-banner-container" id="promo-banner-container"
+           onmouseenter="CustomerModule.pauseBannerTimer()"
+           onmouseleave="CustomerModule.startBannerTimer()">
+        <div class="promo-banner-track" id="promo-banner-track">
+          ${bannerOffers.map((o) => `
+            <div class="promo-slide" onclick="CustomerModule.handlePromoClick('${o.id}')" style="background:${o.bannerBg || o.bannerColor || 'linear-gradient(135deg, #4A6B32 0%, #2E451E 100%)'};">
+              <div class="promo-slide-header">
+                <span class="promo-badge-pill">
+                  <span>${o.badgeText || (o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`)}</span>
+                </span>
+                ${o.storeName ? `<span style="font-size:11px; font-weight:600; color:#F4EBD9; background:rgba(0,0,0,0.2); padding:2px 8px; border-radius:var(--radius-full);">🏪 ${o.storeName}</span>` : ''}
+                ${o.code ? `<span class="promo-code-pill">${o.code}</span>` : ''}
+              </div>
+              <div>
+                <div class="promo-slide-title">${o.title}</div>
+                <div class="promo-slide-subtitle">${o.subtitle || o.description || 'Special offer from local women entrepreneurs'}</div>
+              </div>
+              <div class="promo-slide-footer">
+                <span style="font-size:10px; opacity:0.85; color:#F4EBD9;">
+                  ${o.minOrderAmount ? `Min order ₹${o.minOrderAmount}` : (o.endDate ? `Valid till ${new Date(o.endDate).toLocaleDateString('en-IN', { month:'short', day:'numeric' })}` : 'Limited time deal')}
+                </span>
+                <button class="promo-cta-btn" onclick="event.stopPropagation(); CustomerModule.handlePromoClick('${o.id}')">
+                  <span>${o.ctaText || 'Shop Now'}</span>
+                  <span class="material-symbols-rounded" style="font-size:13px;">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="promo-carousel-dots" id="promo-carousel-dots">
+          ${bannerOffers.map((_, i) => `
+            <div class="promo-dot ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation(); CustomerModule.goToPromoSlide(${i})"></div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  initPromoBanner() {
+    this.promoActiveIndex = 0;
+    this.updatePromoTrack();
+    this.startBannerTimer();
+
+    // Record impressions for currently rendered active ads
+    const ads = (store.getAdvertisements && store.getAdvertisements('home_carousel')) || [];
+    if (ads.length > 0 && window.apiClient) {
+      ads.forEach(ad => window.apiClient.recordAdImpression(ad.id));
+    }
+  },
+
+  startBannerTimer() {
+    this.pauseBannerTimer();
+    const ads = (store.getAdvertisements && store.getAdvertisements('home_carousel')) || [];
+    const count = ads.length > 0 ? ads.length : ((store.getOffers && store.getOffers(true)) || []).filter(o => o.showInBanner !== false && o.bannerEnabled !== false && o.moderationStatus !== 'deactivated').length;
+    if (count <= 1) return;
+    this.promoTimer = setInterval(() => {
+      this.promoActiveIndex = (this.promoActiveIndex + 1) % count;
+      this.updatePromoTrack();
+    }, 4500);
+  },
+
+  pauseBannerTimer() {
+    if (this.promoTimer) {
+      clearInterval(this.promoTimer);
+      this.promoTimer = null;
+    }
+  },
+
+  goToPromoSlide(idx) {
+    this.promoActiveIndex = idx;
+    this.updatePromoTrack();
+    this.startBannerTimer();
+  },
+
+  updatePromoTrack() {
+    const track = document.getElementById('promo-banner-track');
+    const dots = document.querySelectorAll('#promo-carousel-dots .promo-dot');
+    if (track) {
+      track.style.transform = `translateX(-${this.promoActiveIndex * 100}%)`;
+    }
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', i === this.promoActiveIndex);
+    });
+  },
+
+  handlePromoClick(offerId) {
+    const offers = (store.getOffers && store.getOffers(false)) || [];
+    const offer = offers.find(o => o.id === offerId);
+    if (!offer) return;
+
+    if (offer.code) this.presetCouponCode = offer.code;
+
+    if (offer.scope === 'shop' || offer.entrepreneurId) {
+      const entId = offer.entrepreneurId || offer.targetId || offer.targetEntrepreneurId;
+      if (entId) {
+        CustomerModule.viewPublicStore(entId);
+        return;
+      }
+    } else if (offer.scope === 'product') {
+      const pid = (offer.productIds && offer.productIds[0]) || offer.targetProductId || offer.targetId;
+      if (pid) {
+        CustomerModule.viewProductDetails(pid);
+        return;
+      }
+    } else if (offer.scope === 'category' && (offer.targetCategory || offer.targetId)) {
+      CustomerModule.viewCategoryListing(offer.targetCategory || offer.targetId);
+      return;
+    } else if (offer.ctaCategory && offer.ctaCategory !== 'All') {
+      CustomerModule.viewCategoryListing(offer.ctaCategory);
+      return;
+    }
+    AppRouter.navigate('screen-customer-search');
+  },
+
+  handleAdClick(adId) {
+    const ads = (store.data && store.data.advertisements) || [];
+    const ad = ads.find(a => a.id === adId);
+    if (!ad) return;
+
+    if (window.apiClient) {
+      window.apiClient.recordAdClick(ad.id);
+    }
+
+    if (ad.couponCode) this.presetCouponCode = ad.couponCode;
+
+    if (ad.ctaTarget === 'product' && ad.targetId) {
+      CustomerModule.viewProductDetails(ad.targetId);
+    } else if (ad.ctaTarget === 'category' && (ad.targetCategory || ad.targetId)) {
+      CustomerModule.viewCategoryListing(ad.targetCategory || ad.targetId);
+    } else if (ad.targetId || ad.entrepreneurId) {
+      CustomerModule.viewPublicStore(ad.targetId || ad.entrepreneurId);
+    } else {
+      AppRouter.navigate('screen-customer-search');
+    }
+  },
+
+  // --- PRODUCT-SPECIFIC & GENUINE OFFERS ---
+  getProductOffer(product) {
+    if (!product) return null;
+    const offers = (store.getOffers && store.getOffers(true)) || [];
+
+    // 1. Match specific product
+    let matched = offers.find(o => {
+      if (o.moderationStatus === 'deactivated') return false;
+      if (o.scope === 'product') {
+        if (o.targetId === product.id || o.targetProductId === product.id) return true;
+        if (Array.isArray(o.productIds) && o.productIds.includes(product.id)) return true;
+      }
+      return false;
+    });
+
+    // 2. Match shop-wide offer
+    if (!matched) {
+      matched = offers.find(o => {
+        if (o.moderationStatus === 'deactivated') return false;
+        if (o.scope === 'shop') {
+          return (o.targetId === product.entrepreneurId || o.entrepreneurId === product.entrepreneurId || o.targetEntrepreneurId === product.entrepreneurId);
+        }
+        return false;
+      });
+    }
+
+    // 3. Match category offer
+    if (!matched) {
+      matched = offers.find(o => {
+        if (o.moderationStatus === 'deactivated') return false;
+        if (o.scope === 'category') {
+          return (o.targetId === product.category || (o.targetCategory && o.targetCategory.toLowerCase() === (product.category || '').toLowerCase()));
+        }
+        return false;
+      });
+    }
+
+    if (!matched) return null;
+
+    let discountAmount = 0;
+    if (matched.discountType === 'percentage') {
+      discountAmount = Math.round((product.price * matched.discountValue) / 100);
+      if (matched.maxDiscount) discountAmount = Math.min(discountAmount, Number(matched.maxDiscount));
+    } else {
+      discountAmount = Math.min(product.price, Number(matched.discountValue));
+    }
+
+    const discountedPrice = Math.max(0, product.price - discountAmount);
+    return {
+      offer: matched,
+      tagText: matched.tagText || matched.badgeText || (matched.discountType === 'percentage' ? `${matched.discountValue}% OFF` : `₹${matched.discountValue} OFF`),
+      originalPrice: product.price,
+      discountedPrice,
+      discountAmount
+    };
+  },
+
+  renderProductCard(p, showTrend = false) {
+    const isSaved = store.isInWishlist(p.id);
+    const offerInfo = this.getProductOffer(p);
+    return `
+      <div class="product-card" onclick="CustomerModule.viewProductDetails('${p.id}')" style="cursor:pointer;">
+        <div class="product-thumb-wrap">
+          <img src="${p.images[0] || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300'}" alt="${p.name}">
+          ${offerInfo ? `
+            <span class="product-promo-badge">${offerInfo.tagText}</span>
+          ` : ''}
+          <button class="product-wishlist-btn ${isSaved ? 'active' : ''}" onclick="event.stopPropagation(); CustomerModule.toggleWishlist('${p.id}', this)">
+            <span class="material-symbols-rounded ${isSaved ? 'icon-filled' : 'icon-outlined'}" style="font-size:18px;">favorite</span>
+          </button>
+          ${showTrend && p.trendGrowth ? `
+            <span style="position:absolute; bottom:6px; left:6px; background:rgba(54,91,31,0.85); color:#fff; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px;">
+              ${p.trendGrowth}
+            </span>
+          ` : ''}
+        </div>
+
+        <div class="product-info-wrap">
+          <h4 class="product-title">${p.name}</h4>
+          
+          <div class="product-store-row" onclick="event.stopPropagation(); CustomerModule.viewPublicStore('${p.entrepreneurId}')">
+            <span>${p.storeName}</span>
+            <span class="material-symbols-rounded verified-badge">check_circle</span>
+          </div>
+
+          <div class="product-price-row">
+            <div>
+              ${offerInfo ? `
+                <div class="product-price-block">
+                  <span class="product-price-current">₹${offerInfo.discountedPrice}</span>
+                  <span class="product-price-original">₹${offerInfo.originalPrice}</span>
+                </div>
+              ` : `
+                <div class="product-price">₹${p.price}</div>
+              `}
+              <div class="product-rating-badge">
+                <span class="material-symbols-rounded" style="font-size:14px; color:var(--color-accent);">star</span>
+                ${p.rating || 4.8}
+              </div>
+            </div>
+
+            <button class="btn-add-cart-mini" onclick="event.stopPropagation(); CustomerModule.quickAddToCart('${p.id}')">
+              <span class="material-symbols-rounded" style="font-size:18px;">add_shopping_cart</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  toggleWishlist(productId, btn) {
+    const added = store.toggleWishlist(productId);
+    if (btn) {
+      btn.classList.toggle('active', added);
+      const icon = btn.querySelector('.material-symbols-rounded');
+      if (icon) {
+        icon.className = `material-symbols-rounded ${added ? 'icon-filled' : 'icon-outlined'}`;
+      }
+    }
+    AppUtils.showToast(added ? 'Saved to Wishlist' : 'Removed from Wishlist');
+  },
+
+  quickAddToCart(productId) {
+    const res = store.addToCart(productId, 1, {});
+    if (res.success) {
+      AppUtils.showToast('Added to Cart!');
+    }
+  },
+
+  viewProductDetails(productId) {
+    this.carouselActiveIndex = 0;
+    this.activeDetailQty = 1;
+    this.activeDetailCustomization = {};
+    AppRouter.navigate('screen-customer-product-details', { productId });
+  },
+
+  viewPublicStore(entrepreneurId) {
+    AppRouter.navigate('screen-public-store', { entrepreneurId });
+  },
+
+  viewCategoryListing(categoryName) {
+    AppRouter.navigate('screen-category-listing', { category: categoryName });
+  },
+
+  // -------------------------------------------------------------
+  // DELIVERY LOCATION BOTTOM SHEET
+  // -------------------------------------------------------------
+  openLocationBottomSheet() {
+    const addresses = store.getAddresses();
+    const selId = store.getUser().selectedAddressId;
+
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:12px;">
+        📍 Select Delivery Location
+      </h3>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <!-- Use Current Location -->
+        <div class="card card-clickable" style="padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="CustomerModule.useCurrentDeviceLocation()">
+          <span class="material-symbols-rounded" style="color:var(--color-secondary);">my_location</span>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600; color:var(--color-text-primary);">Use Current Location</div>
+            <div style="font-size:11px; color:var(--color-text-tertiary);">Using GPS coordinates</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; color:var(--color-text-secondary); margin-top:4px;">
+          Saved Addresses:
+        </div>
+
+        ${addresses.map(a => `
+          <div class="selectable-card ${a.id === selId ? 'selected' : ''}" style="padding:12px; margin:0;" onclick="CustomerModule.selectDeliveryAddress('${a.id}')">
+            <div class="selection-radio">${a.id === selId ? '<span class="material-symbols-rounded" style="font-size:14px;">check</span>' : ''}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);">${a.label}</div>
+              <div style="font-size:11px; color:var(--color-text-secondary); line-height:1.3; margin-top:2px;">
+                ${a.door}, ${a.street}, ${a.area}, ${a.city} - ${a.pincode}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+
+        <button class="btn btn-outline btn-block" onclick="AppUtils.closeBottomSheet(); AppRouter.navigate('screen-customer-address-book');">
+          ➕ Add New Address
+        </button>
+      </div>
+    `);
+  },
+
+  selectDeliveryAddress(addressId) {
+    store.setSelectedAddress(addressId);
+    AppUtils.closeBottomSheet();
+    AppUtils.showToast('Delivery location updated');
+    AppRouter.renderActiveScreen();
+  },
+
+  useCurrentDeviceLocation() {
+    AppUtils.closeBottomSheet();
+    AppUtils.showToast('Location detected: Malleshwaram, Bangalore');
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN 2: SEARCH
+  // -------------------------------------------------------------
+  renderSearch() {
+    const q = this.activeSearchQuery.toLowerCase().trim();
+    const recent = store.data.recentSearches || [];
+
+    // Filter matching products, stores, categories
+    const allProds = store.getProducts({ activeOnly: true });
+    const allStores = store.getEntrepreneurs().filter(e => e.status === 'approved');
+    const allCats = store.data.categories.filter(c => c.active);
+
+    const matchingProds = q ? allProds.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)) : [];
+    const matchingStores = q ? allStores.filter(s => s.businessName.toLowerCase().includes(q) || s.businessCategory.toLowerCase().includes(q)) : [];
+    const matchingCats = q ? allCats.filter(c => c.name.toLowerCase().includes(q)) : [];
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Search</span>
+        </div>
+        <button class="icon-action-btn" onclick="CustomerModule.openSearchFilterModal()">
+          <span class="material-symbols-rounded">tune</span>
+        </button>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px;">
+        <div class="input-with-icon" style="margin-bottom:16px;">
+          <span class="material-symbols-rounded input-icon-left">search</span>
+          <input type="text" id="main-search-input" class="form-input" placeholder="Search Products, Stores or Categories..." value="${this.activeSearchQuery}" oninput="CustomerModule.onSearchInput(this.value)">
+          ${this.activeSearchQuery ? `
+            <button class="input-icon-right" onclick="CustomerModule.clearSearchInput()">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          ` : ''}
+        </div>
+
+        ${!q ? `
+          <!-- Recent Searches Section -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:13px; font-weight:700; color:var(--color-text-primary);">Recent Searches</span>
+            <button class="btn btn-text btn-sm" onclick="CustomerModule.clearAllRecentSearches()">Clear All</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${recent.map((item, i) => `
+              <div style="display:flex; justify-content:space-between; align-items:center; background:var(--color-surface); padding:8px 12px; border-radius:var(--radius-md); border:1px solid var(--color-border);">
+                <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="CustomerModule.onSearchInput('${item}')">
+                  <span class="material-symbols-rounded" style="font-size:18px; color:var(--color-text-tertiary);">history</span>
+                  <span style="font-size:13px; color:var(--color-text-primary);">${item}</span>
+                </div>
+                <button class="icon-action-btn" style="width:28px; height:28px;" onclick="CustomerModule.removeRecentSearch(${i})">
+                  <span class="material-symbols-rounded" style="font-size:16px;">close</span>
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <!-- Search Results Grouped -->
+          <div style="display:flex; flex-direction:column; gap:16px; padding-bottom:40px;">
+            <!-- Categories matches -->
+            ${matchingCats.length > 0 ? `
+              <div>
+                <span style="font-size:12px; font-weight:700; color:var(--color-text-tertiary); text-transform:uppercase;">Categories</span>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                  ${matchingCats.map(c => `
+                    <button class="filter-chip" onclick="CustomerModule.viewCategoryListing('${c.name}')">
+                      ${c.name}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Stores matches -->
+            ${matchingStores.length > 0 ? `
+              <div>
+                <span style="font-size:12px; font-weight:700; color:var(--color-text-tertiary); text-transform:uppercase;">Stores</span>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+                  ${matchingStores.map(s => `
+                    <div class="card card-clickable" style="padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="CustomerModule.viewPublicStore('${s.id}')">
+                      <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="material-symbols-rounded" style="color:var(--color-primary);">storefront</span>
+                        <div>
+                          <div style="font-size:13px; font-weight:700; color:var(--color-text-primary); display:flex; align-items:center; gap:4px;">
+                            ${s.businessName}
+                            <span class="material-symbols-rounded verified-badge">check_circle</span>
+                          </div>
+                          <span style="font-size:11px; color:var(--color-text-secondary);">${s.businessCategory} • ${s.address.area}</span>
+                        </div>
+                      </div>
+                      <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Products matches -->
+            <div>
+              <span style="font-size:12px; font-weight:700; color:var(--color-text-tertiary); text-transform:uppercase;">
+                Products (${matchingProds.length})
+              </span>
+              ${matchingProds.length === 0 ? `
+                <div style="font-size:13px; color:var(--color-text-secondary); padding:16px 0;">No matching products found.</div>
+              ` : `
+                <div class="two-column-product-grid" style="margin-top:8px;">
+                  ${matchingProds.map(p => this.renderProductCard(p)).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+        `}
+      </div>
+    `;
+  },
+
+  onSearchInput(val) {
+    this.activeSearchQuery = val;
+    AppRouter.renderActiveScreen();
+    const input = document.getElementById('main-search-input');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(val.length, val.length);
+    }
+  },
+
+  clearSearchInput() {
+    this.activeSearchQuery = '';
+    AppRouter.renderActiveScreen();
+  },
+
+  clearAllRecentSearches() {
+    store.data.recentSearches = [];
+    store.saveData();
+    AppRouter.renderActiveScreen();
+  },
+
+  removeRecentSearch(idx) {
+    store.data.recentSearches.splice(idx, 1);
+    store.saveData();
+    AppRouter.renderActiveScreen();
+  },
+
+  openSearchFilterModal() {
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:12px;">Filter Results</h3>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select">
+          <option value="all">All Categories</option>
+          ${store.data.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price Range</label>
+        <select class="form-select">
+          <option value="any">Any Price</option>
+          <option value="under200">Under ₹200</option>
+          <option value="200-500">₹200 - ₹500</option>
+          <option value="above500">Above ₹500</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="AppUtils.closeBottomSheet(); AppUtils.showToast('Filters applied');">
+        Apply Filters
+      </button>
+    `);
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN 3: PRODUCT DETAILS
+  // -------------------------------------------------------------
+  renderProductDetails(params) {
+    const p = store.getProductById(params.productId);
+    if (!p) return `<div class="screen-content">Product not found</div>`;
+
+    const isSaved = store.isInWishlist(p.id);
+    const ent = store.getEntrepreneurById(p.entrepreneurId);
+    const isStoreOpen = ent ? ent.isStoreOpen : true;
+    const relatedProducts = store.getProducts({ activeOnly: true }).filter(item => item.id !== p.id && item.category === p.category);
+    const reviews = store.getReviewsForProduct(p.id);
+    const offerInfo = this.getProductOffer(p);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Product Details</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="icon-action-btn ${isSaved ? 'active' : ''}" onclick="CustomerModule.toggleWishlist('${p.id}', this)">
+            <span class="material-symbols-rounded ${isSaved ? 'icon-filled' : 'icon-outlined'}" style="color:${isSaved ? '#D32F2F' : 'inherit'};">favorite</span>
+          </button>
+          <button class="icon-action-btn" onclick="CustomerModule.openReportModal('${p.id}')">
+            <span class="material-symbols-rounded">flag</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 6px; padding-bottom: 90px;">
+        <!-- Image Carousel -->
+        <div class="product-carousel-wrap">
+          <img src="${p.images[this.carouselActiveIndex] || p.images[0]}" class="carousel-slide-img" alt="${p.name}">
+          ${p.images.length > 1 ? `
+            <div class="carousel-indicator-dots">
+              ${p.images.map((_, idx) => `
+                <div class="carousel-dot ${idx === this.carouselActiveIndex ? 'active' : ''}" onclick="CustomerModule.setCarouselIndex(${idx})"></div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Store Closed Warning if Entrepreneur closed shop -->
+        ${!isStoreOpen ? `
+          <div style="background:#FFF3E0; border:1.5px solid #FFB74D; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            <span class="material-symbols-rounded" style="color:var(--color-warning);">store_mall_directory</span>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:#E65100;">🟠 Store Closed</div>
+              <div style="font-size:11px; color:var(--color-text-secondary);">${(ent && ent.openingSchedule) || 'Orders are currently unavailable.'}</div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Product Name & Price -->
+        <h2 style="font-size:18px; font-weight:700; color:var(--color-text-primary); line-height:1.35; margin-bottom:6px;">
+          ${p.name}
+        </h2>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div>
+            ${offerInfo ? `
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="font-size:24px; font-weight:700; color:var(--color-primary);">₹${offerInfo.discountedPrice}</span>
+                <span style="font-size:15px; color:var(--color-text-tertiary); text-decoration:line-through;">₹${offerInfo.originalPrice}</span>
+                <span class="product-promo-badge" style="position:static;">${offerInfo.tagText}</span>
+              </div>
+            ` : `
+              <div style="font-size:24px; font-weight:700; color:var(--color-primary);">₹${p.price}</div>
+            `}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="status-chip ${p.stock > 0 ? 'chip-delivered' : 'chip-cancelled'}">
+              ${p.stock > 0 ? '🟢 In Stock' : '🔴 Out of Stock'}
+            </span>
+            <div class="product-rating-badge" style="font-size:13px;">
+              <span class="material-symbols-rounded" style="font-size:16px; color:var(--color-accent);">star</span>
+              ${p.rating} (${p.reviewCount} Reviews)
+            </div>
+          </div>
+        </div>
+
+        ${offerInfo ? `
+          <div style="background:#F4F7EE; border-left:3px solid var(--color-primary); padding:8px 12px; border-radius:6px; margin-bottom:12px; font-size:11.5px; color:var(--color-primary-dark); display:flex; align-items:center; justify-content:space-between;">
+            <span>🏷️ <strong>Coupon ${offerInfo.offer.code}</strong>: ${offerInfo.offer.subtitle}</span>
+            <button class="btn btn-sm btn-text" style="font-size:11px; font-weight:700; padding:2px 8px; min-height:auto;" onclick="CustomerModule.copyCoupon('${offerInfo.offer.code}')">Use Code</button>
+          </div>
+        ` : ''}
+
+        <!-- Product Attributes Chips -->
+        ${p.attributes && p.attributes.length > 0 ? `
+          <div style="margin-bottom:14px;">
+            ${p.attributes.map(att => `<span class="product-detail-badge-pill">🌿 ${att}</span>`).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Sold By Banner -->
+        <div class="seller-info-banner">
+          <div class="seller-name-row">
+            <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:26px;">storefront</span>
+            <div>
+              <span style="font-size:11px; color:var(--color-text-secondary);">Sold by</span>
+              <div style="font-size:13px; font-weight:700; color:var(--color-text-primary); display:flex; align-items:center; gap:4px;">
+                ${p.storeName}
+                <span class="material-symbols-rounded verified-badge">check_circle</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="CustomerModule.viewPublicStore('${p.entrepreneurId}')">
+            View Store →
+          </button>
+        </div>
+
+        <!-- Quantity Stepper -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:14px;">
+          <span style="font-size:13px; font-weight:600; color:var(--color-text-primary);">Quantity</span>
+          <div class="quantity-stepper">
+            <button class="stepper-btn" onclick="CustomerModule.adjustDetailQty(-1, ${p.stock})">-</button>
+            <span class="stepper-value" id="detail-qty-val">${this.activeDetailQty}</span>
+            <button class="stepper-btn" onclick="CustomerModule.adjustDetailQty(1, ${p.stock})">+</button>
+          </div>
+        </div>
+
+        <!-- Dynamic Customization Options Configured by Entrepreneur -->
+        ${p.customizationFields && p.customizationFields.length > 0 ? `
+          <div class="card" style="padding:14px; margin-bottom:14px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:10px;">
+              🛠 Customization Options
+            </h4>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              ${p.customizationFields.map((f, idx) => `
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">${f.name} ${f.required ? '<span class="req">*</span>' : ''}</label>
+                  ${f.type === 'select' ? `
+                    <select class="form-select custom-field-input" data-field="${f.name}" onchange="CustomerModule.onCustomFieldChange('${f.name}', this.value)">
+                      <option value="">Select ${f.name}</option>
+                      ${f.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                    </select>
+                  ` : `
+                    <input type="text" class="form-input custom-field-input" data-field="${f.name}" placeholder="${f.placeholder || 'Enter ' + f.name}" oninput="CustomerModule.onCustomFieldChange('${f.name}', this.value)">
+                  `}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Delivery Information Configured by Entrepreneur -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">
+            📍 Delivery Information
+          </h4>
+          <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px;">
+            Deliver to: <strong>${(store.getSelectedAddress() && store.getSelectedAddress().label) || 'Home'}</strong>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+            ${(p.deliveryMethod && p.deliveryMethod.homeDelivery) ? `
+              <div style="display:flex; align-items:center; gap:6px; color:var(--color-primary); font-weight:600;">
+                <span class="material-symbols-rounded" style="font-size:18px;">local_shipping</span>
+                Home Delivery: ₹${p.deliveryMethod.deliveryCharge || 30} • Estimated: ${p.deliveryMethod.estimatedDelivery || 'Today before 5:30 PM'}
+              </div>
+            ` : ''}
+            ${(p.deliveryMethod && p.deliveryMethod.pickup) ? `
+              <div style="display:flex; align-items:center; gap:6px; color:var(--color-secondary); font-weight:600;">
+                <span class="material-symbols-rounded" style="font-size:18px;">store</span>
+                🏪 Pickup Available (No delivery charge)
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:6px;">Description</h4>
+          <p style="font-size:13px; color:var(--color-text-secondary); line-height:1.5;">
+            ${p.description}
+          </p>
+        </div>
+
+        <!-- Specifications -->
+        ${p.specifications && Object.keys(p.specifications).length > 0 ? `
+          <div class="card" style="padding:14px; margin-bottom:14px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">Specifications</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:12px;">
+              ${Object.entries(p.specifications).map(([k, v]) => `
+                <div><span style="color:var(--color-text-tertiary);">${k}:</span> <strong>${v}</strong></div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- After-Sales Support Box -->
+        <div class="after-sales-box">
+          <div class="after-sales-title">
+            <span class="material-symbols-rounded">verified_user</span>
+            After-Sales Support
+          </div>
+          <div class="after-sales-grid">
+            <div class="after-sales-item">
+              <span class="material-symbols-rounded" style="font-size:16px; color:var(--color-primary);">
+                ${(p.afterSales && p.afterSales.type.indexOf('Replacement') !== -1) ? 'check_circle' : 'cancel'}
+              </span>
+              <span>Replacement: <strong>${(p.afterSales && p.afterSales.type.indexOf('Replacement') !== -1) ? 'Available' : 'No'}</strong></span>
+            </div>
+            <div class="after-sales-item">
+              <span class="material-symbols-rounded" style="font-size:16px; color:var(--color-primary);">
+                ${(p.afterSales && p.afterSales.type.indexOf('Return') !== -1) ? 'check_circle' : 'cancel'}
+              </span>
+              <span>Refund: <strong>${(p.afterSales && p.afterSales.type.indexOf('Return') !== -1) ? 'Available' : 'No'}</strong></span>
+            </div>
+            <div class="after-sales-item">
+              <span class="material-symbols-rounded" style="font-size:16px; color:var(--color-secondary);">assignment_return</span>
+              <span>Return Required: <strong>${(p.afterSales && p.afterSales.returnRequired) ? 'Yes' : 'No'}</strong></span>
+            </div>
+            <div class="after-sales-item">
+              <span class="material-symbols-rounded" style="font-size:16px; color:var(--color-secondary);">schedule</span>
+              <span>Window: <strong>${(p.afterSales && p.afterSales.supportWindow) || '3 Days'}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Verified Reviews Section -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary);">Customer Reviews (${reviews.length})</h4>
+            <span style="font-size:12px; font-weight:700; color:var(--color-text-accent);">⭐ ${p.rating} / 5</span>
+          </div>
+
+          ${reviews.length === 0 ? `
+            <p style="font-size:12px; color:var(--color-text-tertiary); font-style:italic;">No customer reviews yet. Be the first verified buyer to review!</p>
+          ` : `
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${reviews.slice(0, 2).map(r => `
+                <div style="border-bottom:1px solid #F0EEE4; padding-bottom:8px;">
+                  <div style="display:flex; justify-content:space-between; font-size:12px;">
+                    <strong>${r.customerName}</strong>
+                    <span style="color:var(--color-accent); font-weight:700;">⭐ ${r.rating}</span>
+                  </div>
+                  <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">"${r.comment}"</p>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- You May Also Like Section -->
+        ${relatedProducts.length > 0 ? `
+          <div class="section-header-row" style="margin-top:14px;">
+            <h3 class="section-header-title">You May Also Like</h3>
+          </div>
+          <div class="two-column-product-grid">
+            ${relatedProducts.slice(0, 2).map(rp => this.renderProductCard(rp)).join('')}
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Fixed Bottom Purchase Actions -->
+      <div class="fixed-bottom-action">
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="CustomerModule.handleAddToCart('${p.id}', false)" ${!isStoreOpen ? 'disabled' : ''}>
+            <span class="material-symbols-rounded">add_shopping_cart</span>
+            Add to Cart
+          </button>
+          <button class="btn btn-primary" style="flex:1;" onclick="CustomerModule.handleAddToCart('${p.id}', true)" ${!isStoreOpen ? 'disabled' : ''}>
+            <span class="material-symbols-rounded">bolt</span>
+            Buy Now
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  setCarouselIndex(idx) {
+    this.carouselActiveIndex = idx;
+    AppRouter.renderActiveScreen();
+  },
+
+  adjustDetailQty(delta, stock) {
+    let next = this.activeDetailQty + delta;
+    if (next < 1) next = 1;
+    if (next > stock) {
+      AppUtils.showToast(`Only ${stock} items in stock.`);
+      return;
+    }
+    this.activeDetailQty = next;
+    const el = document.getElementById('detail-qty-val');
+    if (el) el.textContent = next;
+  },
+
+  onCustomFieldChange(fieldName, val) {
+    this.activeDetailCustomization[fieldName] = val;
+  },
+
+  handleAddToCart(productId, buyNow = false) {
+    const p = store.getProductById(productId);
+    if (!p) return;
+
+    // Validate required custom fields
+    if (p.customizationFields && p.customizationFields.length > 0) {
+      for (const f of p.customizationFields) {
+        if (f.required && !this.activeDetailCustomization[f.name]) {
+          AppUtils.showToast(`Please select/enter "${f.name}" before proceeding.`);
+          return;
+        }
+      }
+    }
+
+    const res = store.addToCart(productId, this.activeDetailQty, this.activeDetailCustomization);
+    if (res.success) {
+      if (buyNow) {
+        AppRouter.navigate('screen-customer-checkout', { directProductId: productId });
+      } else {
+        AppUtils.showToast(`Added ${this.activeDetailQty} to Cart!`);
+      }
+    }
+  },
+
+  openReportModal(productId) {
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-error); margin-bottom:8px;">
+        🚩 Report Product
+      </h3>
+      <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:12px;">
+        Help keep Maneyinda Marukatte safe and trustworthy. Reports are audited directly by our Admin.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Reason for Report</label>
+        <select id="report-reason-sel" class="form-select">
+          <option value="Inappropriate Content">Inappropriate Content</option>
+          <option value="Misleading Information">Misleading Information</option>
+          <option value="Prohibited Item">Prohibited Item</option>
+          <option value="Wrong Category">Wrong Category</option>
+          <option value="Other Policy Violation">Other Policy Violation</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (Optional)</label>
+        <textarea id="report-desc-input" class="form-textarea" placeholder="Provide any details..."></textarea>
+      </div>
+      <button class="btn btn-danger btn-block" onclick="CustomerModule.submitProductReport('${productId}')">
+        Submit Report to Admin
+      </button>
+    `);
+  },
+
+  submitProductReport(productId) {
+    const p = store.getProductById(productId);
+    const reason = document.getElementById('report-reason-sel').value;
+    if (p) {
+      p.reportsCount = (p.reportsCount || 0) + 1;
+      store.data.reportedProducts.push({
+        productId: p.id,
+        productName: p.name,
+        storeName: p.storeName,
+        reportsCount: p.reportsCount,
+        reason,
+        status: 'reported',
+        adminActionReason: ''
+      });
+      store.addActivityLog(`Customer reported product: ${p.name} (${reason})`);
+      store.saveData();
+    }
+    AppUtils.closeBottomSheet();
+    AppUtils.showToast('Report submitted for Admin review.');
+  },
+
+  // -------------------------------------------------------------
+  // REUSABLE PUBLIC ENTREPRENEUR STORE SCREEN
+  // -------------------------------------------------------------
+  renderPublicStore(params) {
+    const ent = store.getEntrepreneurById(params.entrepreneurId);
+    if (!ent) return `<div class="screen-content">Store not found</div>`;
+
+    const products = store.getProducts({ entrepreneurId: ent.id, activeOnly: true });
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">${ent.businessName}</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        <!-- Store Banner -->
+        <div class="card" style="padding:16px; margin-bottom:14px; text-align:center;">
+          <div style="width:64px; height:64px; border-radius:50%; background:var(--color-soft-yellow); color:var(--color-primary); display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;">
+            <span class="material-symbols-rounded" style="font-size:36px;">storefront</span>
+          </div>
+
+          <h3 style="font-size:18px; font-weight:700; color:var(--color-text-primary); display:flex; align-items:center; justify-content:center; gap:6px;">
+            ${ent.businessName}
+            <span class="material-symbols-rounded verified-badge">check_circle</span>
+          </h3>
+
+          <div style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">
+            Owned by <strong>${ent.name}</strong> • ${ent.businessCategory}
+          </div>
+
+          <div style="margin:8px 0; display:flex; justify-content:center; gap:8px;">
+            <span class="chip-badge" style="font-size:11px; padding:3px 10px;">⭐ ${ent.badge || 'Verified Seller'}</span>
+            <span class="status-chip ${ent.isStoreOpen ? 'chip-delivered' : 'chip-warning'}" style="font-size:11px; padding:3px 10px;">
+              ${ent.isStoreOpen ? '🟢 Open Now' : '🟠 Store Closed'}
+            </span>
+          </div>
+
+          <p style="font-size:12px; color:var(--color-text-secondary); line-height:1.45; margin-top:8px;">
+            "${ent.about || 'Homemade local products prepared with utmost care.'}"
+          </p>
+        </div>
+
+        <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary); margin-bottom:10px;">
+          Products from this Entrepreneur (${products.length})
+        </h4>
+
+        <div class="two-column-product-grid">
+          ${products.map(p => this.renderProductCard(p)).join('')}
+        </div>
+      </div>
+
+      ${this.renderBottomNav('home')}
+    `;
+  },
+
+  // -------------------------------------------------------------
+  // REUSABLE CATEGORY PRODUCT LISTING SCREEN
+  // -------------------------------------------------------------
+  renderCategoryListing(params) {
+    const cat = params.category;
+    const prods = store.getProducts({ category: cat, activeOnly: true });
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">${cat}</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:14px;">
+          Showing ${prods.length} homemade products in <strong>${cat}</strong>
+        </div>
+
+        ${prods.length === 0 ? `
+          <div class="empty-state">
+            <span class="material-symbols-rounded empty-state-icon">inventory_2</span>
+            <div class="empty-state-title">No products in this category</div>
+            <div class="empty-state-desc">Local entrepreneurs will be adding items here soon.</div>
+          </div>
+        ` : `
+          <div class="two-column-product-grid">
+            ${prods.map(p => this.renderProductCard(p)).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('home')}
+    `;
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: CUSTOMER WISHLIST MODULE
+  // -------------------------------------------------------------
+  renderWishlist() {
+    const list = store.getWishlist();
+    const prods = list.map(id => store.getProductById(id)).filter(Boolean);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">❤️ My Wishlist</span>
+        </div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-primary);">${prods.length} Items</span>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        ${prods.length === 0 ? `
+          <div class="empty-state" style="padding-top:60px;">
+            <div style="font-size:48px; margin-bottom:8px;">💔</div>
+            <div class="empty-state-title">Your Wishlist is Empty</div>
+            <div class="empty-state-desc">Save products you like for later.</div>
+            <button class="btn btn-primary" onclick="AppRouter.navigate('screen-customer-home')" style="margin-top:16px;">
+              Continue Shopping
+            </button>
+          </div>
+        ` : `
+          <div class="two-column-product-grid">
+            ${prods.map(p => this.renderProductCard(p)).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('home')}
+    `;
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: CUSTOMER CART MODULE (FROZEN 1-ENTREPRENEUR RULE)
+  // -------------------------------------------------------------
+  renderCart() {
+    const cart = store.getCart();
+    const count = store.getCartCount();
+
+    // Group items by entrepreneur/store
+    const storeGroups = {};
+    cart.forEach(item => {
+      const p = store.getProductById(item.productId);
+      if (!p) return;
+      if (!storeGroups[p.entrepreneurId]) {
+        storeGroups[p.entrepreneurId] = {
+          storeName: p.storeName,
+          entrepreneurId: p.entrepreneurId,
+          deliveryInfo: p.deliveryMethod,
+          items: []
+        };
+      }
+      storeGroups[p.entrepreneurId].items.push({ ...item, product: p });
+    });
+
+    // Default selection: if none selected, auto-select all items of the FIRST entrepreneur
+    if (this.selectedCartItemKeys.length === 0 && Object.keys(storeGroups).length > 0) {
+      const firstEntId = Object.keys(storeGroups)[0];
+      this.selectedCartItemKeys = storeGroups[firstEntId].items.map(i => `${i.productId}|${JSON.stringify(i.customization || {})}`);
+    }
+
+    // Calculate Order Summary for selected items
+    let selectedSubtotal = 0;
+    let selectedDelivery = 0;
+    let activeEntrepreneurId = null;
+
+    cart.forEach(item => {
+      const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+      if (this.selectedCartItemKeys.includes(key)) {
+        const p = store.getProductById(item.productId);
+        if (p) {
+          selectedSubtotal += p.price * item.qty;
+          activeEntrepreneurId = p.entrepreneurId;
+          selectedDelivery = (p.deliveryMethod && p.deliveryMethod.homeDelivery) ? (p.deliveryMethod.deliveryCharge || 30) : 0;
+        }
+      }
+    });
+
+    const grandTotal = selectedSubtotal + selectedDelivery;
+    const canCheckout = this.selectedCartItemKeys.length > 0 && selectedSubtotal > 0;
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">My Cart</span>
+        </div>
+        <span style="font-size:12px; font-weight:600; color:var(--color-primary);">${count} Items</span>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 20px;">
+        ${cart.length === 0 ? `
+          <div class="empty-state" style="padding-top:60px;">
+            <span class="material-symbols-rounded empty-state-icon">remove_shopping_cart</span>
+            <div class="empty-state-title">Your Cart is Empty</div>
+            <div class="empty-state-desc">Add products from local entrepreneurs to start shopping.</div>
+            <button class="btn btn-primary" onclick="AppRouter.navigate('screen-customer-home')" style="margin-top:16px;">
+              Continue Shopping
+            </button>
+          </div>
+        ` : `
+          <!-- Notice regarding 1 entrepreneur rule -->
+          <div style="font-size:11px; color:var(--color-text-secondary); background:#F4F7EE; border-left:3px solid var(--color-primary); padding:6px 10px; border-radius:4px; margin-bottom:12px;">
+            💡 <strong>Hyperlocal Rule:</strong> You can checkout products from one entrepreneur per order to ensure fresh local handling.
+          </div>
+
+          <!-- Store Groups -->
+          ${Object.values(storeGroups).map(group => {
+            const ent = store.getEntrepreneurById(group.entrepreneurId);
+            const isStoreOpen = ent ? ent.isStoreOpen : true;
+
+            return `
+              <div class="cart-store-group">
+                <div class="cart-store-header">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:20px;">storefront</span>
+                    <strong style="font-size:14px; color:var(--color-text-primary);">${group.storeName}</strong>
+                    <span class="material-symbols-rounded verified-badge">check_circle</span>
+                  </div>
+                  ${!isStoreOpen ? `
+                    <span class="status-chip chip-warning" style="font-size:10px;">Store Closed</span>
+                  ` : ''}
+                </div>
+
+                ${!isStoreOpen ? `
+                  <div style="font-size:11px; color:#C62828; margin-bottom:8px;">
+                    🟠 Store Closed: Orders are currently unavailable. ${(ent && ent.openingSchedule) || ''}
+                  </div>
+                ` : ''}
+
+                <!-- Items inside this store group -->
+                ${group.items.map(item => {
+                  const p = item.product;
+                  const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+                  const isChecked = this.selectedCartItemKeys.includes(key);
+
+                  return `
+                    <div class="cart-item-row">
+                      <input type="checkbox" class="cart-item-checkbox" ${isChecked ? 'checked' : ''} onchange="CustomerModule.handleCartItemCheck('${p.id}', '${escape(JSON.stringify(item.customization || {}))}', '${p.entrepreneurId}', this.checked)">
+                      
+                      <img src="${p.images[0] || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200'}" class="cart-item-thumb" alt="${p.name}">
+
+                      <div class="cart-item-details">
+                        <div style="font-size:13px; font-weight:700; color:var(--color-text-primary); line-height:1.3;">
+                          ${p.name}
+                        </div>
+                        <div style="font-size:13px; font-weight:700; color:var(--color-primary);">
+                          ₹${p.price}
+                        </div>
+
+                        ${item.customization && Object.keys(item.customization).length > 0 ? `
+                          <div style="font-size:11px; color:var(--color-secondary); font-style:italic;">
+                            ${Object.entries(item.customization).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                          </div>
+                        ` : ''}
+
+                        <div class="cart-item-actions">
+                          <div class="quantity-stepper" style="height:32px;">
+                            <button class="stepper-btn" style="width:30px; height:30px;" onclick="CustomerModule.updateCartQuantity('${p.id}', ${item.qty - 1}, '${escape(JSON.stringify(item.customization || {}))}')">-</button>
+                            <span class="stepper-value" style="font-size:12px;">${item.qty}</span>
+                            <button class="stepper-btn" style="width:30px; height:30px;" onclick="CustomerModule.updateCartQuantity('${p.id}', ${item.qty + 1}, '${escape(JSON.stringify(item.customization || {}))}', ${p.stock})">+</button>
+                          </div>
+
+                          <div style="display:flex; gap:8px;">
+                            <button class="btn btn-sm btn-text" style="padding:2px 6px; font-size:11px;" onclick="CustomerModule.moveCartItemToWishlist('${p.id}', '${escape(JSON.stringify(item.customization || {}))}')">
+                              ❤️ Wishlist
+                            </button>
+                            <button class="btn btn-sm btn-text" style="color:var(--color-error); padding:2px 6px; font-size:11px;" onclick="CustomerModule.removeCartItem('${p.id}', '${escape(JSON.stringify(item.customization || {}))}')">
+                              🗑 Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `;
+          }).join('')}
+
+          <!-- Sticky Bottom Summary for currently selected items -->
+          <div class="cart-sticky-summary">
+            <div class="order-summary-row">
+              <span>Subtotal (${this.selectedCartItemKeys.length} items)</span>
+              <span>₹${selectedSubtotal}</span>
+            </div>
+            <div class="order-summary-row">
+              <span>Estimated Delivery</span>
+              <span>₹${selectedDelivery}</span>
+            </div>
+            <div class="order-summary-row total-row">
+              <span>Total</span>
+              <span>₹${grandTotal}</span>
+            </div>
+
+            <button class="btn btn-primary btn-block" ${!canCheckout ? 'disabled' : ''} onclick="CustomerModule.proceedToCheckout()">
+              Proceed to Checkout
+              <span class="material-symbols-rounded">arrow_forward</span>
+            </button>
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('cart')}
+    `;
+  },
+
+  handleCartItemCheck(productId, custStrEscaped, entrepreneurId, isChecked) {
+    const custStr = unescape(custStrEscaped);
+    const key = `${productId}|${custStr}`;
+
+    // Verify if other selected items belong to a different entrepreneur
+    if (isChecked) {
+      const cart = store.getCart();
+      const otherSelectedEnts = [];
+
+      this.selectedCartItemKeys.forEach(k => {
+        const [pId] = k.split('|');
+        const p = store.getProductById(pId);
+        if (p && p.entrepreneurId !== entrepreneurId) {
+          otherSelectedEnts.push(p.storeName);
+        }
+      });
+
+      if (otherSelectedEnts.length > 0) {
+        AppUtils.showToast('Please place separate orders for products from different entrepreneurs.');
+        // Reset checkbox
+        AppRouter.renderActiveScreen();
+        return;
+      }
+
+      if (!this.selectedCartItemKeys.includes(key)) {
+        this.selectedCartItemKeys.push(key);
+      }
+    } else {
+      this.selectedCartItemKeys = this.selectedCartItemKeys.filter(k => k !== key);
+    }
+
+    AppRouter.renderActiveScreen();
+  },
+
+  updateCartQuantity(productId, newQty, custStrEscaped, maxStock = 99) {
+    const cust = JSON.parse(unescape(custStrEscaped));
+    if (newQty > maxStock) {
+      AppUtils.showToast(`Only ${maxStock} items available in stock.`);
+      return;
+    }
+    store.updateCartQty(productId, newQty, cust);
+    AppRouter.renderActiveScreen();
+  },
+
+  moveCartItemToWishlist(productId, custStrEscaped) {
+    const cust = JSON.parse(unescape(custStrEscaped));
+    store.removeFromCart(productId, cust);
+    store.toggleWishlist(productId);
+    AppUtils.showToast('Moved to Wishlist');
+    AppRouter.renderActiveScreen();
+  },
+
+  removeCartItem(productId, custStrEscaped) {
+    const cust = JSON.parse(unescape(custStrEscaped));
+    store.removeFromCart(productId, cust);
+    const key = `${productId}|${JSON.stringify(cust)}`;
+    this.selectedCartItemKeys = this.selectedCartItemKeys.filter(k => k !== key);
+    AppUtils.showToast('Removed from Cart');
+    AppRouter.renderActiveScreen();
+  },
+
+  proceedToCheckout() {
+    AppRouter.navigate('screen-customer-checkout');
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: CHECKOUT & PAYMENT MODULE
+  // -------------------------------------------------------------
+  renderCheckout(params = {}) {
+    const selAddr = store.getSelectedAddress();
+    const cart = store.getCart();
+
+    // Collect items for this checkout
+    let checkoutItems = [];
+    if (params.directProductId) {
+      const p = store.getProductById(params.directProductId);
+      if (p) {
+        checkoutItems = [{
+          product: p,
+          qty: 1,
+          customization: CustomerModule.activeDetailCustomization
+        }];
+      }
+    } else {
+      cart.forEach(item => {
+        const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+        if (CustomerModule.selectedCartItemKeys.includes(key)) {
+          const p = store.getProductById(item.productId);
+          if (p) checkoutItems.push({ ...item, product: p });
+        }
+      });
+    }
+
+    if (checkoutItems.length === 0) {
+      return `
+        <div class="screen-content content-centered">
+          <p>No products selected for checkout.</p>
+          <button class="btn btn-primary" onclick="AppRouter.navigate('screen-customer-cart')">Return to Cart</button>
+        </div>
+      `;
+    }
+
+    const firstProduct = checkoutItems[0].product;
+    const ent = store.getEntrepreneurById(firstProduct.entrepreneurId);
+    const subtotal = checkoutItems.reduce((sum, i) => sum + (i.product.price * i.qty), 0);
+    const deliveryCharge = (firstProduct.deliveryMethod && firstProduct.deliveryMethod.homeDelivery) ? (firstProduct.deliveryMethod.deliveryCharge || 30) : 0;
+    const discountAmount = CustomerModule.appliedCoupon ? CustomerModule.appliedCoupon.discountAmount : 0;
+    const grandTotal = Math.max(0, subtotal - discountAmount + deliveryCharge);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-cart')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Checkout</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 90px;">
+        <!-- Single Entrepreneur Badge -->
+        <div style="background:#F4F7EE; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-rounded" style="color:var(--color-primary);">storefront</span>
+          <div>
+            <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);">${firstProduct.storeName}</div>
+            <div style="font-size:11px; color:var(--color-text-secondary);">One order • Dedicated local packaging</div>
+          </div>
+        </div>
+
+        <!-- Delivery Address Card -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary);">📍 Delivery Address</h4>
+            <button class="btn btn-sm btn-text" onclick="AppRouter.navigate('screen-customer-address-book')">Change Address</button>
+          </div>
+          ${selAddr ? `
+            <div style="font-size:13px; font-weight:600; color:var(--color-text-primary);">${selAddr.label}</div>
+            <div style="font-size:12px; color:var(--color-text-secondary); line-height:1.4; margin-top:2px;">
+              ${selAddr.door}, ${selAddr.street}, ${selAddr.area}, ${selAddr.city} - ${selAddr.pincode}
+            </div>
+          ` : `
+            <button class="btn btn-sm btn-outline" onclick="AppRouter.navigate('screen-customer-address-book')">+ Add Delivery Address</button>
+          `}
+        </div>
+
+        <!-- Delivery Method Option -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">Delivery Method</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+              <input type="radio" name="chk-del-method" value="Home Delivery" checked style="accent-color:var(--color-primary);" onchange="CustomerModule.onDeliveryMethodChange(true, ${subtotal}, ${deliveryCharge})">
+              🚚 Home Delivery (₹${deliveryCharge})
+            </label>
+            ${(firstProduct.deliveryMethod && firstProduct.deliveryMethod.pickup) ? `
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                <input type="radio" name="chk-del-method" value="Pickup" style="accent-color:var(--color-primary);" onchange="CustomerModule.onDeliveryMethodChange(false, ${subtotal}, ${deliveryCharge})">
+                🏪 Store Pickup (Free)
+              </label>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Selected Products List -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:10px;">Selected Products (${checkoutItems.length})</h4>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${checkoutItems.map(item => `
+              <div style="display:flex; gap:10px; align-items:center;">
+                <img src="${item.product.images[0] || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200'}" style="width:48px; height:48px; border-radius:var(--radius-sm); object-fit:cover;">
+                <div style="flex:1;">
+                  <div style="font-size:13px; font-weight:600; color:var(--color-text-primary);">${item.product.name}</div>
+                  <div style="font-size:12px; color:var(--color-text-secondary);">Qty: ${item.qty} × ₹${item.product.price}</div>
+                  ${item.customization && Object.keys(item.customization).length > 0 ? `
+                    <div style="font-size:11px; color:var(--color-secondary); font-style:italic;">
+                      ${Object.entries(item.customization).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                    </div>
+                  ` : ''}
+                </div>
+                <div style="font-size:13px; font-weight:700; color:var(--color-primary);">₹${item.product.price * item.qty}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Order Note (Optional) -->
+        <div class="form-group">
+          <label class="form-label">Order Note (Optional)</label>
+          <input type="text" id="checkout-order-note" class="form-input" placeholder="e.g. Please leave at door, or pack tightly...">
+        </div>
+
+        <!-- Promo Code & Coupon Section -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="font-size:18px;">local_offer</span>
+              Coupons & Offers
+            </h4>
+            ${CustomerModule.appliedCoupon ? `
+              <button class="btn btn-sm btn-text" style="color:var(--color-error); font-size:11px; padding:2px 6px; min-height:auto;" onclick="CustomerModule.removeCoupon()">Remove</button>
+            ` : ''}
+          </div>
+
+          ${CustomerModule.appliedCoupon ? `
+            <div class="applied-coupon-pill">
+              <div>
+                <span class="coupon-code-badge">${CustomerModule.appliedCoupon.code}</span>
+                <span style="font-size:12px; font-weight:700; color:#2E7D32; margin-left:6px;">
+                  Saved ₹${CustomerModule.appliedCoupon.discountAmount}!
+                </span>
+                <div style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">
+                  ${CustomerModule.appliedCoupon.title}
+                </div>
+              </div>
+              <span class="material-symbols-rounded" style="color:#2E7D32; font-size:22px;">check_circle</span>
+            </div>
+          ` : `
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="coupon-code-input" class="form-input" placeholder="Enter code (e.g. WELCOME10)" style="text-transform:uppercase; font-weight:700; font-size:12px; padding:8px 12px;" value="${CustomerModule.presetCouponCode || ''}">
+              <button class="btn btn-primary btn-sm" onclick="CustomerModule.applyCoupon()" style="padding:0 16px; white-space:nowrap; min-height:40px;">Apply</button>
+            </div>
+            <div class="available-coupon-chips" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('WELCOME10')">🎁 WELCOME10</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('CAKE15')">🧁 CAKE15</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('CRAFT20')">🧵 CRAFT20</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('TIFFIN10')">🍱 TIFFIN10</span>
+              <span class="coupon-quick-chip" onclick="CustomerModule.quickFillCoupon('WEEKEND50')">🛍️ WEEKEND50</span>
+            </div>
+          `}
+        </div>
+
+        <!-- Payment Method -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">Payment Method</h4>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <label class="selectable-card selected" id="pay-mode-card-online" style="margin:0; padding:10px;" onclick="CustomerModule.selectPayMode('Online Payment')">
+              <input type="radio" name="pay-mode" id="pay-radio-online" checked style="accent-color:var(--color-primary);">
+              <div>
+                <strong style="font-size:13px;">Online Payment (UPI, Cards, NetBanking)</strong>
+                <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">Fast, contactless and secure settlement</p>
+              </div>
+            </label>
+
+            <label class="selectable-card" id="pay-mode-card-cod" style="margin:0; padding:10px;" onclick="CustomerModule.selectPayMode('Cash on Delivery')">
+              <input type="radio" name="pay-mode" id="pay-radio-cod" style="accent-color:var(--color-primary);">
+              <div>
+                <strong style="font-size:13px;">Cash on Delivery (COD)</strong>
+                <p style="font-size:11px; color:var(--color-text-secondary); margin-top:2px;">Pay upon delivery to the partner</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="card" style="padding:14px; margin-bottom:14px;">
+          <div class="order-summary-row">
+            <span>Subtotal</span>
+            <span>₹${subtotal}</span>
+          </div>
+          <div class="order-summary-row" style="margin:4px 0;">
+            <span>Delivery Charge</span>
+            <span id="checkout-del-charge-val">₹${deliveryCharge}</span>
+          </div>
+          ${CustomerModule.appliedCoupon && CustomerModule.appliedCoupon.discountAmount > 0 ? `
+            <div class="order-summary-row discount-amount-row" style="margin:4px 0;">
+              <span>Discount (${CustomerModule.appliedCoupon.code})</span>
+              <span>-₹${CustomerModule.appliedCoupon.discountAmount}</span>
+            </div>
+          ` : ''}
+          <div class="order-summary-row total-row">
+            <span>Total Amount</span>
+            <span id="checkout-grand-total-val" style="color:var(--color-primary);">₹${grandTotal}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticky Place Order Button -->
+      <div class="fixed-bottom-action">
+        <button id="checkout-place-btn" class="btn btn-primary btn-block" onclick="CustomerModule.handleExecuteOrder('${firstProduct.entrepreneurId}', ${subtotal}, ${deliveryCharge})">
+          <span class="material-symbols-rounded" style="font-size:18px;">lock</span>
+          Pay Now • ₹<span id="btn-total-val">${grandTotal}</span>
+        </button>
+      </div>
+    `;
+  },
+
+  onDeliveryMethodChange(isHome, subtotal, baseDel) {
+    const del = isHome ? baseDel : 0;
+    const disc = this.appliedCoupon ? this.appliedCoupon.discountAmount : 0;
+    const total = Math.max(0, subtotal - disc + del);
+    const delEl = document.getElementById('checkout-del-charge-val');
+    const totEl = document.getElementById('checkout-grand-total-val');
+    const btnTot = document.getElementById('btn-total-val');
+    if (delEl) delEl.textContent = `₹${del}`;
+    if (totEl) totEl.textContent = `₹${total}`;
+    if (btnTot) btnTot.textContent = `${total}`;
+  },
+
+  copyCoupon(code) {
+    this.presetCouponCode = code;
+    AppUtils.showToast(`Coupon ${code} copied!`);
+  },
+
+  quickFillCoupon(code) {
+    const input = document.getElementById('coupon-code-input');
+    if (input) input.value = code;
+    this.presetCouponCode = code;
+    this.applyCoupon();
+  },
+
+  async applyCoupon() {
+    const input = document.getElementById('coupon-code-input');
+    const code = (input ? input.value : this.presetCouponCode || '').trim();
+    if (!code) {
+      AppUtils.showToast('Please enter a coupon code.');
+      return;
+    }
+
+    const cart = store.getCart();
+    const user = store.getUser() || {};
+    let checkoutItems = [];
+    cart.forEach(item => {
+      const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+      if (this.selectedCartItemKeys.includes(key)) {
+        const p = store.getProductById(item.productId);
+        if (p) checkoutItems.push({ productId: p.id, qty: item.qty, price: p.price, category: p.category });
+      }
+    });
+    if (checkoutItems.length === 0 && cart.length > 0) {
+      checkoutItems = cart.map(i => {
+        const p = store.getProductById(i.productId);
+        return { productId: i.productId, qty: i.qty, price: p ? p.price : 0, category: p ? p.category : '' };
+      });
+    }
+
+    const subtotal = checkoutItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+
+    const res = await window.apiClient.validateCoupon(code, checkoutItems, subtotal, user.id);
+    if (res && res.valid) {
+      this.appliedCoupon = {
+        code: res.code,
+        title: res.title,
+        discountAmount: res.discountAmount
+      };
+      AppUtils.showToast(res.message || `Coupon "${res.code}" applied!`);
+      AppRouter.renderActiveScreen();
+    } else {
+      AppUtils.showToast((res && res.message) || 'Invalid coupon code or condition not met.');
+    }
+  },
+
+  removeCoupon() {
+    this.appliedCoupon = null;
+    this.presetCouponCode = '';
+    AppUtils.showToast('Coupon removed.');
+    AppRouter.renderActiveScreen();
+  },
+
+  selectPayMode(mode) {
+    const isOnline = mode === 'Online Payment';
+    document.getElementById('pay-radio-online').checked = isOnline;
+    document.getElementById('pay-radio-cod').checked = !isOnline;
+    document.getElementById('pay-mode-card-online').classList.toggle('selected', isOnline);
+    document.getElementById('pay-mode-card-cod').classList.toggle('selected', !isOnline);
+  },
+
+  async handleExecuteOrder(entrepreneurId, subtotal, baseDeliveryCharge) {
+    const isOnline = document.getElementById('pay-radio-online').checked;
+    const delChecked = document.querySelector('input[name="chk-del-method"]:checked');
+    const isHome = delChecked ? delChecked.value === 'Home Delivery' : true;
+    const deliveryCharge = isHome ? baseDeliveryCharge : 0;
+    const discountAmount = CustomerModule.appliedCoupon ? CustomerModule.appliedCoupon.discountAmount : 0;
+    const grandTotal = Math.max(0, subtotal - discountAmount + deliveryCharge);
+    const noteEl = document.getElementById('checkout-order-note');
+    const note = noteEl ? noteEl.value : '';
+    const selAddr = store.getSelectedAddress();
+    const user = store.getUser() || {};
+    const ent = store.getEntrepreneurById(entrepreneurId) || {};
+
+    if (!selAddr) {
+      AppUtils.showToast('Please add or select a delivery address.');
+      return;
+    }
+
+    // Anti-duplicate protection: Disable submit button during processing
+    const placeBtn = document.getElementById('checkout-place-btn');
+    if (placeBtn) {
+      placeBtn.disabled = true;
+      placeBtn.innerHTML = '<span style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:8px;"></span> Securing Order...';
+    }
+
+    const restoreButton = () => {
+      if (placeBtn) {
+        placeBtn.disabled = false;
+        placeBtn.innerHTML = `<span class="material-symbols-rounded" style="font-size:18px;">lock</span> Pay Now • ₹<span id="btn-total-val">${grandTotal}</span>`;
+      }
+    };
+
+    // Build items payload from cart
+    const cart = store.getCart();
+    let itemsPayload = [];
+    cart.forEach(item => {
+      const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+      if (CustomerModule.selectedCartItemKeys.includes(key)) {
+        itemsPayload.push({
+          productId: item.productId,
+          qty: item.qty,
+          customization: item.customization || null
+        });
+      }
+    });
+
+    // Fallback: If selectedCartItemKeys was empty, take all items in cart for this seller
+    if (itemsPayload.length === 0 && cart.length > 0) {
+      cart.forEach(item => {
+        const p = store.getProductById(item.productId);
+        if (p && (!entrepreneurId || p.entrepreneurId === entrepreneurId)) {
+          itemsPayload.push({
+            productId: item.productId,
+            qty: item.qty,
+            customization: item.customization || null
+          });
+        }
+      });
+    }
+
+    if (itemsPayload.length === 0) {
+      AppUtils.showToast('No items found in cart. Please return to cart and select products.');
+      restoreButton();
+      return;
+    }
+
+    if (isOnline) {
+      // Ensure Razorpay SDK script is loaded
+      if (typeof window.Razorpay === 'undefined') {
+        try {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        } catch (e) {
+          console.warn('[PAYMENT] Razorpay script loading issue:', e);
+        }
+      }
+
+      // Default Key ID from user's account
+      let keyId = 'rzp_test_TsQLb79rNRq4zF';
+      let rzpOrderId = null;
+      let internalOrderId = null;
+
+      if (window.apiClient && window.apiClient.isOnline) {
+        AppUtils.showBottomSheet(`
+          <div style="text-align:center; padding:20px 0;">
+            <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
+            <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Opening Razorpay Gateway...</h4>
+            <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Setting up secure UPI / Card / NetBanking session</p>
+          </div>
+        `);
+
+        try {
+          const orderRes = await window.apiClient.createPaymentOrder({
+            items: itemsPayload,
+            customerId: user.id,
+            customerName: user.name,
+            customerPhone: user.phone,
+            deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
+            deliveryAddress: selAddr,
+            orderNote: note,
+            entrepreneurId,
+            couponCode: CustomerModule.appliedCoupon ? CustomerModule.appliedCoupon.code : null
+          });
+
+          if (orderRes && orderRes.success) {
+            keyId = orderRes.keyId || keyId;
+            rzpOrderId = orderRes.razorpayOrderId;
+            internalOrderId = orderRes.orderId;
+          }
+        } catch (err) {
+          console.warn('[PAYMENT] Server order creation error:', err);
+        }
+
+        AppUtils.closeBottomSheet();
+      }
+
+      // Open Razorpay Checkout Modal
+      if (typeof window.Razorpay !== 'undefined') {
+        const options = {
+          key: keyId,
+          amount: Math.round(grandTotal * 100),
+          currency: 'INR',
+          name: 'Maneyindha Marukatte',
+          description: `Order from ${ent.businessName || 'Local Artisan'}`,
+          prefill: {
+            name: user.name || 'Valued Customer',
+            email: user.email || 'customer@example.com',
+            contact: user.phone || '9876543210'
+          },
+          theme: {
+            color: '#8B4513'
+          },
+          handler: async (rzpResp) => {
+            AppUtils.showBottomSheet(`
+              <div style="text-align:center; padding:20px 0;">
+                <div style="width:48px; height:48px; border:4px solid var(--color-border); border-top-color:var(--color-primary); border-radius:50%; margin:0 auto 16px auto; animation:spin 0.8s linear infinite;"></div>
+                <h4 style="font-size:16px; font-weight:700; color:var(--color-text-primary);">Verifying Payment...</h4>
+                <p style="font-size:12px; color:var(--color-text-secondary); margin-top:4px;">Securing transaction confirmation</p>
+              </div>
+            `);
+
+            let isVerified = true;
+            let finalOrderId = internalOrderId;
+
+            if (window.apiClient && window.apiClient.isOnline && internalOrderId) {
+              try {
+                const verifyRes = await window.apiClient.verifyPaymentSignature({
+                  razorpay_order_id: rzpResp.razorpay_order_id || rzpOrderId,
+                  razorpay_payment_id: rzpResp.razorpay_payment_id,
+                  razorpay_signature: rzpResp.razorpay_signature,
+                  orderId: internalOrderId
+                });
+                isVerified = Boolean(verifyRes && verifyRes.success && verifyRes.verified);
+              } catch (e) {
+                console.warn('[PAYMENT] Verification call warning:', e);
+              }
+            }
+
+            AppUtils.closeBottomSheet();
+
+            if (isVerified) {
+              AppUtils.showToast('Payment verified successfully!');
+              CustomerModule.selectedCartItemKeys = [];
+              itemsPayload.forEach(it => {
+                store.removeFromCart(it.productId, it.customization);
+              });
+
+              if (!finalOrderId) {
+                const newOrder = store.createOrder({
+                  customerId: user.id,
+                  customerName: user.name,
+                  customerPhone: user.phone,
+                  entrepreneurId: ent.id,
+                  storeName: ent.businessName,
+                  items: itemsPayload.map(i => {
+                    const p = store.getProductById(i.productId);
+                    return { ...p, qty: i.qty };
+                  }),
+                  deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
+                  deliveryAddress: selAddr,
+                  orderNote: note,
+                  paymentMethod: 'Razorpay UPI / Online',
+                  paymentStatus: 'Paid',
+                  razorpayPaymentId: rzpResp.razorpay_payment_id,
+                  totalAmount: grandTotal
+                });
+                finalOrderId = newOrder.id;
+              }
+
+              CustomerModule.appliedCoupon = null;
+              CustomerModule.presetCouponCode = '';
+              AppRouter.navigate('screen-order-success', { orderId: finalOrderId });
+            } else {
+              restoreButton();
+              AppRouter.navigate('screen-payment-failure', {
+                orderId: internalOrderId,
+                reason: 'Signature verification mismatch.',
+                subtotal,
+                baseDeliveryCharge,
+                entrepreneurId
+              });
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              restoreButton();
+              AppUtils.showToast('Payment window closed. Your cart is preserved.');
+            }
+          }
+        };
+
+        if (rzpOrderId) {
+          options.order_id = rzpOrderId;
+        }
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', (resp) => {
+          restoreButton();
+          AppRouter.navigate('screen-payment-failure', {
+            orderId: internalOrderId,
+            reason: (resp.error && resp.error.description) || 'Payment was declined or timed out.',
+            subtotal,
+            baseDeliveryCharge,
+            entrepreneurId
+          });
+        });
+        rzp.open();
+        return;
+      } else {
+        restoreButton();
+        AppUtils.showToast('Could not open Razorpay window. Please check your internet connection.');
+        return;
+      }
+    } else {
+      // Cash on Delivery
+      this.completeOrderCreation({
+        entrepreneurId,
+        subtotal,
+        deliveryCharge,
+        grandTotal,
+        deliveryMethod: isHome ? 'Home Delivery' : 'Pickup',
+        deliveryAddress: selAddr,
+        orderNote: note,
+        paymentMethod: 'Cash on Delivery',
+        paymentStatus: 'Pending'
+      });
+    }
+  },
+
+    completeOrderCreation(orderPayload) {
+    const user = store.getUser();
+    const ent = store.getEntrepreneurById(orderPayload.entrepreneurId);
+
+    // Build items payload
+    const cart = store.getCart();
+    const items = [];
+    cart.forEach(item => {
+      const key = `${item.productId}|${JSON.stringify(item.customization || {})}`;
+      if (CustomerModule.selectedCartItemKeys.includes(key)) {
+        const p = store.getProductById(item.productId);
+        if (p) {
+          items.push({
+            productId: p.id,
+            name: p.name,
+            price: p.price,
+            qty: item.qty,
+            customization: item.customization,
+            image: p.images[0],
+            afterSales: p.afterSales
+          });
+        }
+      }
+    });
+
+    const payload = {
+      customerId: user.id,
+      customerName: user.name,
+      customerPhone: user.phone,
+      entrepreneurId: ent.id,
+      storeName: ent.businessName,
+      items,
+      expectedDelivery: 'Today before 6:30 PM',
+      ...orderPayload
+    };
+
+    CustomerModule.appliedCoupon = null;
+    CustomerModule.presetCouponCode = '';
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.createOrder(payload).then(res => {
+        if (!res.success) {
+          AppUtils.showToast(res.message || 'Could not place order.');
+          return;
+        }
+        CustomerModule.selectedCartItemKeys = [];
+        const orderId = (res.data && res.data.id) ? res.data.id : 'ORD-1001';
+        AppRouter.navigate('screen-order-success', { orderId });
+      }).catch(() => {
+        const newOrder = store.createOrder(payload);
+        CustomerModule.selectedCartItemKeys = [];
+        AppRouter.navigate('screen-order-success', { orderId: newOrder.id });
+      });
+    } else {
+      const newOrder = store.createOrder(payload);
+      CustomerModule.selectedCartItemKeys = [];
+      AppRouter.navigate('screen-order-success', { orderId: newOrder.id });
+    }
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: ORDER PLACED SUCCESSFULLY
+  // -------------------------------------------------------------
+  renderPaymentFailure(params) {
+    const orderId = (params && params.orderId) || '';
+    const reason = (params && params.reason) || 'The payment was not completed or was declined by the bank.';
+    const subtotal = (params && params.subtotal) || 0;
+    const baseDeliveryCharge = (params && params.baseDeliveryCharge) || 0;
+    const entrepreneurId = (params && params.entrepreneurId) || '';
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-checkout')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Payment Unsuccessful</span>
+        </div>
+      </div>
+
+      <div class="screen-content content-centered" style="padding-top: 30px;">
+        <div style="width:72px; height:72px; border-radius:50%; background:#FFEBEE; color:var(--color-error); display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;">
+          <span class="material-symbols-rounded" style="font-size:44px;">error</span>
+        </div>
+
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--color-error); margin-bottom: 6px;">
+          Payment Incomplete
+        </h2>
+        <p style="font-size: 13px; color: var(--color-text-secondary); max-width: 300px; line-height: 1.45; margin-bottom: 20px;">
+          ${reason}
+        </p>
+
+        <div class="card" style="width: 100%; max-width: 320px; padding: 14px; margin-bottom: 20px; text-align: left;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size: 11px; color: var(--color-text-secondary); text-transform:uppercase;">Reference Order</div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--color-text-primary); margin-top: 2px;">#${orderId || 'PENDING'}</div>
+            </div>
+            <span class="chip-pending" style="font-size:11px; font-weight:700;">Unpaid</span>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 8px; line-height:1.4;">
+            Your cart is safe and preserved. No money was debited. You can retry with Razorpay (UPI, Card, NetBanking) or choose Cash on Delivery.
+          </p>
+        </div>
+
+        <div style="width: 100%; max-width: 320px; display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-customer-checkout')">
+            <span class="material-symbols-rounded">refresh</span>
+            Retry Payment
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="AppRouter.navigate('screen-customer-cart')">
+            Return to Cart
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  renderOrderSuccess(params) {
+    const o = store.getOrderById(params.orderId) || store.getOrders()[0];
+    return `
+      <div class="screen-content content-centered" style="padding-top: 30px;">
+        <div style="width: 200px; height: 160px; margin-bottom: 12px;">
+          ${AppIllustrations.orderSuccess}
+        </div>
+
+        <h2 style="font-size: 22px; font-weight: 700; color: var(--color-primary); margin-bottom: 4px;">
+          Order Placed Successfully!
+        </h2>
+        <span class="status-chip chip-accepted" style="font-size:12px; margin-bottom:14px;">
+          Order ID: ${o ? o.id : '#ORD-12345'}
+        </span>
+
+        <p style="font-size: 13px; color: var(--color-text-secondary); max-width: 280px; line-height: 1.45; margin-bottom: 24px;">
+          Your order from <strong>${o ? o.storeName : "Anita's Bakery"}</strong> is confirmed. You will receive updates as your order is prepared.
+        </p>
+
+        <div style="width: 100%; max-width: 320px; display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-customer-order-details', { orderId: '${o ? o.id : ''}' })">
+            View Order Details
+          </button>
+          <button class="btn btn-secondary btn-block" onclick="AppRouter.navigate('screen-customer-home')">
+            Continue Shopping
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: MY ORDERS & ORDER DETAILS (WITH TIMELINE & AFTER-SALES)
+  // -------------------------------------------------------------
+  renderMyOrders() {
+    const user = store.getUser();
+    const orders = store.getOrders({ customerId: user.id });
+    const tab = this.selectedOrderTab;
+
+    let filtered = orders;
+    if (tab === 'active') {
+      filtered = orders.filter(o => ['new', 'accepted', 'preparing', 'out for delivery', 'ready for pickup'].includes(o.orderStatus.toLowerCase()));
+    } else if (tab === 'completed') {
+      filtered = orders.filter(o => o.orderStatus.toLowerCase() === 'delivered');
+    } else if (tab === 'cancelled') {
+      filtered = orders.filter(o => o.orderStatus.toLowerCase() === 'cancelled');
+    }
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">My Orders</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 6px; padding-bottom: 70px;">
+        <!-- Filter Tabs -->
+        <div class="filter-chip-row">
+          <button class="filter-chip ${tab === 'active' ? 'active' : ''}" onclick="CustomerModule.setOrderTab('active')">Active</button>
+          <button class="filter-chip ${tab === 'completed' ? 'active' : ''}" onclick="CustomerModule.setOrderTab('completed')">Completed</button>
+          <button class="filter-chip ${tab === 'cancelled' ? 'active' : ''}" onclick="CustomerModule.setOrderTab('cancelled')">Cancelled</button>
+        </div>
+
+        ${filtered.length === 0 ? `
+          <div class="empty-state" style="padding-top:60px;">
+            <span class="material-symbols-rounded empty-state-icon">package_2</span>
+            <div class="empty-state-title">No ${tab.toUpperCase()} Orders</div>
+            <div class="empty-state-desc">Your orders will appear here as they progress.</div>
+            <button class="btn btn-primary" onclick="AppRouter.navigate('screen-customer-home')" style="margin-top:16px;">
+              Start Shopping
+            </button>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${filtered.map(o => `
+              <div class="order-card card-clickable" onclick="AppRouter.navigate('screen-customer-order-details', { orderId: '${o.id}' })">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                  <div>
+                    <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary);">${o.id}</h4>
+                    <span style="font-size:12px; color:var(--color-text-secondary);">${o.storeName} ✓</span>
+                  </div>
+                  <span class="status-chip ${AppUtils.getStatusChipClass(o.orderStatus)}">
+                    ${o.orderStatus}
+                  </span>
+                </div>
+
+                <div style="font-size:12px; color:var(--color-text-secondary); margin:4px 0;">
+                  ${o.items.length} Item(s) • Total: <strong style="color:var(--color-primary);">₹${o.grandTotal}</strong>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #F0EEE4; padding-top:8px;">
+                  <span style="font-size:11px; color:var(--color-text-tertiary);">Expected: ${o.expectedDelivery || 'Today'}</span>
+                  <div style="display:flex; gap:6px;">
+                    ${o.orderStatus === 'Delivered' ? `
+                      <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); AppRouter.navigate('screen-customer-rate-review', { orderId: '${o.id}' })">
+                        ${o.reviewSubmitted ? 'View Review' : 'Write Review'}
+                      </button>
+                    ` : ''}
+                    <button class="btn btn-sm btn-outline">View Details</button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('orders')}
+    `;
+  },
+
+  setOrderTab(tab) {
+    this.selectedOrderTab = tab;
+    AppRouter.renderActiveScreen();
+  },
+
+  renderCustomerOrderDetails(params) {
+    const o = store.getOrderById(params.orderId);
+    if (!o) return `<div class="screen-content">Order not found</div>`;
+
+    const isHome = o.deliveryMethod.includes('Home');
+    const s = o.orderStatus.toLowerCase();
+    const canCancel = ['new', 'accepted'].includes(s);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-orders')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Order ${o.id}</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 80px;">
+        <!-- Header Info -->
+        <div class="card" style="padding:14px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between;">
+            <div>
+              <h4 style="font-size:14px; font-weight:700;">Order ID: ${o.id}</h4>
+              <span style="font-size:12px; color:var(--color-text-secondary);">${o.date} • Sold by <strong>${o.storeName} ✓</strong></span>
+            </div>
+            <span class="status-chip ${AppUtils.getStatusChipClass(o.orderStatus)}">${o.orderStatus}</span>
+          </div>
+        </div>
+
+        <!-- Visual Timeline -->
+        <div class="card" style="padding:14px; margin-bottom:12px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">Status Timeline</h4>
+          ${this.renderVisualTimeline(o.orderStatus, isHome)}
+        </div>
+
+        <!-- Items Ordered (Historical Preservation) -->
+        <div class="card" style="padding:14px; margin-bottom:12px;">
+          <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:10px;">Items Ordered (${o.items.length})</h4>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${o.items.map(item => `
+              <div style="display:flex; gap:10px; align-items:center; cursor:pointer;" onclick="AppRouter.navigate('screen-customer-product-details', { productId: '${item.productId}' })">
+                <img src="${item.image || 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200'}" style="width:48px; height:48px; border-radius:var(--radius-sm); object-fit:cover;">
+                <div style="flex:1;">
+                  <div style="font-size:13px; font-weight:600; color:var(--color-text-primary);">${item.name}</div>
+                  <div style="font-size:12px; color:var(--color-text-secondary);">Qty: ${item.qty} × ₹${item.price}</div>
+                  ${item.customization && Object.keys(item.customization).length > 0 ? `
+                    <div style="font-size:11px; color:var(--color-secondary);">
+                      ${Object.entries(item.customization).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                    </div>
+                  ` : ''}
+                </div>
+                <div style="font-size:13px; font-weight:700; color:var(--color-primary);">₹${item.price * item.qty}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Delivery & Payment Information -->
+        <div class="card" style="padding:14px; margin-bottom:12px;">
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase;">Delivery Address</div>
+            <div style="font-size:12px; color:var(--color-text-primary); line-height:1.4; margin-top:2px;">
+              ${o.deliveryAddress ? `${o.deliveryAddress.door}, ${o.deliveryAddress.street}, ${o.deliveryAddress.area}, ${o.deliveryAddress.city} - ${o.deliveryAddress.pincode}` : 'Store Pickup'}
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-top:1px solid #F0EEE4; padding-top:8px; font-size:12px;">
+            <span>Payment Method: <strong>${o.paymentMethod}</strong></span>
+            <span>Status: <strong style="color:var(--color-success);">${o.paymentStatus}</strong></span>
+          </div>
+        </div>
+
+        <!-- Cancellation Section Rule -->
+        ${canCancel ? `
+          <button class="btn btn-danger-outline btn-block" style="margin-bottom:12px;" onclick="CustomerModule.confirmCancelOrder('${o.id}')">
+            Cancel Order
+          </button>
+        ` : s === 'preparing' || s === 'out for delivery' ? `
+          <div style="font-size:11px; color:var(--color-text-secondary); background:#FAF7EC; padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:12px;">
+            ℹ This order cannot be cancelled because preparation has already started.
+          </div>
+        ` : ''}
+
+        <!-- After-Sales / Return & Replacement (If Delivered) -->
+        ${s === 'delivered' ? `
+          <div class="card" style="padding:14px; margin-bottom:12px;">
+            <h4 style="font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">After-Sales Support</h4>
+            ${o.refundRequest ? `
+              <div class="status-chip chip-warning" style="margin-bottom:8px;">Refund Status: ${o.refundRequest.status}</div>
+              <p style="font-size:12px; color:var(--color-text-secondary);">Reason: "${o.refundRequest.reason}"</p>
+              ${o.refundRequest.returnRequired ? `
+                <div style="font-size:11px; color:var(--color-warning); background:#FFF8E1; padding:6px 10px; border-radius:var(--radius-sm); margin-top:6px;">
+                  ⚠️ Return Required: Please return product to courier or entrepreneur.
+                </div>
+              ` : ''}
+            ` : o.replacementRequest ? `
+              <div class="status-chip chip-accepted" style="margin-bottom:8px;">Replacement Status: ${o.replacementRequest.status}</div>
+              <p style="font-size:12px; color:var(--color-text-secondary);">Reason: "${o.replacementRequest.reason}"</p>
+            ` : `
+              <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:10px;">
+                Support Window: Eligible until ${o.supportWindowExpiresDate || '3 days after delivery'}.
+              </p>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-sm btn-outline" style="flex:1;" onclick="CustomerModule.openAfterSalesForm('${o.id}', 'refund')">
+                  Request Refund
+                </button>
+                <button class="btn btn-sm btn-outline" style="flex:1;" onclick="CustomerModule.openAfterSalesForm('${o.id}', 'replacement')">
+                  Request Replacement
+                </button>
+              </div>
+            `}
+          </div>
+
+          <button class="btn btn-secondary btn-block" onclick="AppRouter.navigate('screen-customer-rate-review', { orderId: '${o.id}' })">
+            ${o.reviewSubmitted ? '⭐ View / Edit Your Review' : '⭐ Write a Review'}
+          </button>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  renderVisualTimeline(status, isHome) {
+    const s = status.toLowerCase();
+    const steps = isHome 
+      ? ['Order Confirmed', 'Preparing', 'Out for Delivery', 'Delivered']
+      : ['Order Confirmed', 'Preparing', 'Ready for Pickup', 'Delivered'];
+
+    let activeIdx = 0;
+    if (s === 'accepted' || s === 'new') activeIdx = 0;
+    if (s === 'preparing') activeIdx = 1;
+    if (s === 'out for delivery' || s === 'ready for pickup') activeIdx = 2;
+    if (s === 'delivered') activeIdx = 3;
+
+    return `
+      <div class="order-status-timeline">
+        <div class="timeline-track-line"></div>
+        ${steps.map((label, idx) => `
+          <div class="timeline-step ${idx < activeIdx ? 'completed' : idx === activeIdx ? 'active' : ''}">
+            <div class="timeline-dot">
+              ${idx < activeIdx ? '✓' : idx === activeIdx ? '●' : '○'}
+            </div>
+            <span class="timeline-label">${label}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  confirmCancelOrder(orderId) {
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-error); margin-bottom:8px;">Cancel Order?</h3>
+      <p style="font-size:13px; color:var(--color-text-secondary); margin-bottom:16px;">Are you sure you want to cancel this order?</p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="AppUtils.closeBottomSheet()">Keep Order</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="CustomerModule.executeCancelOrder('${orderId}')">Cancel Order</button>
+      </div>
+    `);
+  },
+
+  executeCancelOrder(orderId) {
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.cancelOrder(orderId).then(res => {
+        if (!res.success) {
+          AppUtils.showToast(res.message || 'Cannot cancel this order.');
+          return;
+        }
+        AppUtils.closeBottomSheet();
+        AppUtils.showToast('Order cancelled and stock restored.');
+        AppRouter.renderActiveScreen();
+      }).catch(() => {
+        store.updateOrderStatus(orderId, 'Cancelled');
+        AppUtils.closeBottomSheet();
+        AppUtils.showToast('Order cancelled.');
+        AppRouter.renderActiveScreen();
+      });
+    } else {
+      store.updateOrderStatus(orderId, 'Cancelled');
+      const o = store.getOrderById(orderId);
+      if (o && o.paymentMethod === 'Online Payment') {
+        o.paymentStatus = 'Refund Completed';
+      }
+      AppUtils.closeBottomSheet();
+      AppUtils.showToast('Order cancelled.');
+      AppRouter.renderActiveScreen();
+    }
+  },
+
+  openAfterSalesForm(orderId, type) {
+    const isRefund = type === 'refund';
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:8px;">
+        Request ${isRefund ? 'Refund' : 'Replacement'}
+      </h3>
+      <div class="form-group">
+        <label class="form-label">Select Reason <span class="req">*</span></label>
+        <select id="as-reason" class="form-select">
+          <option value="Product damaged in transit">Product damaged in transit</option>
+          <option value="Wrong item received">Wrong item received</option>
+          <option value="Quality issue / Not fresh">Quality issue / Not fresh</option>
+          <option value="Packaging seal was broken">Packaging seal was broken</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description <span class="req">*</span></label>
+        <textarea id="as-desc" class="form-textarea" placeholder="Explain the problem..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Upload Photo (Proof)</label>
+        <div class="doc-upload-box" onclick="AppUtils.showToast('Photo attached')">
+          <span class="material-symbols-rounded" style="color:var(--color-primary);">add_a_photo</span>
+          <span style="font-size:11px; display:block; margin-top:2px;">Tap to attach photo</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="CustomerModule.submitAfterSalesRequest('${orderId}', '${type}')">
+        Submit Request
+      </button>
+    `);
+  },
+
+  submitAfterSalesRequest(orderId, type) {
+    const reason = document.getElementById('as-reason').value;
+    const desc = document.getElementById('as-desc').value.trim();
+    if (!desc) {
+      AppUtils.showToast('Please provide a description.');
+      return;
+    }
+
+    const o = store.getOrderById(orderId);
+    if (!o) return;
+
+    const aiEval = AppAI.evaluateAfterSalesRequest(o, type, reason, desc);
+    const firstItem = o.items && o.items[0];
+    const reqObj = {
+      reason,
+      description: desc,
+      status: 'Pending',
+      aiSuggestion: aiEval.recommendation + ' - ' + aiEval.rationale,
+      returnRequired: (firstItem && firstItem.afterSales && firstItem.afterSales.returnRequired) || false,
+      returnStatus: 'None'
+    };
+
+    if (type === 'refund') {
+      o.refundRequest = reqObj;
+    } else {
+      o.replacementRequest = reqObj;
+    }
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.request(`/orders/${orderId}/after-sales`, {
+        method: 'POST',
+        body: JSON.stringify({
+          type,
+          reason,
+          description: desc,
+          photos: []
+        })
+      });
+    }
+
+    // Notify entrepreneur
+    store.addNotification({
+      userId: o.entrepreneurId,
+      role: 'entrepreneur',
+      title: `New ${type === 'refund' ? 'Refund' : 'Replacement'} Request`,
+      message: `${o.customerName} requested ${type} for ${o.id}.`,
+      type: 'refund',
+      targetScreen: 'orders',
+      targetId: o.id
+    });
+
+    store.saveData();
+    AppUtils.closeBottomSheet();
+    AppUtils.showToast('Request submitted to entrepreneur.');
+    AppRouter.renderActiveScreen();
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: RATE & REVIEW MODULE
+  // -------------------------------------------------------------
+  renderRateReview(params) {
+    const o = store.getOrderById(params.orderId);
+    if (!o) return `<div class="screen-content">Order not found</div>`;
+
+    const existingRev = store.data.reviews.find(r => r.orderId === o.id);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-order-details', { orderId: '${o.id}' })">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Rate & Review</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 14px;">
+        <div class="card" style="padding:14px; margin-bottom:16px;">
+          <h4 style="font-size:14px; font-weight:700; color:var(--color-primary);">${(o.items && o.items[0] && o.items[0].name) || 'Purchased Item'}</h4>
+          <span style="font-size:12px; color:var(--color-text-secondary);">${o.storeName} • ${o.id}</span>
+        </div>
+
+        <div style="text-align:center; margin-bottom:20px;">
+          <label class="form-label" style="justify-content:center; margin-bottom:8px;">Overall Rating <span class="req">*</span></label>
+          <div id="star-picker" style="display:flex; justify-content:center; gap:8px;">
+            ${[1, 2, 3, 4, 5].map(star => `
+              <span class="material-symbols-rounded" style="font-size:36px; color:var(--color-accent); cursor:pointer;" onclick="CustomerModule.setRatingValue(${star})" data-star="${star}">
+                ${star <= (existingRev ? existingRev.rating : 5) ? 'star' : 'star_border'}
+              </span>
+            `).join('')}
+          </div>
+          <input type="hidden" id="rev-rating-val" value="${existingRev ? existingRev.rating : 5}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Write Your Review <span class="req">*</span></label>
+          <textarea id="rev-text" class="form-textarea" placeholder="Share your experience with the taste, packaging, and handmade freshness...">${existingRev ? existingRev.comment : ''}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Add Photos (Up to 3, Optional)</label>
+          <div class="doc-upload-box" onclick="AppUtils.showToast('Photo added to review!')">
+            <span class="material-symbols-rounded" style="color:var(--color-primary);">add_photo_alternate</span>
+            <span style="font-size:11px; display:block;">Tap to upload product photo</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="CustomerModule.submitReview('${o.id}', '${(o.items && o.items[0] && o.items[0].productId) || ''}')">
+          Submit Review
+          <span class="material-symbols-rounded">check</span>
+        </button>
+
+        ${existingRev ? `
+          <button class="btn btn-danger-outline btn-block" style="margin-top:10px;" onclick="CustomerModule.deleteMyReview('${existingRev.id}', '${o.id}')">
+            Delete My Review
+          </button>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  setRatingValue(val) {
+    document.getElementById('rev-rating-val').value = val;
+    const stars = document.querySelectorAll('#star-picker span');
+    stars.forEach((s, idx) => {
+      s.textContent = idx < val ? 'star' : 'star_border';
+    });
+  },
+
+  submitReview(orderId, productId) {
+    const rating = parseInt(document.getElementById('rev-rating-val').value, 10);
+    const comment = document.getElementById('rev-text').value.trim();
+
+    if (!comment) {
+      AppUtils.showToast('Please write your review feedback.');
+      return;
+    }
+
+    const user = store.getUser();
+    const revPayload = {
+      orderId,
+      productId,
+      customerId: user.id,
+      customerName: user.name,
+      rating,
+      comment
+    };
+
+    store.addReview(revPayload);
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.submitReview(revPayload);
+    }
+
+    AppUtils.showToast('Thank you! Review published.');
+    AppRouter.navigate('screen-customer-order-details', { orderId });
+  },
+
+  deleteMyReview(reviewId, orderId) {
+    store.deleteReview(reviewId);
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.deleteReview(reviewId);
+    }
+    AppUtils.showToast('Review removed.');
+    AppRouter.navigate('screen-customer-order-details', { orderId });
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: NOTIFICATIONS
+  // -------------------------------------------------------------
+  renderNotifications() {
+    const user = store.getUser();
+    const notifs = store.getNotifications(user.id, 'customer');
+
+    // Group chronologically
+    const groups = { Today: [], Yesterday: [], 'Last Week': [] };
+    notifs.forEach(n => {
+      const g = n.timeGroup || 'Today';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(n);
+    });
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Notifications</span>
+        </div>
+        ${notifs.length > 0 ? `
+          <button class="btn btn-text btn-sm" onclick="CustomerModule.clearAllNotifications()">Clear All</button>
+        ` : ''}
+      </div>
+
+      <div class="screen-content" style="padding-top: 6px; padding-bottom: 70px;">
+        <!-- Active Promotional Announcements & Deals -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11.5px; font-weight:700; color:var(--color-primary); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px;">
+            🎉 Promotional Announcements
+          </div>
+          ${store.getAnnouncements().map(a => `
+            <div class="card" style="padding:12px; margin-bottom:8px; border-left:3.5px solid var(--color-primary); ${a.isRead ? 'opacity:0.85;' : 'background:#FAFDF6;'}">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                <span style="font-size:12.5px; font-weight:700; color:var(--color-text-primary);">${a.title}</span>
+                <span class="status-chip chip-delivered" style="font-size:9px; padding:2px 6px;">${a.badge}</span>
+              </div>
+              <p style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.4; margin-bottom:8px;">${a.message}</p>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:10px; color:var(--color-text-tertiary);">${a.date}</span>
+                <div style="display:flex; gap:6px;">
+                  ${a.offerCode ? `
+                    <button class="btn btn-sm btn-secondary" style="font-size:10.5px; padding:3px 10px; min-height:auto;" onclick="CustomerModule.applyAnnouncementCoupon('${a.id}', '${a.offerCode}')">
+                      Apply ${a.offerCode}
+                    </button>
+                  ` : ''}
+                  ${!a.isRead ? `
+                    <button class="btn btn-sm btn-text" style="font-size:10.5px; padding:3px 6px; min-height:auto;" onclick="CustomerModule.markAnnouncementAsRead('${a.id}')">
+                      Mark read
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${notifs.length === 0 ? `
+          <div class="empty-state" style="padding-top:60px;">
+            <span class="material-symbols-rounded empty-state-icon">notifications_off</span>
+            <div class="empty-state-title">No Notifications Yet</div>
+            <div class="empty-state-desc">We'll notify you about your order milestones and delivery updates.</div>
+          </div>
+        ` : `
+          ${Object.entries(groups).map(([groupTitle, items]) => {
+            if (items.length === 0) return '';
+            return `
+              <div class="notif-group-title">${groupTitle}</div>
+              ${items.map(n => `
+                <div class="notif-item-card ${!n.isRead ? 'unread' : ''}" onclick="CustomerModule.handleNotificationClick('${n.id}', '${n.targetScreen}', '${n.targetId}')">
+                  ${!n.isRead ? '<div class="unread-indicator-dot"></div>' : ''}
+                  <div style="flex:1;">
+                    <div style="font-size:13px; font-weight:700; color:var(--color-text-primary); margin-bottom:2px;">
+                      ${n.title}
+                    </div>
+                    <div style="font-size:12px; color:var(--color-text-secondary); line-height:1.4;">
+                      ${n.message}
+                    </div>
+                    <span style="font-size:10px; color:var(--color-text-tertiary); margin-top:4px; display:block;">
+                      ${n.timeFormatted}
+                    </span>
+                  </div>
+                  <button class="icon-action-btn" style="width:28px; height:28px;" onclick="event.stopPropagation(); CustomerModule.deleteNotification('${n.id}')">
+                    <span class="material-symbols-rounded" style="font-size:16px;">close</span>
+                  </button>
+                </div>
+              `).join('')}
+            `;
+          }).join('')}
+        `}
+      </div>
+
+      ${this.renderBottomNav('home')}
+    `;
+  },
+
+  handleNotificationClick(id, targetScreen, targetId) {
+    store.markNotificationRead(id);
+    if (targetScreen === 'order_details') {
+      AppRouter.navigate('screen-customer-order-details', { orderId: targetId });
+    } else if (targetScreen === 'rate_review') {
+      AppRouter.navigate('screen-customer-rate-review', { orderId: targetId });
+    } else {
+      AppRouter.navigate('screen-customer-orders');
+    }
+  },
+
+  deleteNotification(id) {
+    store.deleteNotification(id);
+    AppRouter.renderActiveScreen();
+  },
+
+  clearAllNotifications() {
+    store.clearAllNotifications('customer');
+    AppRouter.renderActiveScreen();
+  },
+
+  applyAnnouncementCoupon(announcementId, code) {
+    store.markAnnouncementRead(announcementId);
+    this.presetCouponCode = code;
+    AppUtils.showToast(`Coupon ${code} selected! Redirecting to shop...`);
+    AppRouter.navigate('screen-customer-search');
+  },
+
+  markAnnouncementAsRead(id) {
+    store.markAnnouncementRead(id);
+    AppRouter.renderActiveScreen();
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: CUSTOMER PROFILE & ADDRESS BOOK & HELP
+  // -------------------------------------------------------------
+  renderProfile() {
+    const user = store.getUser();
+    let ent = null;
+    if (user.entrepreneurId) {
+      ent = store.getEntrepreneurById(user.entrepreneurId);
+    } else {
+      ent = (store.data.entrepreneurs || []).find(e => e.email === user.email);
+    }
+
+    const isApproved = ent && ent.status === 'approved';
+    const isPending = ent && ent.status === 'pending';
+    const isRejected = ent && ent.status === 'rejected';
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-home')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Profile</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        <!-- Current Portal Mode Indicator -->
+        <div style="background:#E8F5E9; border:1px solid #C8E6C9; border-radius:var(--radius-md); padding:8px 12px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:18px;">shopping_basket</span>
+          <span style="font-size:12px; font-weight:700; color:var(--color-primary);">Current Mode: Customer Shopping Portal</span>
+        </div>
+
+        <!-- Header Info -->
+        <div class="card" style="display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:16px;">
+          <div style="width:64px; height:64px; border-radius:50%; background:#E8F5E9; color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <span class="material-symbols-rounded" style="font-size:38px;">person</span>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:700; color:var(--color-text-primary);">${user.name}</h3>
+            <span style="font-size:12px; color:var(--color-text-secondary);">${user.email}</span>
+            <div style="font-size:11px; color:var(--color-primary); font-weight:600; margin-top:2px;">📱 ${user.phone}</div>
+          </div>
+        </div>
+
+        <!-- Menu List (DO NOT DUPLICATE WISHLIST) -->
+        <div class="card" style="padding:4px; display:flex; flex-direction:column;">
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; cursor:pointer;" onclick="AppRouter.navigate('screen-customer-address-book')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">home_pin</span>
+              <span style="font-size:13px; font-weight:600;">📍 Address Book</span>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="AppRouter.navigate('screen-customer-notifications')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">notifications</span>
+              <span style="font-size:13px; font-weight:600;">🔔 Notifications</span>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="AppRouter.navigate('screen-customer-help-support')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">help_outline</span>
+              <span style="font-size:13px; font-weight:600;">❓ Help & Support</span>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+
+          <!-- DYNAMIC PROFILE ROLE SWITCHING (ZERO-LOGOUT PERMISSION CHECKED) -->
+          ${isApproved ? `
+            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#FAF7EC;" onclick="AppRouter.switchActiveRole('entrepreneur')">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:22px;">sync_alt</span>
+                <div>
+                  <div style="font-size:13px; font-weight:700; color:var(--color-primary);">🔄 Switch to Entrepreneur</div>
+                  <span style="font-size:11px; color:var(--color-text-secondary);">Manage ${ent.businessName}</span>
+                </div>
+              </div>
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">arrow_forward</span>
+            </div>
+          ` : isPending ? `
+            <div style="padding:14px; border-top:1px solid #F0EEE4; background:#FFFDE7;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <span class="material-symbols-rounded" style="color:#F57F17; font-size:18px;">hourglass_top</span>
+                <span style="font-size:12px; font-weight:700; color:#E65100;">Entrepreneur Application Under Review</span>
+              </div>
+              <p style="font-size:11px; color:var(--color-text-secondary); margin:0 0 8px 0; line-height:1.4;">
+                Your application for <strong>${ent.businessName}</strong> is pending administrative verification. Selling features will unlock immediately upon approval.
+              </p>
+              <button class="btn btn-sm btn-outline" onclick="AppRouter.navigate('screen-ent-reg-status')">Check Application Status</button>
+            </div>
+          ` : isRejected ? `
+            <div style="padding:14px; border-top:1px solid #F0EEE4; background:#FFEBEE;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <span class="material-symbols-rounded" style="color:#C62828; font-size:18px;">error</span>
+                <span style="font-size:12px; font-weight:700; color:#C62828;">Application Needs Revision</span>
+              </div>
+              <p style="font-size:11px; color:var(--color-text-secondary); margin:0 0 8px 0;">
+                ${ent.rejectionReason || 'Please update your verification documents.'}
+              </p>
+              <button class="btn btn-sm btn-danger-outline" onclick="AppRouter.navigate('screen-ent-rejected-correctable')">Update Documents</button>
+            </div>
+          ` : `
+            <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:14px; border-top:1px solid #F0EEE4; cursor:pointer; background:#F4F8EE;" onclick="AppRouter.navigate('screen-ent-reg-1')">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:22px;">storefront</span>
+                <div>
+                  <div style="font-size:13px; font-weight:700; color:var(--color-primary);">✨ Become an Entrepreneur</div>
+                  <span style="font-size:11px; color:var(--color-text-secondary);">Start selling your homemade & handmade creations</span>
+                </div>
+              </div>
+              <span class="material-symbols-rounded" style="color:var(--color-primary);">arrow_forward</span>
+            </div>
+          `}
+
+          <div class="card-clickable" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px solid #F0EEE4; cursor:pointer;" onclick="CustomerModule.confirmLogout()">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="material-symbols-rounded" style="color:var(--color-error);">logout</span>
+              <span style="font-size:13px; font-weight:600; color:var(--color-error);">🚪 Logout</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      ${this.renderBottomNav('profile')}
+    `;
+  },
+
+  confirmLogout() {
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-text-primary); margin-bottom:8px;">Logout</h3>
+      <p style="font-size:13px; color:var(--color-text-secondary); margin-bottom:16px;">Are you sure you want to log out of your account?</p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="AppUtils.closeBottomSheet()">Cancel</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="AppUtils.closeBottomSheet(); AppRouter.navigate('screen-welcome');">Logout</button>
+      </div>
+    `);
+  },
+
+  // -------------------------------------------------------------
+  // ADDRESS BOOK MODULE
+  // -------------------------------------------------------------
+  renderAddressBook() {
+    const list = store.getAddresses();
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-profile')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Address Book</span>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="CustomerModule.openAddAddressModal()">+ Add New</button>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        ${list.length === 0 ? `
+          <div class="empty-state">
+            <span class="material-symbols-rounded empty-state-icon">location_off</span>
+            <div class="empty-state-title">No Saved Addresses</div>
+            <div class="empty-state-desc">Add a delivery address for fast and easy checkout.</div>
+            <button class="btn btn-primary" onclick="CustomerModule.openAddAddressModal()" style="margin-top:14px;">+ Add Address</button>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${list.map(a => `
+              <div class="card" style="padding:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <strong style="font-size:14px; color:var(--color-primary);">${a.label}</strong>
+                  ${a.isDefault ? '<span class="status-chip chip-delivered" style="font-size:10px; padding:2px 8px;">● Default</span>' : ''}
+                </div>
+                <div style="font-size:12px; color:var(--color-text-secondary); line-height:1.4; margin-bottom:10px;">
+                  ${a.door}, ${a.street}, ${a.area}, ${a.city}, ${a.state} - ${a.pincode}
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-sm btn-outline" onclick="CustomerModule.openEditAddressModal('${a.id}')">Edit</button>
+                  <button class="btn btn-sm btn-danger-outline" onclick="CustomerModule.deleteAddress('${a.id}')">Delete</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('profile')}
+    `;
+  },
+
+  openAddAddressModal() {
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:12px;">+ Add Delivery Address</h3>
+      <div class="form-group">
+        <label class="form-label">Address Label (Home, Hostel, Office)</label>
+        <input type="text" id="new-addr-label" class="form-input" placeholder="Home" value="Home">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 2fr; gap:8px;">
+        <div class="form-group">
+          <label class="form-label">Door No.</label>
+          <input type="text" id="new-addr-door" class="form-input" placeholder="#12">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Street / Cross</label>
+          <input type="text" id="new-addr-street" class="form-input" placeholder="MG Road">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label class="form-label">Area</label>
+          <input type="text" id="new-addr-area" class="form-input" placeholder="Malleshwaram">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input type="text" id="new-addr-city" class="form-input" value="Bangalore">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input type="text" id="new-addr-state" class="form-input" value="Karnataka">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pincode (6 digits)</label>
+          <input type="text" id="new-addr-pin" class="form-input" maxlength="6" placeholder="560001">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="CustomerModule.saveNewAddress()">Save Address</button>
+    `);
+  },
+
+  saveNewAddress() {
+    const label = document.getElementById('new-addr-label').value.trim() || 'Home';
+    const door = document.getElementById('new-addr-door').value.trim();
+    const street = document.getElementById('new-addr-street').value.trim();
+    const area = document.getElementById('new-addr-area').value.trim();
+    const city = document.getElementById('new-addr-city').value.trim();
+    const state = document.getElementById('new-addr-state').value.trim();
+    const pin = document.getElementById('new-addr-pin').value.trim();
+
+    if (!door || !street || !area || pin.length !== 6) {
+      AppUtils.showToast('Please enter all fields and a 6-digit pincode.');
+      return;
+    }
+
+    store.addAddress({ label, door, street, area, city, state, pincode: pin });
+    AppUtils.closeBottomSheet();
+    AppUtils.showToast('Address added successfully.');
+    AppRouter.renderActiveScreen();
+  },
+
+  deleteAddress(id) {
+    store.deleteAddress(id);
+    AppUtils.showToast('Address deleted.');
+    AppRouter.renderActiveScreen();
+  },
+
+  // -------------------------------------------------------------
+  // HELP & SUPPORT (MANEYINDA AI GUIDE & SUPPORT TICKETS)
+  // -------------------------------------------------------------
+  renderHelpSupport() {
+    const user = store.getUser();
+    const tickets = store.getSupportTickets(user.id);
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-profile')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Help & Support</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
+        <!-- Card 1: Ask Maneyinda AI Guide -->
+        <div class="card card-clickable" style="padding:16px; margin-bottom:12px; cursor:pointer;" onclick="AppRouter.navigate('screen-customer-ai-guide')">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:48px; height:48px; border-radius:var(--radius-md); background:var(--color-soft-yellow); color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <span class="material-symbols-rounded" style="font-size:28px;">psychology</span>
+            </div>
+            <div style="flex:1;">
+              <h4 style="font-size:15px; font-weight:700; color:var(--color-text-primary);">🤖 Ask Maneyinda AI</h4>
+              <p style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">
+                Learn how to place orders, delivery rules, or become an entrepreneur.
+              </p>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Raise Support Ticket -->
+        <div class="card card-clickable" style="padding:16px; margin-bottom:16px; cursor:pointer;" onclick="CustomerModule.openRaiseTicketModal()">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:48px; height:48px; border-radius:var(--radius-md); background:#E1F5FE; color:var(--color-info); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <span class="material-symbols-rounded" style="font-size:28px;">confirmation_number</span>
+            </div>
+            <div style="flex:1;">
+              <h4 style="font-size:15px; font-weight:700; color:var(--color-text-primary);">📩 Raise Support Ticket</h4>
+              <p style="font-size:12px; color:var(--color-text-secondary); margin-top:2px;">
+                Report an account, payment, order issue, or appeal a refund.
+              </p>
+            </div>
+            <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">chevron_right</span>
+          </div>
+        </div>
+
+        <!-- My Support Tickets -->
+        <h4 style="font-size:14px; font-weight:700; color:var(--color-text-primary); margin-bottom:10px;">
+          🎫 My Support Tickets (${tickets.length})
+        </h4>
+
+        ${tickets.length === 0 ? `
+          <div style="font-size:12px; color:var(--color-text-tertiary); font-style:italic;">No support tickets created yet.</div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${tickets.map(t => `
+              <div class="card" style="padding:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <strong style="font-size:13px; color:var(--color-text-primary);">${t.id} • ${t.issueType}</strong>
+                  <span class="status-chip ${t.status === 'Resolved' ? 'chip-delivered' : t.status === 'In Progress' ? 'chip-accepted' : 'chip-warning'}" style="font-size:10px; padding:2px 8px;">
+                    ${t.status}
+                  </span>
+                </div>
+                <p style="font-size:12px; color:var(--color-text-secondary); margin-bottom:6px;">"${t.description}"</p>
+                ${t.adminNotes ? `
+                  <div style="font-size:11px; color:#1B5E20; background:#E8F5E9; padding:6px 10px; border-radius:var(--radius-sm); margin-top:4px;">
+                    <strong>Admin Note:</strong> ${t.adminNotes}
+                  </div>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      ${this.renderBottomNav('profile')}
+    `;
+  },
+
+  openRaiseTicketModal() {
+    AppUtils.showBottomSheet(`
+      <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:10px;">📩 Raise Support Ticket</h3>
+      <div class="form-group">
+        <label class="form-label">Issue Type <span class="req">*</span></label>
+        <select id="ticket-issue-type" class="form-select">
+          <option value="Payment Issue">Payment Issue</option>
+          <option value="Order Issue">Order Issue</option>
+          <option value="Refund Appeal">Refund Appeal</option>
+          <option value="Replacement Appeal">Replacement Appeal</option>
+          <option value="Account Issue">Account Issue</option>
+          <option value="Other Issue">Other Issue</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description <span class="req">*</span></label>
+        <textarea id="ticket-desc" class="form-textarea" placeholder="Describe the issue with relevant order/payment details..."></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="CustomerModule.submitSupportTicket()">
+        Submit Support Ticket
+      </button>
+    `);
+  },
+
+  submitSupportTicket() {
+    const issueType = document.getElementById('ticket-issue-type').value;
+    const desc = document.getElementById('ticket-desc').value.trim();
+    if (!desc) {
+      AppUtils.showToast('Please describe your issue.');
+      return;
+    }
+
+    const user = store.getUser();
+    const t = store.createSupportTicket({
+      customerId: user.id,
+      customerName: user.name,
+      customerPhone: user.phone,
+      issueType,
+      description: desc
+    });
+
+    if (window.apiClient && window.apiClient.isOnline) {
+      window.apiClient.request('/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: user.id,
+          customerName: user.name,
+          category: issueType,
+          subject: issueType,
+          description: desc
+        })
+      });
+    }
+
+    store.addActivityLog(`Customer raised new Support Ticket: ${t.id} (${issueType})`);
+    AppUtils.closeBottomSheet();
+    AppUtils.showToast(`Ticket ${t.id} created successfully.`);
+    AppRouter.renderActiveScreen();
+  },
+
+  // -------------------------------------------------------------
+  // SCREEN: MANEYINDA AI GUIDE (INTERACTIVE CHATBOT)
+  // -------------------------------------------------------------
+  renderAiGuide() {
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-customer-help-support')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Maneyinda AI Guide</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 10px; display:flex; flex-direction:column;">
+        <div class="ai-chat-thread" id="ai-chat-thread">
+          <div class="ai-bubble ai-bubble-assistant">
+            Namaskara! 🙏 I am your <strong>Maneyinda AI Guide</strong>.<br><br>
+            I can help guide you through placing orders, delivery radii, refund windows, or how to register as a woman entrepreneur. What would you like to know?
+          </div>
+        </div>
+
+        <!-- Quick Question Suggestions -->
+        <div class="ai-quick-questions">
+          <button class="ai-quick-btn" onclick="CustomerModule.sendAiQuery('How do I place an order?')">How do I place an order?</button>
+          <button class="ai-quick-btn" onclick="CustomerModule.sendAiQuery('How do I become an entrepreneur?')">How do I become an entrepreneur?</button>
+          <button class="ai-quick-btn" onclick="CustomerModule.sendAiQuery('How do I request a refund?')">How do I request a refund?</button>
+          <button class="ai-quick-btn" onclick="CustomerModule.sendAiQuery('How does delivery radius work?')">Delivery radius rules</button>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="fixed-bottom-action" style="flex-direction:row; align-items:center; gap:8px;">
+          <input type="text" id="ai-user-query" class="form-input" style="flex:1;" placeholder="Ask about app guidance..." onkeydown="if(event.key==='Enter') CustomerModule.sendAiQuery(this.value)">
+          <button class="btn btn-primary btn-sm" onclick="CustomerModule.sendAiQuery(document.getElementById('ai-user-query').value)">
+            <span class="material-symbols-rounded">send</span>
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  sendAiQuery(query) {
+    if (!query || !query.trim()) return;
+    const thread = document.getElementById('ai-chat-thread');
+    const input = document.getElementById('ai-user-query');
+    if (input) input.value = '';
+
+    // Append user message
+    thread.innerHTML += `
+      <div class="ai-bubble ai-bubble-user">
+        ${query}
+      </div>
+    `;
+
+    // Response from AI engine
+    const reply = AppAI.askCustomerGuide(query);
+    setTimeout(() => {
+      thread.innerHTML += `
+        <div class="ai-bubble ai-bubble-assistant">
+          ${reply.replace(/\n/g, '<br>')}
+        </div>
+      `;
+      thread.scrollTop = thread.scrollHeight;
+    }, 300);
+  },
+
+  renderBottomNav(activeItem) {
+    return `
+      <div class="bottom-nav-bar">
+        <button class="nav-item-btn ${activeItem === 'home' ? 'active' : ''}" onclick="AppRouter.navigate('screen-customer-home')">
+          <div class="nav-icon-wrapper">
+            <span class="material-symbols-rounded ${activeItem === 'home' ? 'icon-filled' : 'icon-outlined'}">home</span>
+          </div>
+          <span class="nav-label">Home</span>
+        </button>
+
+        <button class="nav-item-btn ${activeItem === 'cart' ? 'active' : ''}" onclick="AppRouter.navigate('screen-customer-cart')">
+          <div class="nav-icon-wrapper">
+            <span class="material-symbols-rounded ${activeItem === 'cart' ? 'icon-filled' : 'icon-outlined'}">shopping_cart</span>
+          </div>
+          <span class="nav-label">Cart</span>
+        </button>
+
+        <button class="nav-item-btn ${activeItem === 'orders' ? 'active' : ''}" onclick="AppRouter.navigate('screen-customer-orders')">
+          <div class="nav-icon-wrapper">
+            <span class="material-symbols-rounded ${activeItem === 'orders' ? 'icon-filled' : 'icon-outlined'}">local_mall</span>
+          </div>
+          <span class="nav-label">My Orders</span>
+        </button>
+
+        <button class="nav-item-btn ${activeItem === 'profile' ? 'active' : ''}" onclick="AppRouter.navigate('screen-customer-profile')">
+          <div class="nav-icon-wrapper">
+            <span class="material-symbols-rounded ${activeItem === 'profile' ? 'icon-filled' : 'icon-outlined'}">person</span>
+          </div>
+          <span class="nav-label">Profile</span>
+        </button>
+      </div>
+    `;
+  }
+};
