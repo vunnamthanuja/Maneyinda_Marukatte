@@ -53,13 +53,54 @@ module.exports = async (req, res) => {
     };
   }
 
+  // Debug route to verify deployment, headers, and static bundle
+  if (req.url.startsWith('/api/debug')) {
+    let staticBundle = null;
+    try { staticBundle = require('./static-bundle.json'); } catch (e) {}
+    return res.status(200).json({
+      success: true,
+      deployment: '6e21354+',
+      url: req.url,
+      headers: req.headers,
+      hasBundle: !!staticBundle,
+      bundleEntries: staticBundle ? Object.keys(staticBundle) : []
+    });
+  }
+
   const host = req.headers.host || 'localhost';
   const rawUrl = req.headers['x-vercel-original-url'] ||
                  req.headers['x-forwarded-uri'] ||
-                 req.headers['x-matched-path'] ||
                  req.url;
   const parsedUrl = new URL(rawUrl, `https://${host}`);
   let pathname = parsedUrl.pathname;
+
+  // 1. Guaranteed static asset serving from embedded bundle
+  let staticBundle = null;
+  try {
+    staticBundle = require('./static-bundle.json');
+  } catch (e) {}
+
+  if (staticBundle) {
+    const candidatePaths = [
+      parsedUrl.pathname,
+      req.url.split('?')[0],
+      req.headers['x-vercel-original-url'] ? new URL(req.headers['x-vercel-original-url'], `https://${host}`).pathname : null,
+      req.headers['x-forwarded-uri'] ? new URL(req.headers['x-forwarded-uri'], `https://${host}`).pathname : null
+    ].filter(Boolean);
+
+    for (const p of candidatePaths) {
+      const clean = p === '' ? '/' : (p.startsWith('/') ? p : '/' + p);
+      if (staticBundle[clean]) {
+        const entry = staticBundle[clean];
+        res.setHeader('Content-Type', entry.mime);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        if (entry.isBase64) {
+          return res.end(Buffer.from(entry.content, 'base64'));
+        }
+        return res.end(entry.content);
+      }
+    }
+  }
 
   // Extract from query parameters if rewritten by Vercel
   const fallbackUrl = new URL(req.url, `https://${host}`);
