@@ -50,6 +50,15 @@ class EmailService {
   }
 
   getFromAddress(provider = 'resend') {
+    if (provider === 'smtp') {
+      if (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('verified_sender') && !process.env.EMAIL_FROM.includes('resend.dev')) {
+        return process.env.EMAIL_FROM;
+      }
+      if (process.env.SMTP_USER) {
+        return `Maneyindha Marukatte <${process.env.SMTP_USER}>`;
+      }
+    }
+
     if (provider === 'resend') {
       if (process.env.RESEND_FROM && !process.env.RESEND_FROM.includes('verified_sender')) {
         return process.env.RESEND_FROM;
@@ -71,7 +80,7 @@ class EmailService {
    */
   getStatus() {
     const provider = this.getActiveProvider();
-    const from = this.getFromAddress();
+    const from = this.getFromAddress(provider);
 
     let details = 'No email delivery provider is configured.';
     let ready = false;
@@ -413,7 +422,7 @@ class EmailService {
     const port = parseInt(process.env.SMTP_PORT || '465', 10);
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
-    const from = this.getFromAddress();
+    const from = this.getFromAddress('smtp');
     const subject = 'Verify Your Email – Maneyindha Marukatte';
     const html = this.generateOtpTemplate(otp, cleanTo, purpose);
 
