@@ -1884,6 +1884,62 @@ class APIClient {
     }
   }
 
+  async syncEntrepreneurs() {
+    try {
+      const res = await fetch(`${this.baseUrl}/entrepreneurs`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          const serverEnts = json.data;
+          const localEnts = store.data.entrepreneurs || [];
+          const serverIds = new Set(serverEnts.map(e => e.id));
+          const serverEmails = new Set(serverEnts.map(e => (e.email || '').toLowerCase()));
+
+          // Auto-push any locally submitted pending applicants not yet registered on backend
+          for (const localEnt of localEnts) {
+            if (localEnt && localEnt.status === 'pending' && localEnt.email) {
+              const cleanEmail = localEnt.email.toLowerCase();
+              if (!serverIds.has(localEnt.id) && !serverEmails.has(cleanEmail)) {
+                console.log('[API] Auto-syncing pending entrepreneur to backend:', localEnt.businessName);
+                try {
+                  const pushRes = await fetch(`${this.baseUrl}/entrepreneurs/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(localEnt)
+                  });
+                  if (pushRes.ok) {
+                    const pushJson = await pushRes.json();
+                    if (pushJson.data) {
+                      serverEnts.push(pushJson.data);
+                      serverIds.add(pushJson.data.id);
+                    }
+                  }
+                } catch (pe) {
+                  console.warn('Auto-push applicant error:', pe);
+                }
+              }
+            }
+          }
+
+          // Merge backend entrepreneurs into store (server is authoritative)
+          const mergedMap = new Map();
+          serverEnts.forEach(e => mergedMap.set(e.id, e));
+          localEnts.forEach(e => {
+            if (!mergedMap.has(e.id)) {
+              mergedMap.set(e.id, e);
+            }
+          });
+          store.data.entrepreneurs = Array.from(mergedMap.values());
+          store.saveData();
+          return store.data.entrepreneurs;
+        }
+      }
+    } catch (err) {
+      console.warn('[API] syncEntrepreneurs failed:', err);
+    }
+    return store.data.entrepreneurs || [];
+  }
+
   async syncInitialData() {
     try {
       const prodRes = await fetch(`${this.baseUrl}/products?status=all`);
@@ -1894,6 +1950,9 @@ class APIClient {
           store.saveData();
         }
       }
+
+      // Sync entrepreneurs from server
+      await this.syncEntrepreneurs();
 
       // Sync categories using admin token if available
       const catHeaders = {};
@@ -2272,27 +2331,35 @@ class APIClient {
   // 4. ENTREPRENEURS MODULE
   // =============================================================
   async registerEntrepreneur(payload) {
+    let createdOrUpdated = null;
     if (this.isOnline) {
       const res = await this.request('/entrepreneurs/register', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
       if (res.success && res.data) {
-        store.data.entrepreneurs.push(res.data);
-        store.saveData();
-        return res;
+        createdOrUpdated = res.data;
       }
     }
-    const ent = {
-      id: 'ent_' + Date.now(),
-      status: 'pending',
-      badge: 'Verified',
-      isStoreOpen: true,
-      ...payload
-    };
-    store.data.entrepreneurs.push(ent);
+    if (!createdOrUpdated) {
+      createdOrUpdated = {
+        id: payload.id || ('ent_' + Date.now()),
+        status: 'pending',
+        badge: 'Verified',
+        isStoreOpen: true,
+        ...payload
+      };
+    }
+    const list = store.data.entrepreneurs || [];
+    const idx = list.findIndex(e => e.id === createdOrUpdated.id || (e.email && e.email.toLowerCase() === (createdOrUpdated.email || '').toLowerCase()));
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...createdOrUpdated };
+    } else {
+      list.push(createdOrUpdated);
+    }
+    store.data.entrepreneurs = list;
     store.saveData();
-    return { success: true, data: ent };
+    return { success: true, data: createdOrUpdated };
   }
 
   async updateAvailability(entrepreneurId, isStoreOpen, openingSchedule) {
@@ -5164,28 +5231,38 @@ const EntrepreneurRegModule = {
     if (btn) btn.disabled = !canSubmit;
   },
 
-  handleSubmitApplication() {
-    // Add applicant to store entrepreneurs list with status 'pending'
+  async handleSubmitApplication() {
+    const submitBtn = document.getElementById('btn-submit-application');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting Application... <span class="material-symbols-rounded">hourglass_empty</span>';
+    }
+
+    const user = store.getUser() || {};
+    const email = user.email || this.formData.email || ('applicant_' + Date.now() + '@marukatte.user');
+    const name = user.name || this.formData.name || (this.formData.businessName ? this.formData.businessName + ' Owner' : 'Women Entrepreneur');
+    const phone = user.phone || this.formData.phone || '9876543210';
+
     const newEnt = {
       id: 'ent_' + Date.now(),
-      name: store.getUser().name || 'Applicant',
-      businessName: this.formData.businessName,
-      businessCategory: this.formData.businessCategory,
-      email: store.getUser().email,
-      phone: store.getUser().phone,
-      username: (this.formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'seller') + '_biz',
-      password: 'password123',
+      name: name,
+      businessName: this.formData.businessName || 'Women Enterprise',
+      businessCategory: this.formData.businessCategory || 'Bakery & Sweets',
+      email: email,
+      phone: phone,
+      username: (this.formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'seller') + '_' + Math.floor(Math.random() * 1000),
+      password: this.formData.password || 'password123',
       address: {
-        door: this.formData.door,
-        street: this.formData.street,
-        area: this.formData.area,
-        city: this.formData.city,
-        state: this.formData.state,
-        pincode: this.formData.pincode
+        door: this.formData.door || '#1',
+        street: this.formData.street || 'Main Road',
+        area: this.formData.area || 'Malleshwaram',
+        city: this.formData.city || 'Bangalore',
+        state: this.formData.state || 'Karnataka',
+        pincode: this.formData.pincode || '560003'
       },
-      deliveryRadius: this.formData.deliveryRadius,
-      yearsExp: this.formData.yearsExp,
-      about: this.formData.about,
+      deliveryRadius: this.formData.deliveryRadius || 10,
+      yearsExp: this.formData.yearsExp || 1,
+      about: this.formData.about || '',
       status: 'pending',
       appliedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
       badge: 'Verified',
@@ -5198,13 +5275,28 @@ const EntrepreneurRegModule = {
       negativeReviewsCount: 0,
       complaintsCount: 0,
       documents: {
-        idType: this.formData.idDocType,
-        idFile: this.formData.idDocName,
-        businessProof: this.formData.bizDocName
+        idType: this.formData.idDocType || 'Aadhaar Card',
+        idFile: this.formData.idDocName || 'identity_document.pdf',
+        businessProof: this.formData.bizDocName || 'business_proof.jpg'
       }
     };
 
-    store.data.entrepreneurs.push(newEnt);
+    try {
+      if (window.apiClient) {
+        const res = await window.apiClient.registerEntrepreneur(newEnt);
+        if (res && res.data && res.data.id) {
+          newEnt.id = res.data.id;
+        }
+      } else {
+        store.data.entrepreneurs.push(newEnt);
+        store.saveData();
+      }
+    } catch (e) {
+      console.warn('Backend submission error, fallback to local store:', e);
+      store.data.entrepreneurs.push(newEnt);
+      store.saveData();
+    }
+
     store.updateUser({ entrepreneurId: newEnt.id });
     store.addActivityLog(`New entrepreneur registration submitted: ${newEnt.businessName}`);
     store.saveData();
@@ -12308,6 +12400,32 @@ const AdminModule = {
   activeSupportTab: 'general',
   analyticsTimeFilter: 'week',
   trendPeriod: '7days',
+  _isSyncingQueue: false,
+
+  async syncVerificationQueue() {
+    if (this._isSyncingQueue) return;
+    this._isSyncingQueue = true;
+    try {
+      if (window.apiClient) {
+        await window.apiClient.syncEntrepreneurs();
+        if (typeof AppRouter !== 'undefined' && (AppRouter.currentScreenId === 'screen-admin-verification' || AppRouter.currentScreenId === 'screen-admin-dashboard' || AppRouter.currentScreenId === 'screen-admin-entrepreneurs')) {
+          AppRouter.renderActiveScreen();
+        }
+      }
+    } catch (e) {
+      console.warn('Admin queue sync error:', e);
+    } finally {
+      this._isSyncingQueue = false;
+    }
+  },
+
+  async refreshQueue() {
+    AppUtils.showToast('Refreshing platform data...');
+    if (window.apiClient) {
+      await window.apiClient.syncEntrepreneurs();
+    }
+    AppRouter.renderActiveScreen();
+  },
 
   // -------------------------------------------------------------
   // SCREEN: ADMIN LOGIN & FORGOT PASSWORD
@@ -12446,9 +12564,14 @@ const AdminModule = {
             👨‍💼 Admin Dashboard
           </h2>
         </div>
-        <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-profile')">
-          <span class="material-symbols-rounded">account_circle</span>
-        </button>
+        <div style="display:flex; gap:6px;">
+          <button class="icon-action-btn" title="Refresh Requests" onclick="AdminModule.refreshQueue()">
+            <span class="material-symbols-rounded">refresh</span>
+          </button>
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-profile')">
+            <span class="material-symbols-rounded">account_circle</span>
+          </button>
+        </div>
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
@@ -12631,7 +12754,12 @@ const AdminModule = {
           </button>
           <span class="bar-title">Verification Queue</span>
         </div>
-        <span style="font-size:12px; font-weight:600; color:var(--color-primary);">${pending.length} Pending</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; font-weight:600; color:var(--color-primary); background:var(--color-soft-yellow); padding:3px 8px; border-radius:12px;">${pending.length} Pending</span>
+          <button class="icon-action-btn" title="Refresh Applications" onclick="AdminModule.refreshQueue()">
+            <span class="material-symbols-rounded">refresh</span>
+          </button>
+        </div>
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
@@ -14513,6 +14641,13 @@ const AppRouter = {
     }
 
     container.innerHTML = html;
+
+    // Auto-sync pending entrepreneur applications on admin screens
+    if (id === 'screen-admin-dashboard' || id === 'screen-admin-verification' || id === 'screen-admin-entrepreneurs') {
+      if (typeof AdminModule !== 'undefined' && typeof AdminModule.syncVerificationQueue === 'function') {
+        AdminModule.syncVerificationQueue();
+      }
+    }
   },
 
   syncDemoRolePills() {

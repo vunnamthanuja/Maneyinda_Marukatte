@@ -511,28 +511,38 @@ const EntrepreneurRegModule = {
     if (btn) btn.disabled = !canSubmit;
   },
 
-  handleSubmitApplication() {
-    // Add applicant to store entrepreneurs list with status 'pending'
+  async handleSubmitApplication() {
+    const submitBtn = document.getElementById('btn-submit-application');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting Application... <span class="material-symbols-rounded">hourglass_empty</span>';
+    }
+
+    const user = store.getUser() || {};
+    const email = user.email || this.formData.email || ('applicant_' + Date.now() + '@marukatte.user');
+    const name = user.name || this.formData.name || (this.formData.businessName ? this.formData.businessName + ' Owner' : 'Women Entrepreneur');
+    const phone = user.phone || this.formData.phone || '9876543210';
+
     const newEnt = {
       id: 'ent_' + Date.now(),
-      name: store.getUser().name || 'Applicant',
-      businessName: this.formData.businessName,
-      businessCategory: this.formData.businessCategory,
-      email: store.getUser().email,
-      phone: store.getUser().phone,
-      username: (this.formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'seller') + '_biz',
-      password: 'password123',
+      name: name,
+      businessName: this.formData.businessName || 'Women Enterprise',
+      businessCategory: this.formData.businessCategory || 'Bakery & Sweets',
+      email: email,
+      phone: phone,
+      username: (this.formData.businessName.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'seller') + '_' + Math.floor(Math.random() * 1000),
+      password: this.formData.password || 'password123',
       address: {
-        door: this.formData.door,
-        street: this.formData.street,
-        area: this.formData.area,
-        city: this.formData.city,
-        state: this.formData.state,
-        pincode: this.formData.pincode
+        door: this.formData.door || '#1',
+        street: this.formData.street || 'Main Road',
+        area: this.formData.area || 'Malleshwaram',
+        city: this.formData.city || 'Bangalore',
+        state: this.formData.state || 'Karnataka',
+        pincode: this.formData.pincode || '560003'
       },
-      deliveryRadius: this.formData.deliveryRadius,
-      yearsExp: this.formData.yearsExp,
-      about: this.formData.about,
+      deliveryRadius: this.formData.deliveryRadius || 10,
+      yearsExp: this.formData.yearsExp || 1,
+      about: this.formData.about || '',
       status: 'pending',
       appliedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
       badge: 'Verified',
@@ -545,13 +555,28 @@ const EntrepreneurRegModule = {
       negativeReviewsCount: 0,
       complaintsCount: 0,
       documents: {
-        idType: this.formData.idDocType,
-        idFile: this.formData.idDocName,
-        businessProof: this.formData.bizDocName
+        idType: this.formData.idDocType || 'Aadhaar Card',
+        idFile: this.formData.idDocName || 'identity_document.pdf',
+        businessProof: this.formData.bizDocName || 'business_proof.jpg'
       }
     };
 
-    store.data.entrepreneurs.push(newEnt);
+    try {
+      if (window.apiClient) {
+        const res = await window.apiClient.registerEntrepreneur(newEnt);
+        if (res && res.data && res.data.id) {
+          newEnt.id = res.data.id;
+        }
+      } else {
+        store.data.entrepreneurs.push(newEnt);
+        store.saveData();
+      }
+    } catch (e) {
+      console.warn('Backend submission error, fallback to local store:', e);
+      store.data.entrepreneurs.push(newEnt);
+      store.saveData();
+    }
+
     store.updateUser({ entrepreneurId: newEnt.id });
     store.addActivityLog(`New entrepreneur registration submitted: ${newEnt.businessName}`);
     store.saveData();

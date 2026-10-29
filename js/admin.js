@@ -8,6 +8,32 @@ const AdminModule = {
   activeSupportTab: 'general',
   analyticsTimeFilter: 'week',
   trendPeriod: '7days',
+  _isSyncingQueue: false,
+
+  async syncVerificationQueue() {
+    if (this._isSyncingQueue) return;
+    this._isSyncingQueue = true;
+    try {
+      if (window.apiClient) {
+        await window.apiClient.syncEntrepreneurs();
+        if (typeof AppRouter !== 'undefined' && (AppRouter.currentScreenId === 'screen-admin-verification' || AppRouter.currentScreenId === 'screen-admin-dashboard' || AppRouter.currentScreenId === 'screen-admin-entrepreneurs')) {
+          AppRouter.renderActiveScreen();
+        }
+      }
+    } catch (e) {
+      console.warn('Admin queue sync error:', e);
+    } finally {
+      this._isSyncingQueue = false;
+    }
+  },
+
+  async refreshQueue() {
+    AppUtils.showToast('Refreshing platform data...');
+    if (window.apiClient) {
+      await window.apiClient.syncEntrepreneurs();
+    }
+    AppRouter.renderActiveScreen();
+  },
 
   // -------------------------------------------------------------
   // SCREEN: ADMIN LOGIN & FORGOT PASSWORD
@@ -146,9 +172,14 @@ const AdminModule = {
             👨‍💼 Admin Dashboard
           </h2>
         </div>
-        <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-profile')">
-          <span class="material-symbols-rounded">account_circle</span>
-        </button>
+        <div style="display:flex; gap:6px;">
+          <button class="icon-action-btn" title="Refresh Requests" onclick="AdminModule.refreshQueue()">
+            <span class="material-symbols-rounded">refresh</span>
+          </button>
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-admin-profile')">
+            <span class="material-symbols-rounded">account_circle</span>
+          </button>
+        </div>
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">
@@ -331,7 +362,12 @@ const AdminModule = {
           </button>
           <span class="bar-title">Verification Queue</span>
         </div>
-        <span style="font-size:12px; font-weight:600; color:var(--color-primary);">${pending.length} Pending</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; font-weight:600; color:var(--color-primary); background:var(--color-soft-yellow); padding:3px 8px; border-radius:12px;">${pending.length} Pending</span>
+          <button class="icon-action-btn" title="Refresh Applications" onclick="AdminModule.refreshQueue()">
+            <span class="material-symbols-rounded">refresh</span>
+          </button>
+        </div>
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 70px;">

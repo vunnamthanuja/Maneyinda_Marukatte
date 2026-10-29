@@ -178,6 +178,13 @@ const AppRouter = {
     }
 
     container.innerHTML = html;
+
+    // Auto-sync pending entrepreneur applications on admin screens
+    if (id === 'screen-admin-dashboard' || id === 'screen-admin-verification' || id === 'screen-admin-entrepreneurs') {
+      if (typeof AdminModule !== 'undefined' && typeof AdminModule.syncVerificationQueue === 'function') {
+        AdminModule.syncVerificationQueue();
+      }
+    }
   },
 
   syncDemoRolePills() {

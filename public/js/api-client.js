@@ -58,6 +58,62 @@ class APIClient {
     }
   }
 
+  async syncEntrepreneurs() {
+    try {
+      const res = await fetch(`${this.baseUrl}/entrepreneurs`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          const serverEnts = json.data;
+          const localEnts = store.data.entrepreneurs || [];
+          const serverIds = new Set(serverEnts.map(e => e.id));
+          const serverEmails = new Set(serverEnts.map(e => (e.email || '').toLowerCase()));
+
+          // Auto-push any locally submitted pending applicants not yet registered on backend
+          for (const localEnt of localEnts) {
+            if (localEnt && localEnt.status === 'pending' && localEnt.email) {
+              const cleanEmail = localEnt.email.toLowerCase();
+              if (!serverIds.has(localEnt.id) && !serverEmails.has(cleanEmail)) {
+                console.log('[API] Auto-syncing pending entrepreneur to backend:', localEnt.businessName);
+                try {
+                  const pushRes = await fetch(`${this.baseUrl}/entrepreneurs/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(localEnt)
+                  });
+                  if (pushRes.ok) {
+                    const pushJson = await pushRes.json();
+                    if (pushJson.data) {
+                      serverEnts.push(pushJson.data);
+                      serverIds.add(pushJson.data.id);
+                    }
+                  }
+                } catch (pe) {
+                  console.warn('Auto-push applicant error:', pe);
+                }
+              }
+            }
+          }
+
+          // Merge backend entrepreneurs into store (server is authoritative)
+          const mergedMap = new Map();
+          serverEnts.forEach(e => mergedMap.set(e.id, e));
+          localEnts.forEach(e => {
+            if (!mergedMap.has(e.id)) {
+              mergedMap.set(e.id, e);
+            }
+          });
+          store.data.entrepreneurs = Array.from(mergedMap.values());
+          store.saveData();
+          return store.data.entrepreneurs;
+        }
+      }
+    } catch (err) {
+      console.warn('[API] syncEntrepreneurs failed:', err);
+    }
+    return store.data.entrepreneurs || [];
+  }
+
   async syncInitialData() {
     try {
       const prodRes = await fetch(`${this.baseUrl}/products?status=all`);
@@ -68,6 +124,9 @@ class APIClient {
           store.saveData();
         }
       }
+
+      // Sync entrepreneurs from server
+      await this.syncEntrepreneurs();
 
       // Sync categories using admin token if available
       const catHeaders = {};
@@ -446,27 +505,35 @@ class APIClient {
   // 4. ENTREPRENEURS MODULE
   // =============================================================
   async registerEntrepreneur(payload) {
+    let createdOrUpdated = null;
     if (this.isOnline) {
       const res = await this.request('/entrepreneurs/register', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
       if (res.success && res.data) {
-        store.data.entrepreneurs.push(res.data);
-        store.saveData();
-        return res;
+        createdOrUpdated = res.data;
       }
     }
-    const ent = {
-      id: 'ent_' + Date.now(),
-      status: 'pending',
-      badge: 'Verified',
-      isStoreOpen: true,
-      ...payload
-    };
-    store.data.entrepreneurs.push(ent);
+    if (!createdOrUpdated) {
+      createdOrUpdated = {
+        id: payload.id || ('ent_' + Date.now()),
+        status: 'pending',
+        badge: 'Verified',
+        isStoreOpen: true,
+        ...payload
+      };
+    }
+    const list = store.data.entrepreneurs || [];
+    const idx = list.findIndex(e => e.id === createdOrUpdated.id || (e.email && e.email.toLowerCase() === (createdOrUpdated.email || '').toLowerCase()));
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...createdOrUpdated };
+    } else {
+      list.push(createdOrUpdated);
+    }
+    store.data.entrepreneurs = list;
     store.saveData();
-    return { success: true, data: ent };
+    return { success: true, data: createdOrUpdated };
   }
 
   async updateAvailability(entrepreneurId, isStoreOpen, openingSchedule) {

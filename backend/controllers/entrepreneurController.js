@@ -43,21 +43,49 @@ const entrepreneurController = {
     const body = req.body || {};
     const { name, businessName, businessCategory, email, phone } = body;
 
-    if (!name || !businessName || !businessCategory || !email || !phone) {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanBiz = (businessName || '').trim();
+
+    if (!cleanBiz || !cleanEmail) {
       return res.status(400).json({
         success: false,
         error: 'MISSING_REGISTRATION_FIELDS',
-        message: 'Name, business name, category, email, and phone are mandatory.'
+        message: 'Business name and email address are mandatory.'
       });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const applicantName = (name || cleanBiz || 'Women Entrepreneur').trim();
+    const applicantPhone = (phone || '9876543210').trim();
+    const applicantCategory = (businessCategory || 'Bakery & Sweets').trim();
+
     const existing = db.findEntrepreneur(cleanEmail);
     if (existing) {
+      if (existing.status === 'pending' || existing.status === 'correctable_rejection') {
+        const updated = db.updateEntrepreneur(existing.id, {
+          name: applicantName,
+          businessName: cleanBiz,
+          businessCategory: applicantCategory,
+          phone: applicantPhone,
+          address: body.address || existing.address,
+          deliveryRadius: parseInt(body.deliveryRadius, 10) || existing.deliveryRadius || 10,
+          yearsExp: parseInt(body.yearsExp, 10) || existing.yearsExp || 1,
+          documents: body.documents || existing.documents,
+          about: body.about || existing.about || '',
+          status: 'pending',
+          appliedDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        });
+        db.addActivityLog(`Updated entrepreneur application: "${cleanBiz}" (${applicantName})`);
+        return res.status(200).json({
+          success: true,
+          data: updated,
+          message: 'Entrepreneur application updated successfully and is pending admin verification.'
+        });
+      }
+
       return res.status(400).json({
         success: false,
         error: 'EMAIL_ALREADY_REGISTERED',
-        message: 'An entrepreneur application with this email already exists.'
+        message: 'An entrepreneur application with this email already exists and is approved.'
       });
     }
 
