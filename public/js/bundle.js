@@ -4565,11 +4565,17 @@ const AuthModule = {
   },
 
   handleResetPasswordSubmit() {
-    const a1 = (document.getElementById('sec-ans-1')?.value || '').trim();
-    const a2 = (document.getElementById('sec-ans-2')?.value || '').trim();
-    const a3 = (document.getElementById('sec-ans-3')?.value || '').trim();
-    const p = (document.getElementById('sec-new-pass')?.value || '').trim();
-    const cp = (document.getElementById('sec-confirm-pass')?.value || '').trim();
+    const el1 = document.getElementById('sec-ans-1');
+    const el2 = document.getElementById('sec-ans-2');
+    const el3 = document.getElementById('sec-ans-3');
+    const elP = document.getElementById('sec-new-pass');
+    const elCp = document.getElementById('sec-confirm-pass');
+
+    const a1 = (el1 && el1.value ? el1.value : '').trim();
+    const a2 = (el2 && el2.value ? el2.value : '').trim();
+    const a3 = (el3 && el3.value ? el3.value : '').trim();
+    const p = (elP && elP.value ? elP.value : '').trim();
+    const cp = (elCp && elCp.value ? elCp.value : '').trim();
     const err = document.getElementById('sec-reset-err');
 
     if (!a1 || !a2 || !a3) {
@@ -4598,7 +4604,7 @@ const AuthModule = {
 
     // Validate answers (flexible check against registered questions or standard test answers)
     const ents = store.getEntrepreneurs();
-    const ent = ents.find(e => e.email?.toLowerCase() === this.forgotPassEmail.toLowerCase());
+    const ent = ents.find(e => e.email && e.email.toLowerCase() === this.forgotPassEmail.toLowerCase());
     const isMockMatch = a1.length > 2 && a2.length > 2 && a3.length > 2;
 
     if (!isMockMatch) {
@@ -5053,10 +5059,6 @@ const EntrepreneurRegModule = {
       AppUtils.showToast('Please accept the genuine declaration before proceeding.');
       return;
     }
-
-    this.formData.declaration = true;
-    AppRouter.navigate('screen-ent-reg-3');
-  },
 
     this.formData.declaration = true;
     AppRouter.navigate('screen-ent-reg-3');

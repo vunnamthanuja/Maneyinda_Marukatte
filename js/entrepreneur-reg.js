@@ -411,10 +411,6 @@ const EntrepreneurRegModule = {
     AppRouter.navigate('screen-ent-reg-3');
   },
 
-    this.formData.declaration = true;
-    AppRouter.navigate('screen-ent-reg-3');
-  },
-
   // -------------------------------------------------------------
   // SCREEN 3: REVIEW & SUBMIT
   // -------------------------------------------------------------
