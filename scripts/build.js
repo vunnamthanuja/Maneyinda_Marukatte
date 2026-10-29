@@ -31,6 +31,18 @@ const bundleJsContent = jsOrder.map(f => {
 fs.writeFileSync(path.join(rootDir, 'js', 'bundle.js'), bundleJsContent, 'utf8');
 console.log(`[BUILD] Generated js/bundle.js (${(bundleJsContent.length / 1024).toFixed(1)} KB).`);
 
+// 1.5. Compile all CSS stylesheets into <style id="theme-system-inline"> inside index.html
+const cssFiles = ['css/theme.css', 'css/layout.css', 'css/components.css', 'css/screens.css'];
+const compiledCss = cssFiles.map(f => `/* === ${f} === */\n` + fs.readFileSync(path.join(rootDir, f), 'utf8')).join('\n\n');
+const indexHtmlPath = path.join(rootDir, 'index.html');
+let indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+const inlineStyleRegex = /<style id="theme-system-inline">[\s\S]*?<\/style>/;
+if (inlineStyleRegex.test(indexHtml)) {
+  indexHtml = indexHtml.replace(inlineStyleRegex, `<style id="theme-system-inline">\n${compiledCss}\n  </style>`);
+  fs.writeFileSync(indexHtmlPath, indexHtml, 'utf8');
+  console.log(`[BUILD] Inlined compiled CSS (${(compiledCss.length / 1024).toFixed(1)} KB) into index.html.`);
+}
+
 function copyRecursive(src, dest) {
   if (!fs.existsSync(src)) return;
   const stat = fs.statSync(src);

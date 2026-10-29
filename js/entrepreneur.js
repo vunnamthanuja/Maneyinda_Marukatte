@@ -274,9 +274,12 @@ const EntrepreneurModule = {
   // -------------------------------------------------------------
   // ADD / EDIT PRODUCT FORM
   // -------------------------------------------------------------
+  editingProductImages: [],
+
   openAddProduct() {
     this.activeProductModalId = null;
     this.dynamicCustomFields = [];
+    this.editingProductImages = [];
     AppRouter.navigate('screen-ent-add-product');
   },
 
@@ -285,13 +288,45 @@ const EntrepreneurModule = {
     const p = store.getProductById(productId);
     if (!p) return;
     this.dynamicCustomFields = JSON.parse(JSON.stringify(p.customizationFields || []));
+    this.editingProductImages = p.images ? [...p.images] : [];
     AppRouter.navigate('screen-ent-add-product');
+  },
+
+  handleProductImageUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const remainingSlots = 5 - this.editingProductImages.length;
+    if (remainingSlots <= 0) {
+      AppUtils.showToast('Maximum 5 product images allowed');
+      return;
+    }
+    const filesToRead = Array.from(input.files).slice(0, remainingSlots);
+    let loaded = 0;
+    filesToRead.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.editingProductImages.push(e.target.result);
+        loaded++;
+        if (loaded === filesToRead.length) {
+          AppUtils.showToast(`${loaded} photo(s) added!`);
+          AppRouter.renderActiveScreen();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  removeProductImage(index) {
+    this.editingProductImages.splice(index, 1);
+    AppRouter.renderActiveScreen();
   },
 
   renderAddOrEditProduct() {
     const isEdit = !!this.activeProductModalId;
     const p = isEdit ? store.getProductById(this.activeProductModalId) : null;
     const cats = store.data.categories.filter(c => c.active);
+    const displayImages = this.editingProductImages.length > 0 
+      ? this.editingProductImages 
+      : (p && p.images && p.images.length > 0 ? p.images : []);
 
     return `
       <div class="top-app-bar">
@@ -304,14 +339,29 @@ const EntrepreneurModule = {
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 40px;">
-        <!-- Images -->
+        <!-- Images with Real File Selector -->
+        <input type="file" id="prod-images-file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" onchange="EntrepreneurModule.handleProductImageUpload(this)">
         <div class="form-group">
-          <label class="form-label">Product Images (Up to 5) <span class="req">*</span></label>
-          <div style="display:flex; gap:8px; overflow-x:auto; padding:6px 0;">
-            <div class="doc-upload-box" style="width:72px; height:72px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0;" onclick="AppUtils.showToast('Image uploaded!')">
-              <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:28px;">add_a_photo</span>
-            </div>
-            <img src="${p ? p.images[0] : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300'}" style="width:72px; height:72px; border-radius:var(--radius-md); object-fit:cover;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label class="form-label" style="margin:0;">Product Images (${displayImages.length}/5) <span class="req">*</span></label>
+            <span style="font-size:11px; color:var(--color-text-tertiary);">Tap + to choose from device</span>
+          </div>
+          <div style="display:flex; gap:8px; overflow-x:auto; padding:6px 0; align-items:center;">
+            ${displayImages.length < 5 ? `
+              <div class="doc-upload-box" style="width:72px; height:72px; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;" onclick="document.getElementById('prod-images-file-input').click()">
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:26px;">add_a_photo</span>
+                <span style="font-size:9.5px; font-weight:700; color:var(--color-primary); margin-top:2px;">Add Photo</span>
+              </div>
+            ` : ''}
+            ${displayImages.map((imgSrc, idx) => `
+              <div style="position:relative; width:72px; height:72px; flex-shrink:0;">
+                <img src="${imgSrc}" style="width:72px; height:72px; border-radius:var(--radius-md); object-fit:cover; border:1px solid #E0E0E0;">
+                <button type="button" onclick="EntrepreneurModule.removeProductImage(${idx})" style="position:absolute; top:-4px; right:-4px; width:20px; height:20px; border-radius:50%; background:#D32F2F; color:#FFF; border:none; display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2);">✕</button>
+              </div>
+            `).join('')}
+            ${displayImages.length === 0 ? `
+              <div style="font-size:11px; color:var(--color-text-tertiary); padding-left:4px;">No photos selected yet</div>
+            ` : ''}
           </div>
         </div>
 
@@ -540,23 +590,31 @@ const EntrepreneurModule = {
 
   aiImproveTitle() {
     const input = document.getElementById('prod-form-name');
-    const cat = document.getElementById('prod-form-category').value;
+    const catEl = document.getElementById('prod-form-category');
+    const cat = catEl ? catEl.value : 'Bakery & Sweets';
+    if (!input) return;
     input.value = AppAI.improveProductTitle(input.value, cat);
     AppUtils.showToast('✨ Title improved by AI!');
   },
 
   aiSuggestPrice() {
-    const cat = document.getElementById('prod-form-category').value;
-    const name = document.getElementById('prod-form-name').value;
+    const catEl = document.getElementById('prod-form-category');
+    const nameEl = document.getElementById('prod-form-name');
+    const cat = catEl ? catEl.value : 'Bakery & Sweets';
+    const name = nameEl ? nameEl.value : '';
     const input = document.getElementById('prod-form-price');
+    if (!input) return;
     input.value = AppAI.suggestProductPrice(cat, name);
     AppUtils.showToast('🤖 Price suggested based on market data!');
   },
 
   aiGenerateDesc() {
-    const title = document.getElementById('prod-form-name').value;
-    const cat = document.getElementById('prod-form-category').value;
+    const nameEl = document.getElementById('prod-form-name');
+    const catEl = document.getElementById('prod-form-category');
+    const title = nameEl ? nameEl.value : '';
+    const cat = catEl ? catEl.value : 'Bakery & Sweets';
     const desc = document.getElementById('prod-form-desc');
+    if (!desc) return;
     desc.value = AppAI.generateProductDescription(title, cat);
     AppUtils.showToast('🤖 Description generated with local charm!');
   },
@@ -594,7 +652,9 @@ const EntrepreneurModule = {
       price,
       stock,
       description,
-      images: ['https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600'],
+      images: this.editingProductImages.length > 0 
+        ? this.editingProductImages 
+        : ((this.activeProductModalId && store.getProductById(this.activeProductModalId) && store.getProductById(this.activeProductModalId).images) || ['https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600']),
       attributes: ['Handcrafted', 'Local Specialty'],
       specifications: { Category: category, Stock: stock },
       customizationFields: this.dynamicCustomFields,

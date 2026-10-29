@@ -107,6 +107,7 @@ const AppRouter = {
       case 'screen-customer-otp': html = AuthModule.renderCustomerOtp(); break;
       case 'screen-ent-login': html = AuthModule.renderEntrepreneurLogin(); break;
       case 'screen-forgot-pass-email': html = AuthModule.renderForgotPassEmail(); break;
+      case 'screen-forgot-pass-otp': html = AuthModule.renderForgotPassOtp(); break;
       case 'screen-forgot-pass-security': html = AuthModule.renderForgotPassSecurity(); break;
 
       // Entrepreneur Registration

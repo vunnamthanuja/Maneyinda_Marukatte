@@ -110,6 +110,12 @@ const CustomerModule = {
         </div>
       </div>
 
+      <!-- Floating AI Guide Action Button -->
+      <button class="ai-floating-pill" onclick="AppRouter.navigate('screen-customer-ai-guide')" title="Ask Maneyinda AI Guide">
+        <span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span>
+        <span>AI Guide</span>
+      </button>
+
       ${this.renderBottomNav('home')}
     `;
   },
@@ -2490,15 +2496,52 @@ const CustomerModule = {
       </div>
       <div class="form-group">
         <label class="form-label">Upload Photo (Proof)</label>
-        <div class="doc-upload-box" onclick="AppUtils.showToast('Photo attached')">
+        <input type="file" id="as-photo-input" accept="image/*" style="display:none;" onchange="CustomerModule.handleAfterSalesPhoto(this)">
+        <div id="as-photo-preview" style="${CustomerModule.afterSalesPhoto ? 'display:block;' : 'display:none;'} margin-bottom:6px;">
+          <div style="position:relative; display:inline-block;">
+            <img id="as-thumb-img" src="${CustomerModule.afterSalesPhoto || ''}" style="max-height:90px; border-radius:8px; border:1px solid #CCC; display:block;">
+            <button type="button" onclick="CustomerModule.removeAfterSalesPhoto()" style="position:absolute; top:-4px; right:-4px; width:20px; height:20px; border-radius:50%; background:#D32F2F; color:#FFF; border:none; display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <div id="as-photo-box" class="doc-upload-box" style="${CustomerModule.afterSalesPhoto ? 'display:none;' : 'display:flex;'} cursor:pointer;" onclick="document.getElementById('as-photo-input').click()">
           <span class="material-symbols-rounded" style="color:var(--color-primary);">add_a_photo</span>
-          <span style="font-size:11px; display:block; margin-top:2px;">Tap to attach photo</span>
+          <span style="font-size:11px; display:block; margin-top:2px;">Tap to select photo from device</span>
         </div>
       </div>
       <button class="btn btn-primary btn-block" onclick="CustomerModule.submitAfterSalesRequest('${orderId}', '${type}')">
         Submit Request
       </button>
     `);
+  },
+
+  afterSalesPhoto: null,
+
+  handleAfterSalesPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.afterSalesPhoto = e.target.result;
+      const prev = document.getElementById('as-photo-preview');
+      const box = document.getElementById('as-photo-box');
+      const img = document.getElementById('as-thumb-img');
+      if (prev && box && img) {
+        img.src = this.afterSalesPhoto;
+        prev.style.display = 'block';
+        box.style.display = 'none';
+      }
+      AppUtils.showToast('Photo attached!');
+    };
+    reader.readAsDataURL(input.files[0]);
+  },
+
+  removeAfterSalesPhoto() {
+    this.afterSalesPhoto = null;
+    const prev = document.getElementById('as-photo-preview');
+    const box = document.getElementById('as-photo-box');
+    if (prev && box) {
+      prev.style.display = 'none';
+      box.style.display = 'flex';
+    }
   },
 
   submitAfterSalesRequest(orderId, type) {
@@ -2514,9 +2557,11 @@ const CustomerModule = {
 
     const aiEval = AppAI.evaluateAfterSalesRequest(o, type, reason, desc);
     const firstItem = o.items && o.items[0];
+    const attachedPhotos = this.afterSalesPhoto ? [this.afterSalesPhoto] : [];
     const reqObj = {
       reason,
       description: desc,
+      photos: attachedPhotos,
       status: 'Pending',
       aiSuggestion: aiEval.recommendation + ' - ' + aiEval.rationale,
       returnRequired: (firstItem && firstItem.afterSales && firstItem.afterSales.returnRequired) || false,
@@ -2529,6 +2574,8 @@ const CustomerModule = {
       o.replacementRequest = reqObj;
     }
 
+    this.afterSalesPhoto = null;
+
     if (window.apiClient && window.apiClient.isOnline) {
       window.apiClient.request(`/orders/${orderId}/after-sales`, {
         method: 'POST',
@@ -2536,7 +2583,7 @@ const CustomerModule = {
           type,
           reason,
           description: desc,
-          photos: []
+          photos: attachedPhotos
         })
       });
     }
@@ -2602,9 +2649,20 @@ const CustomerModule = {
 
         <div class="form-group">
           <label class="form-label">Add Photos (Up to 3, Optional)</label>
-          <div class="doc-upload-box" onclick="AppUtils.showToast('Photo added to review!')">
-            <span class="material-symbols-rounded" style="color:var(--color-primary);">add_photo_alternate</span>
-            <span style="font-size:11px; display:block;">Tap to upload product photo</span>
+          <input type="file" id="rev-photos-input" accept="image/*" multiple style="display:none;" onchange="CustomerModule.handleReviewPhotos(this)">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+            ${(this.reviewPhotos || []).map((img, idx) => `
+              <div style="position:relative; width:64px; height:64px;">
+                <img src="${img}" style="width:64px; height:64px; border-radius:6px; object-fit:cover; border:1px solid #CCC;">
+                <button type="button" onclick="CustomerModule.removeReviewPhoto(${idx})" style="position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#D32F2F; color:#FFF; border:none; display:flex; align-items:center; justify-content:center; font-size:10px; cursor:pointer;">✕</button>
+              </div>
+            `).join('')}
+            ${(!this.reviewPhotos || this.reviewPhotos.length < 3) ? `
+              <div class="doc-upload-box" style="width:64px; height:64px; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="document.getElementById('rev-photos-input').click()">
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:24px;">add_photo_alternate</span>
+                <span style="font-size:9px; font-weight:700; color:var(--color-primary); margin-top:2px;">Add Photo</span>
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -2620,6 +2678,39 @@ const CustomerModule = {
         ` : ''}
       </div>
     `;
+  },
+
+  reviewPhotos: [],
+
+  handleReviewPhotos(input) {
+    if (!input.files || input.files.length === 0) return;
+    if (!this.reviewPhotos) this.reviewPhotos = [];
+    const remaining = 3 - this.reviewPhotos.length;
+    if (remaining <= 0) {
+      AppUtils.showToast('Maximum 3 photos allowed');
+      return;
+    }
+    const files = Array.from(input.files).slice(0, remaining);
+    let count = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.reviewPhotos.push(e.target.result);
+        count++;
+        if (count === files.length) {
+          AppUtils.showToast(`${count} review photo(s) added!`);
+          AppRouter.renderActiveScreen();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  removeReviewPhoto(idx) {
+    if (this.reviewPhotos && this.reviewPhotos.length > idx) {
+      this.reviewPhotos.splice(idx, 1);
+      AppRouter.renderActiveScreen();
+    }
   },
 
   setRatingValue(val) {
@@ -2646,8 +2737,10 @@ const CustomerModule = {
       customerId: user.id,
       customerName: user.name,
       rating,
-      comment
+      comment,
+      images: this.reviewPhotos ? [...this.reviewPhotos] : []
     };
+    this.reviewPhotos = [];
 
     store.addReview(revPayload);
 
@@ -3246,6 +3339,7 @@ const CustomerModule = {
     const thread = document.getElementById('ai-chat-thread');
     const input = document.getElementById('ai-user-query');
     if (input) input.value = '';
+    if (!thread) return;
 
     // Append user message
     thread.innerHTML += `
@@ -3253,17 +3347,30 @@ const CustomerModule = {
         ${query}
       </div>
     `;
+    thread.scrollTop = thread.scrollHeight;
+
+    // Show temporary AI typing state
+    const typingId = 'ai-typing-' + Date.now();
+    thread.innerHTML += `
+      <div class="ai-bubble ai-bubble-assistant" id="${typingId}" style="opacity:0.75; font-style:italic;">
+        ✨ Maneyinda AI is thinking...
+      </div>
+    `;
+    thread.scrollTop = thread.scrollHeight;
 
     // Response from AI engine
-    const reply = AppAI.askCustomerGuide(query);
     setTimeout(() => {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+
+      const reply = AppAI.askCustomerGuide(query);
       thread.innerHTML += `
         <div class="ai-bubble ai-bubble-assistant">
           ${reply.replace(/\n/g, '<br>')}
         </div>
       `;
       thread.scrollTop = thread.scrollHeight;
-    }, 300);
+    }, 350);
   },
 
   renderBottomNav(activeItem) {

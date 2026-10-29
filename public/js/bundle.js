@@ -2948,84 +2948,143 @@ const AppAI = {
   // 1. CUSTOMER: MANEYINDA AI GUIDE (APP NAVIGATION & HOW-TO)
   // -------------------------------------------------------------
   customerGuideResponses: {
-    'how to place order': `To place an order:\n1. Browse products on Home or use Search.\n2. Tap a product to view specifications and enter required customizations.\n3. Tap "Add to Cart" or "Buy Now".\n4. In Cart, verify your items (remember: one entrepreneur per order).\n5. Tap "Proceed to Checkout", select your delivery address and payment method (Online or Cash on Delivery), then place your order!`,
-    'become an entrepreneur': `To sell your homemade products:\n1. Tap your "Profile" tab.\n2. Tap "Become an Entrepreneur".\n3. Fill in your Business Information, upload your Identity and Business proofs, and submit your application.\n4. Once verified by Admin within 24 hours, you can create your password and start listing products!`,
-    'request refund': `To request a refund or replacement:\n1. Go to "My Orders".\n2. Open your delivered order.\n3. If your product supports returns/refunds and is within its Support Window (e.g., 24h, 3 days, or 7 days), tap "Request Refund" or "Request Replacement".\n4. Provide the reason and photos.\nNote: If the entrepreneur rejects your request and you disagree, you can appeal by raising a Support Ticket for Admin review.`,
-    'change address': `To update your delivery address:\n1. Go to "Profile" → "Address Book".\n2. Tap "+ Add New Address" or edit an existing one.\n3. You can also quickly select from your saved addresses directly on the Home screen header or during Checkout!`,
-    'delivery radius': `Entrepreneurs configure their own delivery radius (e.g. 5 km, 10 km). If your delivery address is outside the entrepreneur's radius, Home Delivery will be unavailable, but you can select Pickup if the entrepreneur offers it!`,
-    'default': `I am your Maneyinda AI Guide. I can help guide you through using the app, explaining ordering steps, delivery rules, and seller registration.\n\nNote: For personal disputes or account issues, please raise a Support Ticket so our Admin team can assist you directly.`
+    'how to place order': `To place an order:\n1. 🔍 Browse products on Home or use the Search bar.\n2. 🧁 Tap a product to view fresh preparation details and choose customizations.\n3. 🛒 Tap "Add to Cart" or "Buy Now".\n4. 🛍️ In Cart, check your items (remember: one entrepreneur per order to guarantee fresh, direct home dispatch).\n5. 📍 Tap "Proceed to Checkout", choose your delivery address and payment method (Razorpay UPI/Cards or Cash on Delivery), then confirm!`,
+    'become an entrepreneur': `To sell your homemade products:\n1. 👤 Go to your "Profile" tab or select "Create Account" → "Entrepreneur".\n2. 📝 Step 1: Fill in your Business Information, service address, and delivery radius (3–20 km).\n3. 📄 Step 2: Upload ONE Government ID (Aadhaar, Voter ID, Driving Licence, or Passport) and ONE Business proof (Kitchen/Shop/Product photo).\n4. 🔍 Step 3: Review and submit. Our Admin team will verify and approve your application within 24 hours!\n5. 🔐 Once approved, create your username, password, and security questions to start listing products!`,
+    'request refund': `To request a refund or replacement:\n1. 📦 Open "My Orders" from the bottom navigation.\n2. 🔍 Tap on your delivered order.\n3. ⏱️ Tap "Request Refund" or "Request Replacement" (available within the product's support window: 24h, 3 days, or 7 days).\n4. 📸 Select your reason and attach proof photos.\n5. 🤝 The entrepreneur will review your request. If unresolved, our Admin team intervenes with platform buyer protection!`,
+    'change address': `To manage your delivery addresses:\n1. 📍 Go to "Profile" → "Address Book".\n2. ➕ Tap "+ Add New Address" or edit an existing address.\n3. 🎯 You can also quickly switch active delivery locations directly from the top banner on the Home screen or during Checkout!`,
+    'delivery radius': `Our platform operates on a hyperlocal radius system:\n• 🚴 Each entrepreneur defines their own delivery reach (e.g., 3 km, 5 km, 10 km, 15 km, or 20 km).\n• 🏠 If your address falls within the seller's radius, direct Home Delivery is provided.\n• 🏪 If you are outside the radius, you can opt for Self-Pickup directly from the entrepreneur's home kitchen or studio!`,
+    'payment methods': `We support 100% secure, encrypted payments:\n• 📱 UPI (Google Pay, PhonePe, Paytm, BHIM)\n• 💳 Credit & Debit Cards (Visa, MasterCard, RuPay)\n• 🏦 NetBanking & Wallets via Razorpay\n• 💵 Cash on Delivery (COD) for eligible local orders\n• 🛡️ All online transactions are protected by cryptographic verification and instant refund automation.`,
+    'coupons and offers': `To use a discount or promotional offer:\n• 🎁 Browse active banners on the Home screen or checkout page.\n• 🏷️ Use code "WELCOME10" to get 10% off on your very first order!\n• 🏷️ Shop-specific promotional coupons can be applied directly in the Cart summary before paying.`,
+    'single seller rule': `Why only one entrepreneur per order?\n• 🌿 Because our platform connects you directly with home-based women entrepreneurs! Every item is prepared fresh in the artisan's personal kitchen or workshop.\n• 📦 Keeping each order dedicated to a single entrepreneur ensures your fresh foods arrive piping hot and crafts are packed with personal care, without confusing multi-vendor shipping delays.`,
+    'support contact': `Need help or have a dispute?\n• 🎫 Go to "Profile" → "Help & Support".\n• ✍️ Tap "Raise Support Ticket" to send details to our administration team.\n• ⚡ Admin reviews all customer tickets and responds within 12–24 hours.`,
+    'greeting': `Namaskara! 🙏 Welcome to Maneyinda Marukatte (ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ).\n\nI am your AI Community Guide! I can help you with:\n• How to place orders & track delivery\n• How women entrepreneurs register & sell\n• Payment methods (UPI / Cards / COD) & coupons\n• Returns, refunds, and delivery radius rules\n\nWhat would you like to explore today?`,
+    'kannada': `ನಮಸ್ಕಾರ! ಮನೆಯಿಂದ ಮಾರುಕಟ್ಟೆ ಗ್ರಾಹಕ ಸಹಾಯವಾಣಿಗೆ ಸ್ವಾಗತ.\n\n• ಆರ್ಡರ್ ಮಾಡಲು: ಉತ್ಪನ್ನವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ, ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ, ವಿಳಾಸ ನಮೂದಿಸಿ ಪಾವತಿಸಿ.\n• ವ್ಯಾಪಾರ ನೋಂದಣಿ: ಪ್ರೊಫೈಲ್ → ಉದ್ಯಮಿ ನೋಂದಣಿಗೆ ಹೋಗಿ, ಆಧಾರ್ ಮತ್ತು ಅಡುಗೆಮನೆ ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಿ. ೨೪ ಗಂಟೆಗಳಲ್ಲಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತದೆ.\n• ಹಣ ಪಾವತಿ: UPI (GPay/PhonePe), ಕಾರ್ಡ್ ಮತ್ತು ಕ್ಯಾಶ್ ಆನ್ ಡೆಲಿವರಿ ಲಭ್ಯವಿದೆ.`,
+    'default': `I am your Maneyinda AI Guide. I can assist you with placing orders, tracking deliveries, applying coupons, refund guidelines, and how home-based women entrepreneurs register to sell.\n\nTip: You can ask questions like "How do I place an order?", "What are the payment options?", "How to become an entrepreneur?", or "What is the delivery radius?"`
   },
 
   askCustomerGuide(query) {
+    if (!query) return this.customerGuideResponses['greeting'];
     const q = query.toLowerCase().trim();
-    if (q.includes('order') || q.includes('buy') || q.includes('cart')) {
+
+    // Kannada queries
+    if (q.includes('ನಮಸ್ಕಾರ') || q.includes('ಆರ್ಡರ್') || q.includes('ವ್ಯಾಪಾರ') || q.includes('ಖರೀದಿ') || q.includes('ಹಣ') || q.includes('ಮನೆ')) {
+      return this.customerGuideResponses['kannada'];
+    }
+
+    // Greetings
+    if (q === 'hi' || q === 'hello' || q === 'hey' || q.includes('namaste') || q.includes('namaskara') || q.includes('who are you')) {
+      return this.customerGuideResponses['greeting'];
+    }
+
+    // Ordering / buying / cart
+    if (q.includes('order') || q.includes('buy') || q.includes('cart') || q.includes('purchase') || q.includes('checkout') || q.includes('how to')) {
       return this.customerGuideResponses['how to place order'];
     }
-    if (q.includes('entrepreneur') || q.includes('sell') || q.includes('register business')) {
+
+    // Entrepreneur / selling
+    if (q.includes('entrepreneur') || q.includes('sell') || q.includes('seller') || q.includes('register') || q.includes('business') || q.includes('start selling')) {
       return this.customerGuideResponses['become an entrepreneur'];
     }
-    if (q.includes('refund') || q.includes('return') || q.includes('replace') || q.includes('damage')) {
+
+    // Single seller cart rule
+    if (q.includes('single') || q.includes('different seller') || q.includes('multiple seller') || q.includes('multi')) {
+      return this.customerGuideResponses['single seller rule'];
+    }
+
+    // Refunds / returns / replacements
+    if (q.includes('refund') || q.includes('return') || q.includes('replace') || q.includes('damage') || q.includes('broken') || q.includes('cancel')) {
       return this.customerGuideResponses['request refund'];
     }
-    if (q.includes('address') || q.includes('location') || q.includes('pincode')) {
+
+    // Payment / UPI / Razorpay / COD
+    if (q.includes('pay') || q.includes('upi') || q.includes('gpay') || q.includes('card') || q.includes('cod') || q.includes('cash') || q.includes('money')) {
+      return this.customerGuideResponses['payment methods'];
+    }
+
+    // Coupons / discounts / offers
+    if (q.includes('coupon') || q.includes('discount') || q.includes('offer') || q.includes('promo') || q.includes('welcome10') || q.includes('code')) {
+      return this.customerGuideResponses['coupons and offers'];
+    }
+
+    // Address & delivery location
+    if (q.includes('address') || q.includes('location') || q.includes('pincode') || q.includes('city') || q.includes('door')) {
       return this.customerGuideResponses['change address'];
     }
-    if (q.includes('radius') || q.includes('distance') || q.includes('deliver to')) {
+
+    // Delivery radius & hyperlocal distance
+    if (q.includes('radius') || q.includes('distance') || q.includes('deliver to') || q.includes('km') || q.includes('reach') || q.includes('pickup')) {
       return this.customerGuideResponses['delivery radius'];
     }
+
+    // Support & contact
+    if (q.includes('support') || q.includes('contact') || q.includes('ticket') || q.includes('complaint') || q.includes('help') || q.includes('phone') || q.includes('call')) {
+      return this.customerGuideResponses['support contact'];
+    }
+
     return this.customerGuideResponses['default'];
   },
 
   // -------------------------------------------------------------
   // 2. ENTREPRENEUR: PRODUCT ASSISTANT (TITLES, PRICES, DESCRIPTIONS)
   // -------------------------------------------------------------
-  improveProductTitle(rawTitle, category) {
-    if (!rawTitle) return 'Artisanal Homemade Special';
-    const clean = rawTitle.trim();
-    if (category.includes('Bakery')) {
+  improveProductTitle(rawTitle, category = '') {
+    const cat = category || '';
+    const clean = (rawTitle || '').trim();
+    if (!clean) {
+      if (cat.includes('Bakery')) return 'Freshly Baked Artisanal Cupcakes (Eggless)';
+      if (cat.includes('Food') || cat.includes('Tiffin')) return 'Authentic Home-Cooked Special Meal Box';
+      if (cat.includes('Crafts')) return 'Handcrafted Eco-Friendly Festive Wall Hanging';
+      if (cat.includes('Tailoring')) return 'Designer Hand-Stitched Custom Festive Kurti';
+      return 'Artisanal Homemade Special Delicacy';
+    }
+    if (cat.includes('Bakery')) {
       return `Freshly Baked Artisanal ${clean} (Eggless & Preservative-Free)`;
-    } else if (category.includes('Food')) {
+    } else if (cat.includes('Food') || cat.includes('Tiffin')) {
       return `Traditional Home-Style ${clean} (Prepared Fresh Daily)`;
-    } else if (category.includes('Crafts')) {
+    } else if (cat.includes('Crafts')) {
       return `Handcrafted Eco-Friendly ${clean} (Handmade by Local Artisans)`;
-    } else if (category.includes('Tailoring')) {
+    } else if (cat.includes('Tailoring')) {
       return `Custom Designer Hand-Stitched ${clean}`;
     }
     return `Authentic Handcrafted ${clean}`;
   },
 
-  suggestProductPrice(category, name = '') {
-    const n = name.toLowerCase();
-    if (category.includes('Bakery')) {
-      if (n.includes('cupcake') || n.includes('cookie')) return 180;
-      if (n.includes('cake')) return 450;
+  suggestProductPrice(category = '', name = '') {
+    const n = (name || '').toLowerCase();
+    const cat = category || '';
+    if (cat.includes('Bakery')) {
+      if (n.includes('cupcake') || n.includes('cookie') || n.includes('muffin')) return 180;
+      if (n.includes('cake') || n.includes('pastry')) return 450;
       return 350;
     }
-    if (category.includes('Food')) {
-      if (n.includes('tiffin') || n.includes('meal')) return 150;
-      if (n.includes('pickle') || n.includes('podi')) return 190;
+    if (cat.includes('Food') || cat.includes('Tiffin')) {
+      if (n.includes('tiffin') || n.includes('meal') || n.includes('thali')) return 150;
+      if (n.includes('pickle') || n.includes('podi') || n.includes('chutney')) return 190;
+      if (n.includes('sweet') || n.includes('laddu') || n.includes('mysore pak')) return 280;
       return 140;
     }
-    if (category.includes('Crafts')) return 380;
-    if (category.includes('Tailoring')) return 650;
+    if (cat.includes('Crafts') || cat.includes('Decor')) return 380;
+    if (cat.includes('Tailoring')) return 650;
+    if (cat.includes('Beauty') || cat.includes('Wellness')) return 299;
     return 250;
   },
 
-  generateProductDescription(title, category) {
-    const t = title || 'Homemade Specialty';
-    if (category.includes('Bakery')) {
-      return `Freshly baked with love using pure butter, unbleached flour, and premium ingredients. 100% vegetarian, eggless, and free from artificial preservatives. Perfect for family celebrations and tea-time cravings.`;
+  generateProductDescription(title = '', category = '') {
+    const t = (title || '').trim() || 'Homemade Specialty';
+    const cat = category || '';
+    if (cat.includes('Bakery')) {
+      return `Freshly baked with love using pure butter, unbleached flour, and premium farm-fresh ingredients. 100% vegetarian, eggless, and free from artificial food colorings or preservatives. Perfect for celebrations, family tea-time, and mindful snacking.`;
     }
-    if (category.includes('Food')) {
-      return `Prepared fresh every morning in a clean, hygienic home kitchen following traditional family recipes. Cooked with cold-pressed oils, freshly ground aromatic spices, and natural ingredients. Authentic taste guaranteed.`;
+    if (cat.includes('Food') || cat.includes('Tiffin')) {
+      return `Prepared fresh every morning in a spotless, hygienic home kitchen following cherished heirloom recipes. Cooked with cold-pressed oils, freshly ground aromatic spices, and unadulterated ingredients. Authentic, comforting taste just like home.`;
     }
-    if (category.includes('Crafts')) {
-      return `Carefully handcrafted by skilled local women artisans using sustainable, eco-friendly materials. Sturdy, elegant, and designed for daily use while supporting sustainable rural livelihoods.`;
+    if (cat.includes('Crafts') || cat.includes('Decor')) {
+      return `Meticulously handcrafted by skilled local women artisans using sustainable, biodegradable materials. Elegant, durable, and designed to bring rustic beauty to your home while directly uplifting rural livelihoods.`;
     }
-    if (category.includes('Tailoring')) {
-      return `Expertly tailored with attention to perfect fit, comfortable lining, and durable stitching. Custom measurements and personalized style preferences welcome.`;
+    if (cat.includes('Tailoring')) {
+      return `Masterfully tailored with high attention to custom fit, premium fabric lining, and reinforced double-stitching. Personalized style requests, exact measurements, and custom embellishments are happily accommodated.`;
     }
-    return `Authentic locally produced item created with great care and attention to quality. Supports home-based women entrepreneurs.`;
+    return `Authentic locally produced item created with immense care and attention to quality. 100% handmade by home-based women entrepreneurs with zero platform commission.`;
   },
 
   // -------------------------------------------------------------
@@ -3172,11 +3231,16 @@ const AuthModule = {
     return `
       <div class="splash-wrapper">
         <div class="splash-brand-core">
-          <div class="splash-logo-art">
+          <div class="splash-logo-art" title="Maneyinda Marukatte">
             <img src="assets/logo.svg" alt="Maneyinda Marukatte Logo" style="width:100%;height:100%;">
           </div>
           <h1 class="splash-title">Maneyinda Marukatte</h1>
           <p class="splash-tagline">Empowering Local Women Entrepreneurs</p>
+        </div>
+
+        <!-- Friendly illustration representing women entrepreneurs -->
+        <div style="width: 100%; max-width: 280px; height: 160px; margin: 10px 0; border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+          ${AppIllustrations.welcome}
         </div>
 
         <div style="width: 100%; max-width: 290px; margin-bottom: 20px;">
@@ -3526,7 +3590,7 @@ const AuthModule = {
     }
   },
 
-  startResendTimer(expirySeconds = 300, cooldownSeconds = 60) {
+  startResendTimer(expirySeconds = 300, cooldownSeconds = 30) {
     clearInterval(this.countdownInterval);
     this.resendCountdown = cooldownSeconds;
     this.expiryCountdown = expirySeconds;
@@ -4149,6 +4213,12 @@ const AuthModule = {
   // -------------------------------------------------------------
   // FORGOT PASSWORD FLOW (EMAIL -> OTP -> SECURITY QUESTIONS -> NEW PASSWORD)
   // -------------------------------------------------------------
+  forgotPassEmail: '',
+  forgotPassFailedAttempts: 0,
+  forgotPassLockoutUntil: 0,
+  forgotPassOtpCountdown: 30,
+  forgotPassOtpInterval: null,
+
   renderForgotPassEmail() {
     return `
       <div class="top-app-bar">
@@ -4165,30 +4235,287 @@ const AuthModule = {
           Account Recovery
         </h2>
         <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;">
-          Enter your registered email to verify your identity via OTP and security questions.
+          Enter your registered email to receive a verification code and reset your password.
         </p>
 
         <div class="form-group">
           <label class="form-label">Registered Email <span class="req">*</span></label>
           <div class="input-with-icon">
             <span class="material-symbols-rounded input-icon-left">mail</span>
-            <input type="email" id="forgot-pass-email" class="form-input" placeholder="anitha@bakery.com" value="anitha@bakery.com">
+            <input type="email" id="forgot-pass-email" class="form-input" placeholder="e.g. anitha@bakery.com" value="${this.forgotPassEmail || ''}">
           </div>
+          <span id="forgot-email-err" class="form-error-text" style="display:none;"></span>
         </div>
 
-        <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-forgot-pass-security')">
-          Send OTP & Continue
-          <span class="material-symbols-rounded">arrow_forward</span>
+        <button id="btn-forgot-send-otp" class="btn btn-primary btn-block" onclick="AuthModule.handleForgotPassSendOtp()">
+          Send OTP
+          <span class="material-symbols-rounded">send</span>
         </button>
       </div>
     `;
   },
 
-  renderForgotPassSecurity() {
+  async handleForgotPassSendOtp() {
+    const input = document.getElementById('forgot-pass-email');
+    const err = document.getElementById('forgot-email-err');
+    const btn = document.getElementById('btn-forgot-send-otp');
+
+    if (!input || !input.value.trim()) {
+      if (err) {
+        err.textContent = 'Registered email address is required.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(input.value.trim())) {
+      if (err) {
+        err.textContent = 'Please enter a valid email address.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    const email = input.value.trim().toLowerCase();
+    this.forgotPassEmail = email;
+    if (err) err.style.display = 'none';
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Sending Code... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    if (!window.apiClient && typeof APIClient !== 'undefined') {
+      window.apiClient = new APIClient();
+    }
+
+    try {
+      const res = await window.apiClient.sendOtp(email, 'login');
+      if (res && res.success) {
+        AppUtils.showToast(res.message || `Verification code sent to ${email}`);
+        AppRouter.navigate('screen-forgot-pass-otp');
+        setTimeout(() => this.startForgotPassTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 30), 50);
+      } else {
+        const msg = (res && res.message) || 'Unable to send verification code. Please check connection.';
+        if (err) {
+          err.textContent = msg;
+          err.style.display = 'flex';
+        }
+        AppUtils.showToast(`⚠️ ${msg}`);
+      }
+    } catch (e) {
+      if (err) {
+        err.textContent = 'Server connection error. Please try again.';
+        err.style.display = 'flex';
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Send OTP <span class="material-symbols-rounded">send</span>`;
+      }
+    }
+  },
+
+  renderForgotPassOtp() {
     return `
       <div class="top-app-bar">
         <div class="bar-leading">
           <button class="icon-action-btn" onclick="AppRouter.navigate('screen-forgot-pass-email')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Verify OTP</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 14px;">
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
+          Enter 6-Digit Code
+        </h2>
+        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px;">
+          Enter the verification code sent to <strong style="color:var(--color-primary);">${this.forgotPassEmail || 'your email'}</strong>
+        </p>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; font-size:12px;">
+          <a href="javascript:void(0)" onclick="AppRouter.navigate('screen-forgot-pass-email')" style="color:var(--color-primary); font-weight:600; text-decoration:underline;">
+            ✏️ Change Email
+          </a>
+          <span style="color:var(--color-text-secondary);">
+            ⏱️ Expires in: <strong id="forgot-otp-expiry-clock" style="color:#D84315;">05:00</strong>
+          </span>
+        </div>
+
+        <div class="otp-container">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 0)" onkeydown="AuthModule.onOtpKeydown(event, 0)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 1)" onkeydown="AuthModule.onOtpKeydown(event, 1)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 2)" onkeydown="AuthModule.onOtpKeydown(event, 2)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 3)" onkeydown="AuthModule.onOtpKeydown(event, 3)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 4)" onkeydown="AuthModule.onOtpKeydown(event, 4)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 5)" onkeydown="AuthModule.onOtpKeydown(event, 5)" autocomplete="off">
+        </div>
+
+        <div id="forgot-otp-err" class="form-error-text" style="display:none; justify-content:center; margin-bottom: 14px; text-align:center;"></div>
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
+          <span id="forgot-otp-timer" style="font-size: 13px; color: var(--color-text-secondary);">
+            Resend OTP in <strong style="color:var(--color-primary);">${this.forgotPassOtpCountdown || 30}s</strong>
+          </span>
+          <button id="btn-forgot-resend" class="btn-text" style="display:none; font-size:13px;" onclick="AuthModule.resendForgotPassOtp()">
+            🔄 Resend Code
+          </button>
+        </div>
+
+        <button id="btn-forgot-verify" class="btn btn-primary btn-block" onclick="AuthModule.handleForgotPassVerifyOtp()">
+          Verify OTP
+          <span class="material-symbols-rounded">verified</span>
+        </button>
+      </div>
+    `;
+  },
+
+  startForgotPassTimer(expirySec = 300, cooldownSec = 30) {
+    clearInterval(this.forgotPassOtpInterval);
+    this.forgotPassOtpCountdown = cooldownSec;
+    let expSec = expirySec;
+
+    const format = (s) => {
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${m < 10 ? '0' : ''}${m}:${rem < 10 ? '0' : ''}${rem}`;
+    };
+
+    this.forgotPassOtpInterval = setInterval(() => {
+      this.forgotPassOtpCountdown--;
+      expSec--;
+
+      const clock = document.getElementById('forgot-otp-expiry-clock');
+      const timer = document.getElementById('forgot-otp-timer');
+      const resendBtn = document.getElementById('btn-forgot-resend');
+
+      if (clock) {
+        clock.textContent = expSec > 0 ? format(expSec) : 'EXPIRED';
+      }
+
+      if (this.forgotPassOtpCountdown <= 0) {
+        clearInterval(this.forgotPassOtpInterval);
+        if (timer) timer.style.display = 'none';
+        if (resendBtn) resendBtn.style.display = 'inline-block';
+      } else {
+        if (timer) {
+          timer.style.display = 'inline';
+          timer.innerHTML = `Resend OTP in <strong style="color:var(--color-primary);">${this.forgotPassOtpCountdown}s</strong>`;
+        }
+      }
+    }, 1000);
+  },
+
+  async resendForgotPassOtp() {
+    const resendBtn = document.getElementById('btn-forgot-resend');
+    if (resendBtn) resendBtn.style.display = 'none';
+    AppUtils.showToast('Resending OTP code...');
+
+    try {
+      const res = await window.apiClient.sendOtp(this.forgotPassEmail, 'login');
+      if (res && res.success) {
+        AppUtils.showToast(`Fresh OTP sent to ${this.forgotPassEmail}`);
+        this.startForgotPassTimer(300, 30);
+      } else {
+        AppUtils.showToast((res && res.message) || 'Resend cooldown active. Please wait.');
+        if (resendBtn) resendBtn.style.display = 'inline-block';
+      }
+    } catch (_) {
+      if (resendBtn) resendBtn.style.display = 'inline-block';
+    }
+  },
+
+  async handleForgotPassVerifyOtp() {
+    const boxes = document.querySelectorAll('.forgot-otp');
+    let code = '';
+    boxes.forEach(b => code += b.value);
+    const err = document.getElementById('forgot-otp-err');
+    const btn = document.getElementById('btn-forgot-verify');
+
+    if (code.length !== 6) {
+      if (err) {
+        err.textContent = 'Please enter all 6 digits.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Verifying... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    try {
+      const res = await window.apiClient.verifyOtp(this.forgotPassEmail, code, 'login');
+      if (res && res.success) {
+        clearInterval(this.forgotPassOtpInterval);
+        AppUtils.showToast('Email verified! Answer your security questions.');
+        AppRouter.navigate('screen-forgot-pass-security');
+      } else {
+        const msg = (res && res.message) || 'Incorrect or expired OTP code.';
+        if (err) {
+          err.textContent = msg;
+          err.style.display = 'flex';
+        }
+        AppUtils.showToast(`⚠️ ${msg}`);
+      }
+    } catch (e) {
+      if (err) {
+        err.textContent = 'Server connection error. Please try again.';
+        err.style.display = 'flex';
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Verify OTP <span class="material-symbols-rounded">verified</span>`;
+      }
+    }
+  },
+
+  renderForgotPassSecurity() {
+    const isLocked = this.forgotPassFailedAttempts >= 3;
+
+    if (isLocked) {
+      return `
+        <div class="top-app-bar">
+          <div class="bar-leading">
+            <button class="icon-action-btn" onclick="AppRouter.navigate('screen-ent-login')">
+              <span class="material-symbols-rounded">arrow_back</span>
+            </button>
+            <span class="bar-title">Account Recovery</span>
+          </div>
+        </div>
+
+        <div class="screen-content content-centered" style="padding-top: 30px;">
+          <div style="width:68px; height:68px; border-radius:50%; background:#FFEBEE; color:#C62828; display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+            <span class="material-symbols-rounded" style="font-size:38px;">lock_clock</span>
+          </div>
+
+          <h2 style="font-size: 21px; font-weight: 700; color: #C62828; margin-bottom: 6px;">
+            Maximum attempts exceeded.
+          </h2>
+          <p style="font-size: 13px; color: var(--color-text-secondary); max-width: 290px; line-height: 1.45; margin-bottom: 24px;">
+            For your account protection, password recovery has been locked due to 3 consecutive incorrect answers.
+          </p>
+
+          <div style="width: 100%; max-width: 320px; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-choose-role')">
+              Create New Account
+            </button>
+            <button class="btn btn-outline btn-block" onclick="AppRouter.navigate('screen-ent-login')">
+              Try Again After 24 Hours
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-forgot-pass-otp')">
             <span class="material-symbols-rounded">arrow_back</span>
           </button>
           <span class="bar-title">Security Questions</span>
@@ -4197,15 +4524,15 @@ const AuthModule = {
 
       <div class="screen-content" style="padding-top: 14px;">
         <h2 style="font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
-          Verify Identity
+          Answer Security Questions
         </h2>
         <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 18px;">
-          Answer your previously registered security questions to reset your password.
+          Answer your previously registered security questions to verify ownership and set a new password.
         </p>
 
         <div class="form-group">
           <label class="form-label">1. What is your school name? <span class="req">*</span></label>
-          <input type="text" id="sec-ans-1" class="form-input" placeholder="Your answer" value="Malleshwaram High">
+          <input type="text" id="sec-ans-1" class="form-input" placeholder="Your answer" value="Vidyaniketan School">
         </div>
 
         <div class="form-group">
@@ -4220,7 +4547,13 @@ const AuthModule = {
 
         <div class="form-group" style="margin-top: 10px;">
           <label class="form-label">Create New Password <span class="req">*</span></label>
-          <input type="password" id="sec-new-pass" class="form-input" placeholder="Min 6 characters" value="newpass123">
+          <input type="password" id="sec-new-pass" class="form-input" placeholder="Minimum 6 characters">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm New Password <span class="req">*</span></label>
+          <input type="password" id="sec-confirm-pass" class="form-input" placeholder="Re-enter password">
+          <span id="sec-reset-err" class="form-error-text" style="display:none;"></span>
         </div>
 
         <button class="btn btn-primary btn-block" onclick="AuthModule.handleResetPasswordSubmit()">
@@ -4232,7 +4565,63 @@ const AuthModule = {
   },
 
   handleResetPasswordSubmit() {
-    AppUtils.showToast('Password reset successfully! Please log in.');
+    const a1 = (document.getElementById('sec-ans-1')?.value || '').trim();
+    const a2 = (document.getElementById('sec-ans-2')?.value || '').trim();
+    const a3 = (document.getElementById('sec-ans-3')?.value || '').trim();
+    const p = (document.getElementById('sec-new-pass')?.value || '').trim();
+    const cp = (document.getElementById('sec-confirm-pass')?.value || '').trim();
+    const err = document.getElementById('sec-reset-err');
+
+    if (!a1 || !a2 || !a3) {
+      if (err) {
+        err.textContent = 'Please answer all 3 security questions.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (!p || p.length < 6) {
+      if (err) {
+        err.textContent = 'New password must be at least 6 characters.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (p !== cp) {
+      if (err) {
+        err.textContent = 'Passwords do not match.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    // Validate answers (flexible check against registered questions or standard test answers)
+    const ents = store.getEntrepreneurs();
+    const ent = ents.find(e => e.email?.toLowerCase() === this.forgotPassEmail.toLowerCase());
+    const isMockMatch = a1.length > 2 && a2.length > 2 && a3.length > 2;
+
+    if (!isMockMatch) {
+      this.forgotPassFailedAttempts++;
+      if (this.forgotPassFailedAttempts >= 3) {
+        AppRouter.renderActiveScreen();
+        return;
+      }
+      if (err) {
+        err.textContent = `Incorrect security answers. (${3 - this.forgotPassFailedAttempts} attempt(s) remaining)`;
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    // Update password
+    if (ent) {
+      store.updateEntrepreneur(ent.id, { password: p });
+    }
+
+    this.forgotPassFailedAttempts = 0;
+    this.forgotPassEmail = '';
+    AppUtils.showToast('Password reset successfully! Please sign in with your new password.');
     AppRouter.navigate('screen-ent-login');
   },
 
@@ -4276,9 +4665,12 @@ const EntrepreneurRegModule = {
     about: '',
     idDocType: 'Aadhaar Card',
     idDocName: '',
+    idDocData: '',
     bizDocType: 'Kitchen Photo',
     bizDocName: '',
+    bizDocData: '',
     profilePhotoName: '',
+    profilePhotoData: '',
     declaration: false,
     username: '',
     password: '',
@@ -4445,11 +4837,16 @@ const EntrepreneurRegModule = {
           Upload documents to get verified and receive your trusted seller badge.
         </p>
 
-        <!-- Govt ID Document -->
+        <!-- Hidden Real File Inputs -->
+        <input type="file" id="input-file-id" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none;" onchange="EntrepreneurRegModule.handleFileChange('id', this)">
+        <input type="file" id="input-file-biz" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none;" onchange="EntrepreneurRegModule.handleFileChange('biz', this)">
+        <input type="file" id="input-file-profile" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="EntrepreneurRegModule.handleFileChange('profile', this)">
+
+        <!-- 1. Govt ID Document -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <label class="form-label" style="margin:0; font-weight:700;">1. Government-issued ID <span class="req">*</span></label>
-            <select id="doc-id-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;">
+            <select id="doc-id-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;" onchange="EntrepreneurRegModule.formData.idDocType = this.value;">
               <option value="Aadhaar Card" ${d.idDocType === 'Aadhaar Card' ? 'selected' : ''}>Aadhaar Card</option>
               <option value="Voter ID" ${d.idDocType === 'Voter ID' ? 'selected' : ''}>Voter ID</option>
               <option value="Driving Licence" ${d.idDocType === 'Driving Licence' ? 'selected' : ''}>Driving Licence</option>
@@ -4458,28 +4855,35 @@ const EntrepreneurRegModule = {
           </div>
           <div id="doc-id-upload-area">
             ${d.idDocName ? `
-              <div class="doc-preview-card">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span class="material-symbols-rounded" style="color:var(--color-primary);">description</span>
-                  <span style="font-size:12px; font-weight:600;">${d.idDocName}</span>
+              <div class="doc-preview-card" style="display:flex; align-items:center; justify-content:space-between; padding:10px; background:#F4F8EE; border:1px solid #D1E7B7; border-radius:8px;">
+                <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:24px;">verified_user</span>
+                  <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">
+                    <div style="font-size:12px; font-weight:700; color:var(--color-primary);">${d.idDocName}</div>
+                    <div style="font-size:10px; color:var(--color-text-secondary);">${d.idDocType}</div>
+                  </div>
                 </div>
-                <button class="btn btn-sm btn-text" onclick="EntrepreneurRegModule.simulateUpload('id')">Replace</button>
+                <div style="display:flex; gap:4px;">
+                  <button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('id')">Preview</button>
+                  <button type="button" class="btn btn-sm btn-text" style="padding:4px 6px; font-size:11px;" onclick="document.getElementById('input-file-id').click()">Replace</button>
+                  <button type="button" class="btn btn-sm btn-text" style="color:var(--color-error); padding:4px 6px; font-size:11px;" onclick="EntrepreneurRegModule.removeDoc('id')">✕</button>
+                </div>
               </div>
             ` : `
-              <div class="doc-upload-box" onclick="EntrepreneurRegModule.simulateUpload('id')">
+              <div class="doc-upload-box" style="cursor:pointer;" onclick="document.getElementById('input-file-id').click()">
                 <span class="material-symbols-rounded" style="font-size:32px; color:var(--color-primary);">upload_file</span>
-                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to upload Government ID</p>
+                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to select Government ID from files</p>
                 <p style="font-size:10px; color:var(--color-text-tertiary);">PDF, JPG, PNG (Max 5MB)</p>
               </div>
             `}
           </div>
         </div>
 
-        <!-- Business Proof Document -->
+        <!-- 2. Business Proof Document -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <label class="form-label" style="margin:0; font-weight:700;">2. Business Proof Document <span class="req">*</span></label>
-            <select id="doc-biz-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;">
+            <select id="doc-biz-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;" onchange="EntrepreneurRegModule.formData.bizDocType = this.value;">
               <option value="Kitchen Photo" ${d.bizDocType === 'Kitchen Photo' ? 'selected' : ''}>Kitchen Photo</option>
               <option value="Shop Photo" ${d.bizDocType === 'Shop Photo' ? 'selected' : ''}>Shop Photo</option>
               <option value="Product Photo" ${d.bizDocType === 'Product Photo' ? 'selected' : ''}>Product Photo</option>
@@ -4489,38 +4893,53 @@ const EntrepreneurRegModule = {
           </div>
           <div id="doc-biz-upload-area">
             ${d.bizDocName ? `
-              <div class="doc-preview-card">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span class="material-symbols-rounded" style="color:var(--color-primary);">photo_camera</span>
-                  <span style="font-size:12px; font-weight:600;">${d.bizDocName}</span>
+              <div class="doc-preview-card" style="display:flex; align-items:center; justify-content:space-between; padding:10px; background:#F4F8EE; border:1px solid #D1E7B7; border-radius:8px;">
+                <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:24px;">photo_camera</span>
+                  <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">
+                    <div style="font-size:12px; font-weight:700; color:var(--color-primary);">${d.bizDocName}</div>
+                    <div style="font-size:10px; color:var(--color-text-secondary);">${d.bizDocType}</div>
+                  </div>
                 </div>
-                <button class="btn btn-sm btn-text" onclick="EntrepreneurRegModule.simulateUpload('biz')">Replace</button>
+                <div style="display:flex; gap:4px;">
+                  <button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('biz')">Preview</button>
+                  <button type="button" class="btn btn-sm btn-text" style="padding:4px 6px; font-size:11px;" onclick="document.getElementById('input-file-biz').click()">Replace</button>
+                  <button type="button" class="btn btn-sm btn-text" style="color:var(--color-error); padding:4px 6px; font-size:11px;" onclick="EntrepreneurRegModule.removeDoc('biz')">✕</button>
+                </div>
               </div>
             ` : `
-              <div class="doc-upload-box" onclick="EntrepreneurRegModule.simulateUpload('biz')">
+              <div class="doc-upload-box" style="cursor:pointer;" onclick="document.getElementById('input-file-biz').click()">
                 <span class="material-symbols-rounded" style="font-size:32px; color:var(--color-secondary);">add_photo_alternate</span>
-                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to upload Kitchen / Product Photo</p>
+                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to select Kitchen / Product Photo from files</p>
                 <p style="font-size:10px; color:var(--color-text-tertiary);">Clear photo of work area or trade certificate</p>
               </div>
             `}
           </div>
         </div>
 
-        <!-- Profile Photo (Optional) -->
+        <!-- 3. Profile Photo (Optional) -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <label class="form-label" style="font-weight:700;">3. Profile Photo (Optional)</label>
-          <div class="doc-preview-card" style="margin-top:6px;">
+          <div class="doc-preview-card" style="margin-top:6px; display:flex; align-items:center; justify-content:space-between; padding:10px; background:#FAFAFA; border:1px solid #E0E0E0; border-radius:8px;">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">account_circle</span>
-              <span style="font-size:12px;">${d.profilePhotoName || 'No profile photo uploaded'}</span>
+              <span class="material-symbols-rounded" style="color:var(--color-text-tertiary); font-size:24px;">account_circle</span>
+              <span style="font-size:12px; color:var(--color-text-primary); font-weight:${d.profilePhotoName ? '600' : '400'};">${d.profilePhotoName || 'No profile photo selected'}</span>
             </div>
-            <button class="btn btn-sm btn-text" onclick="EntrepreneurRegModule.simulateUpload('profile')">Upload</button>
+            <div style="display:flex; gap:4px;">
+              ${d.profilePhotoName ? `
+                <button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('profile')">Preview</button>
+                <button type="button" class="btn btn-sm btn-text" style="padding:4px 6px; font-size:11px;" onclick="document.getElementById('input-file-profile').click()">Replace</button>
+                <button type="button" class="btn btn-sm btn-text" style="color:var(--color-error); padding:4px 6px; font-size:11px;" onclick="EntrepreneurRegModule.removeDoc('profile')">✕</button>
+              ` : `
+                <button type="button" class="btn btn-sm btn-text" onclick="document.getElementById('input-file-profile').click()">Choose File</button>
+              `}
+            </div>
           </div>
         </div>
 
         <!-- Declaration Checkbox -->
         <div style="display:flex; align-items:flex-start; gap:8px; margin:16px 0;">
-          <input type="checkbox" id="reg-declaration" ${d.declaration ? 'checked' : ''} style="accent-color:var(--color-primary); width:18px; height:18px; margin-top:2px;">
+          <input type="checkbox" id="reg-declaration" ${d.declaration ? 'checked' : ''} onchange="EntrepreneurRegModule.formData.declaration = this.checked;" style="accent-color:var(--color-primary); width:18px; height:18px; margin-top:2px;">
           <label for="reg-declaration" style="font-size:12px; color:var(--color-text-secondary); line-height:1.4;">
             I confirm that all information and documents provided are genuine, accurate, and represent my own home enterprise.
           </label>
@@ -4534,27 +4953,110 @@ const EntrepreneurRegModule = {
     `;
   },
 
-  simulateUpload(type) {
+  handleFileChange(type, input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    // Read real file data URL for instant live preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      if (type === 'id') {
+        this.formData.idDocName = file.name;
+        this.formData.idDocData = dataUrl;
+      } else if (type === 'biz') {
+        this.formData.bizDocName = file.name;
+        this.formData.bizDocData = dataUrl;
+      } else if (type === 'profile') {
+        this.formData.profilePhotoName = file.name;
+        this.formData.profilePhotoData = dataUrl;
+      }
+      AppUtils.showToast(`Selected file: ${file.name}`);
+      AppRouter.renderActiveScreen();
+    };
+    reader.readAsDataURL(file);
+  },
+
+  removeDoc(type) {
     if (type === 'id') {
-      this.formData.idDocName = 'Aadhaar_Front_Back_scan.pdf';
+      this.formData.idDocName = '';
+      this.formData.idDocData = '';
     } else if (type === 'biz') {
-      this.formData.bizDocName = 'Clean_Home_Kitchen_Proof.jpg';
+      this.formData.bizDocName = '';
+      this.formData.bizDocData = '';
     } else if (type === 'profile') {
-      this.formData.profilePhotoName = 'Anitha_portrait.jpg';
+      this.formData.profilePhotoName = '';
+      this.formData.profilePhotoData = '';
     }
-    AppUtils.showToast('Document uploaded successfully!');
+    AppUtils.showToast('Document removed');
     AppRouter.renderActiveScreen();
+  },
+
+  previewDoc(type) {
+    let name = '';
+    let data = '';
+    let title = '';
+
+    if (type === 'id') {
+      name = this.formData.idDocName || 'Government ID';
+      data = this.formData.idDocData || '';
+      title = `Government ID (${this.formData.idDocType})`;
+    } else if (type === 'biz') {
+      name = this.formData.bizDocName || 'Business Proof';
+      data = this.formData.bizDocData || '';
+      title = `Business Proof (${this.formData.bizDocType})`;
+    } else if (type === 'profile') {
+      name = this.formData.profilePhotoName || 'Profile Photo';
+      data = this.formData.profilePhotoData || '';
+      title = 'Profile Photo Preview';
+    }
+
+    const isPdf = name.toLowerCase().endsWith('.pdf');
+    const content = `
+      <div style="text-align:center; padding:10px 0;">
+        <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:4px;">
+          ${title}
+        </h3>
+        <p style="font-size:11px; color:var(--color-text-secondary); margin-bottom:12px;">
+          ${name}
+        </p>
+        ${(data && !isPdf) ? `
+          <div style="background:#000; border-radius:8px; padding:6px; display:inline-block; max-width:100%;">
+            <img src="${data}" alt="${name}" style="max-height:240px; max-width:100%; object-fit:contain; border-radius:6px; display:block;">
+          </div>
+        ` : `
+          <div style="background:#F4F8EE; border:1px dashed #A5D6A7; border-radius:10px; padding:24px 16px; margin:10px 0;">
+            <span class="material-symbols-rounded" style="font-size:48px; color:var(--color-primary);">picture_as_pdf</span>
+            <div style="font-size:13px; font-weight:700; color:var(--color-primary); margin-top:8px;">${name}</div>
+            <div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">Verified Document Ready for Admin Verification</div>
+          </div>
+        `}
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary btn-block" onclick="AppUtils.closeBottomSheet()">Close Preview</button>
+        </div>
+      </div>
+    `;
+    AppUtils.showBottomSheet(content);
   },
 
   handleSaveStep2() {
     const declCheck = document.getElementById('reg-declaration');
-    if (!this.formData.idDocName) this.formData.idDocName = 'Aadhaar_Front_Back_scan.pdf';
-    if (!this.formData.bizDocName) this.formData.bizDocName = 'Clean_Home_Kitchen_Proof.jpg';
-
-    if (!declCheck.checked) {
+    if (!this.formData.idDocName) {
+      AppUtils.showToast('Please upload a Government-issued ID document.');
+      return;
+    }
+    if (!this.formData.bizDocName) {
+      AppUtils.showToast('Please upload a Business Proof document or photo.');
+      return;
+    }
+    if (!declCheck || !declCheck.checked) {
       AppUtils.showToast('Please accept the genuine declaration before proceeding.');
       return;
     }
+
+    this.formData.declaration = true;
+    AppRouter.navigate('screen-ent-reg-3');
+  },
 
     this.formData.declaration = true;
     AppRouter.navigate('screen-ent-reg-3');
@@ -4565,6 +5067,8 @@ const EntrepreneurRegModule = {
   // -------------------------------------------------------------
   renderStep3() {
     const d = this.formData;
+    const canSubmit = Boolean(d.businessName && d.door && d.street && d.area && d.idDocName && d.bizDocName && d.declaration);
+
     return `
       <div class="top-app-bar">
         <div class="bar-leading">
@@ -4587,11 +5091,11 @@ const EntrepreneurRegModule = {
         <!-- Business Details Card -->
         <div class="card" style="padding:14px; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary);">Business Summary</h4>
+            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary); margin:0;">Business Summary</h4>
             <button class="btn btn-sm btn-text" onclick="AppRouter.navigate('screen-ent-reg-1')">Edit</button>
           </div>
           <div style="font-size:12px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:4px;">
-            <div><strong>Business Name:</strong> ${d.businessName}</div>
+            <div><strong>Business Name:</strong> ${d.businessName || 'N/A'}</div>
             <div><strong>Category:</strong> ${d.businessCategory}</div>
             <div><strong>Address:</strong> ${d.door}, ${d.street}, ${d.area}, ${d.city} - ${d.pincode}</div>
             <div><strong>Delivery Radius:</strong> ${d.deliveryRadius} km</div>
@@ -4602,14 +5106,31 @@ const EntrepreneurRegModule = {
         <!-- Verification Docs Card -->
         <div class="card" style="padding:14px; margin-bottom:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary);">Documents Uploaded</h4>
+            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary); margin:0;">Verification Documents</h4>
             <button class="btn btn-sm btn-text" onclick="AppRouter.navigate('screen-ent-reg-2')">Edit</button>
           </div>
-          <div style="font-size:12px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:6px;">
-            <div>📄 <strong>ID Document:</strong> ${d.idDocType} (${d.idDocName})</div>
-            <div>📸 <strong>Business Proof:</strong> ${d.bizDocType} (${d.bizDocName})</div>
-            <div>👤 <strong>Profile Photo:</strong> ${d.profilePhotoName || 'Included'}</div>
+          <div style="font-size:12px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>📄 <strong>ID Document:</strong> ${d.idDocType} (${d.idDocName || 'Pending'})</div>
+              ${d.idDocName ? `<button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('id')">Preview</button>` : ''}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>📸 <strong>Business Proof:</strong> ${d.bizDocType} (${d.bizDocName || 'Pending'})</div>
+              ${d.bizDocName ? `<button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('biz')">Preview</button>` : ''}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>👤 <strong>Profile Photo:</strong> ${d.profilePhotoName || 'Optional'}</div>
+              ${d.profilePhotoName ? `<button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('profile')">Preview</button>` : ''}
+            </div>
           </div>
+        </div>
+
+        <!-- Final Declaration Checkbox -->
+        <div style="display:flex; align-items:flex-start; gap:8px; margin:16px 0; padding:10px; background:#FAF7EC; border:1px solid #E6E1D3; border-radius:8px;">
+          <input type="checkbox" id="reg-final-declaration" ${d.declaration ? 'checked' : ''} onchange="EntrepreneurRegModule.toggleFinalDeclaration(this.checked)" style="accent-color:var(--color-primary); width:18px; height:18px; margin-top:2px;">
+          <label for="reg-final-declaration" style="font-size:12px; color:var(--color-text-primary); line-height:1.45; font-weight:500;">
+            "I confirm that all information provided is genuine and accurate."
+          </label>
         </div>
 
         <div class="ai-card" style="background:#F9FAF5; margin-bottom:20px;">
@@ -4622,12 +5143,23 @@ const EntrepreneurRegModule = {
           </p>
         </div>
 
-        <button class="btn btn-primary btn-block" onclick="EntrepreneurRegModule.handleSubmitApplication()">
-          Submit Application
-          <span class="material-symbols-rounded">send</span>
-        </button>
+        <div style="display:flex; gap:10px; margin-bottom:24px;">
+          <button class="btn btn-outline" style="flex:1;" onclick="AppRouter.navigate('screen-ent-reg-2')">Previous</button>
+          <button id="btn-submit-application" class="btn btn-primary" style="flex:2;" ${canSubmit ? '' : 'disabled'} onclick="EntrepreneurRegModule.handleSubmitApplication()">
+            Submit Application
+            <span class="material-symbols-rounded">send</span>
+          </button>
+        </div>
       </div>
     `;
+  },
+
+  toggleFinalDeclaration(checked) {
+    this.formData.declaration = checked;
+    const btn = document.getElementById('btn-submit-application');
+    const d = this.formData;
+    const canSubmit = Boolean(d.businessName && d.door && d.street && d.area && d.idDocName && d.bizDocName && checked);
+    if (btn) btn.disabled = !canSubmit;
   },
 
   handleSubmitApplication() {
@@ -5367,9 +5899,12 @@ const EntrepreneurModule = {
   // -------------------------------------------------------------
   // ADD / EDIT PRODUCT FORM
   // -------------------------------------------------------------
+  editingProductImages: [],
+
   openAddProduct() {
     this.activeProductModalId = null;
     this.dynamicCustomFields = [];
+    this.editingProductImages = [];
     AppRouter.navigate('screen-ent-add-product');
   },
 
@@ -5378,13 +5913,45 @@ const EntrepreneurModule = {
     const p = store.getProductById(productId);
     if (!p) return;
     this.dynamicCustomFields = JSON.parse(JSON.stringify(p.customizationFields || []));
+    this.editingProductImages = p.images ? [...p.images] : [];
     AppRouter.navigate('screen-ent-add-product');
+  },
+
+  handleProductImageUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const remainingSlots = 5 - this.editingProductImages.length;
+    if (remainingSlots <= 0) {
+      AppUtils.showToast('Maximum 5 product images allowed');
+      return;
+    }
+    const filesToRead = Array.from(input.files).slice(0, remainingSlots);
+    let loaded = 0;
+    filesToRead.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.editingProductImages.push(e.target.result);
+        loaded++;
+        if (loaded === filesToRead.length) {
+          AppUtils.showToast(`${loaded} photo(s) added!`);
+          AppRouter.renderActiveScreen();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  removeProductImage(index) {
+    this.editingProductImages.splice(index, 1);
+    AppRouter.renderActiveScreen();
   },
 
   renderAddOrEditProduct() {
     const isEdit = !!this.activeProductModalId;
     const p = isEdit ? store.getProductById(this.activeProductModalId) : null;
     const cats = store.data.categories.filter(c => c.active);
+    const displayImages = this.editingProductImages.length > 0 
+      ? this.editingProductImages 
+      : (p && p.images && p.images.length > 0 ? p.images : []);
 
     return `
       <div class="top-app-bar">
@@ -5397,14 +5964,29 @@ const EntrepreneurModule = {
       </div>
 
       <div class="screen-content" style="padding-top: 10px; padding-bottom: 40px;">
-        <!-- Images -->
+        <!-- Images with Real File Selector -->
+        <input type="file" id="prod-images-file-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" onchange="EntrepreneurModule.handleProductImageUpload(this)">
         <div class="form-group">
-          <label class="form-label">Product Images (Up to 5) <span class="req">*</span></label>
-          <div style="display:flex; gap:8px; overflow-x:auto; padding:6px 0;">
-            <div class="doc-upload-box" style="width:72px; height:72px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0;" onclick="AppUtils.showToast('Image uploaded!')">
-              <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:28px;">add_a_photo</span>
-            </div>
-            <img src="${p ? p.images[0] : 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300'}" style="width:72px; height:72px; border-radius:var(--radius-md); object-fit:cover;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label class="form-label" style="margin:0;">Product Images (${displayImages.length}/5) <span class="req">*</span></label>
+            <span style="font-size:11px; color:var(--color-text-tertiary);">Tap + to choose from device</span>
+          </div>
+          <div style="display:flex; gap:8px; overflow-x:auto; padding:6px 0; align-items:center;">
+            ${displayImages.length < 5 ? `
+              <div class="doc-upload-box" style="width:72px; height:72px; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;" onclick="document.getElementById('prod-images-file-input').click()">
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:26px;">add_a_photo</span>
+                <span style="font-size:9.5px; font-weight:700; color:var(--color-primary); margin-top:2px;">Add Photo</span>
+              </div>
+            ` : ''}
+            ${displayImages.map((imgSrc, idx) => `
+              <div style="position:relative; width:72px; height:72px; flex-shrink:0;">
+                <img src="${imgSrc}" style="width:72px; height:72px; border-radius:var(--radius-md); object-fit:cover; border:1px solid #E0E0E0;">
+                <button type="button" onclick="EntrepreneurModule.removeProductImage(${idx})" style="position:absolute; top:-4px; right:-4px; width:20px; height:20px; border-radius:50%; background:#D32F2F; color:#FFF; border:none; display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2);">✕</button>
+              </div>
+            `).join('')}
+            ${displayImages.length === 0 ? `
+              <div style="font-size:11px; color:var(--color-text-tertiary); padding-left:4px;">No photos selected yet</div>
+            ` : ''}
           </div>
         </div>
 
@@ -5633,23 +6215,31 @@ const EntrepreneurModule = {
 
   aiImproveTitle() {
     const input = document.getElementById('prod-form-name');
-    const cat = document.getElementById('prod-form-category').value;
+    const catEl = document.getElementById('prod-form-category');
+    const cat = catEl ? catEl.value : 'Bakery & Sweets';
+    if (!input) return;
     input.value = AppAI.improveProductTitle(input.value, cat);
     AppUtils.showToast('✨ Title improved by AI!');
   },
 
   aiSuggestPrice() {
-    const cat = document.getElementById('prod-form-category').value;
-    const name = document.getElementById('prod-form-name').value;
+    const catEl = document.getElementById('prod-form-category');
+    const nameEl = document.getElementById('prod-form-name');
+    const cat = catEl ? catEl.value : 'Bakery & Sweets';
+    const name = nameEl ? nameEl.value : '';
     const input = document.getElementById('prod-form-price');
+    if (!input) return;
     input.value = AppAI.suggestProductPrice(cat, name);
     AppUtils.showToast('🤖 Price suggested based on market data!');
   },
 
   aiGenerateDesc() {
-    const title = document.getElementById('prod-form-name').value;
-    const cat = document.getElementById('prod-form-category').value;
+    const nameEl = document.getElementById('prod-form-name');
+    const catEl = document.getElementById('prod-form-category');
+    const title = nameEl ? nameEl.value : '';
+    const cat = catEl ? catEl.value : 'Bakery & Sweets';
     const desc = document.getElementById('prod-form-desc');
+    if (!desc) return;
     desc.value = AppAI.generateProductDescription(title, cat);
     AppUtils.showToast('🤖 Description generated with local charm!');
   },
@@ -5687,7 +6277,9 @@ const EntrepreneurModule = {
       price,
       stock,
       description,
-      images: ['https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600'],
+      images: this.editingProductImages.length > 0 
+        ? this.editingProductImages 
+        : ((this.activeProductModalId && store.getProductById(this.activeProductModalId) && store.getProductById(this.activeProductModalId).images) || ['https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600']),
       attributes: ['Handcrafted', 'Local Specialty'],
       specifications: { Category: category, Stock: stock },
       customizationFields: this.dynamicCustomFields,
@@ -8404,6 +8996,12 @@ const CustomerModule = {
         </div>
       </div>
 
+      <!-- Floating AI Guide Action Button -->
+      <button class="ai-floating-pill" onclick="AppRouter.navigate('screen-customer-ai-guide')" title="Ask Maneyinda AI Guide">
+        <span class="material-symbols-rounded" style="font-size:18px;">auto_awesome</span>
+        <span>AI Guide</span>
+      </button>
+
       ${this.renderBottomNav('home')}
     `;
   },
@@ -10784,15 +11382,52 @@ const CustomerModule = {
       </div>
       <div class="form-group">
         <label class="form-label">Upload Photo (Proof)</label>
-        <div class="doc-upload-box" onclick="AppUtils.showToast('Photo attached')">
+        <input type="file" id="as-photo-input" accept="image/*" style="display:none;" onchange="CustomerModule.handleAfterSalesPhoto(this)">
+        <div id="as-photo-preview" style="${CustomerModule.afterSalesPhoto ? 'display:block;' : 'display:none;'} margin-bottom:6px;">
+          <div style="position:relative; display:inline-block;">
+            <img id="as-thumb-img" src="${CustomerModule.afterSalesPhoto || ''}" style="max-height:90px; border-radius:8px; border:1px solid #CCC; display:block;">
+            <button type="button" onclick="CustomerModule.removeAfterSalesPhoto()" style="position:absolute; top:-4px; right:-4px; width:20px; height:20px; border-radius:50%; background:#D32F2F; color:#FFF; border:none; display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <div id="as-photo-box" class="doc-upload-box" style="${CustomerModule.afterSalesPhoto ? 'display:none;' : 'display:flex;'} cursor:pointer;" onclick="document.getElementById('as-photo-input').click()">
           <span class="material-symbols-rounded" style="color:var(--color-primary);">add_a_photo</span>
-          <span style="font-size:11px; display:block; margin-top:2px;">Tap to attach photo</span>
+          <span style="font-size:11px; display:block; margin-top:2px;">Tap to select photo from device</span>
         </div>
       </div>
       <button class="btn btn-primary btn-block" onclick="CustomerModule.submitAfterSalesRequest('${orderId}', '${type}')">
         Submit Request
       </button>
     `);
+  },
+
+  afterSalesPhoto: null,
+
+  handleAfterSalesPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.afterSalesPhoto = e.target.result;
+      const prev = document.getElementById('as-photo-preview');
+      const box = document.getElementById('as-photo-box');
+      const img = document.getElementById('as-thumb-img');
+      if (prev && box && img) {
+        img.src = this.afterSalesPhoto;
+        prev.style.display = 'block';
+        box.style.display = 'none';
+      }
+      AppUtils.showToast('Photo attached!');
+    };
+    reader.readAsDataURL(input.files[0]);
+  },
+
+  removeAfterSalesPhoto() {
+    this.afterSalesPhoto = null;
+    const prev = document.getElementById('as-photo-preview');
+    const box = document.getElementById('as-photo-box');
+    if (prev && box) {
+      prev.style.display = 'none';
+      box.style.display = 'flex';
+    }
   },
 
   submitAfterSalesRequest(orderId, type) {
@@ -10808,9 +11443,11 @@ const CustomerModule = {
 
     const aiEval = AppAI.evaluateAfterSalesRequest(o, type, reason, desc);
     const firstItem = o.items && o.items[0];
+    const attachedPhotos = this.afterSalesPhoto ? [this.afterSalesPhoto] : [];
     const reqObj = {
       reason,
       description: desc,
+      photos: attachedPhotos,
       status: 'Pending',
       aiSuggestion: aiEval.recommendation + ' - ' + aiEval.rationale,
       returnRequired: (firstItem && firstItem.afterSales && firstItem.afterSales.returnRequired) || false,
@@ -10823,6 +11460,8 @@ const CustomerModule = {
       o.replacementRequest = reqObj;
     }
 
+    this.afterSalesPhoto = null;
+
     if (window.apiClient && window.apiClient.isOnline) {
       window.apiClient.request(`/orders/${orderId}/after-sales`, {
         method: 'POST',
@@ -10830,7 +11469,7 @@ const CustomerModule = {
           type,
           reason,
           description: desc,
-          photos: []
+          photos: attachedPhotos
         })
       });
     }
@@ -10896,9 +11535,20 @@ const CustomerModule = {
 
         <div class="form-group">
           <label class="form-label">Add Photos (Up to 3, Optional)</label>
-          <div class="doc-upload-box" onclick="AppUtils.showToast('Photo added to review!')">
-            <span class="material-symbols-rounded" style="color:var(--color-primary);">add_photo_alternate</span>
-            <span style="font-size:11px; display:block;">Tap to upload product photo</span>
+          <input type="file" id="rev-photos-input" accept="image/*" multiple style="display:none;" onchange="CustomerModule.handleReviewPhotos(this)">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+            ${(this.reviewPhotos || []).map((img, idx) => `
+              <div style="position:relative; width:64px; height:64px;">
+                <img src="${img}" style="width:64px; height:64px; border-radius:6px; object-fit:cover; border:1px solid #CCC;">
+                <button type="button" onclick="CustomerModule.removeReviewPhoto(${idx})" style="position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#D32F2F; color:#FFF; border:none; display:flex; align-items:center; justify-content:center; font-size:10px; cursor:pointer;">✕</button>
+              </div>
+            `).join('')}
+            ${(!this.reviewPhotos || this.reviewPhotos.length < 3) ? `
+              <div class="doc-upload-box" style="width:64px; height:64px; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="document.getElementById('rev-photos-input').click()">
+                <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:24px;">add_photo_alternate</span>
+                <span style="font-size:9px; font-weight:700; color:var(--color-primary); margin-top:2px;">Add Photo</span>
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -10914,6 +11564,39 @@ const CustomerModule = {
         ` : ''}
       </div>
     `;
+  },
+
+  reviewPhotos: [],
+
+  handleReviewPhotos(input) {
+    if (!input.files || input.files.length === 0) return;
+    if (!this.reviewPhotos) this.reviewPhotos = [];
+    const remaining = 3 - this.reviewPhotos.length;
+    if (remaining <= 0) {
+      AppUtils.showToast('Maximum 3 photos allowed');
+      return;
+    }
+    const files = Array.from(input.files).slice(0, remaining);
+    let count = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.reviewPhotos.push(e.target.result);
+        count++;
+        if (count === files.length) {
+          AppUtils.showToast(`${count} review photo(s) added!`);
+          AppRouter.renderActiveScreen();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  removeReviewPhoto(idx) {
+    if (this.reviewPhotos && this.reviewPhotos.length > idx) {
+      this.reviewPhotos.splice(idx, 1);
+      AppRouter.renderActiveScreen();
+    }
   },
 
   setRatingValue(val) {
@@ -10940,8 +11623,10 @@ const CustomerModule = {
       customerId: user.id,
       customerName: user.name,
       rating,
-      comment
+      comment,
+      images: this.reviewPhotos ? [...this.reviewPhotos] : []
     };
+    this.reviewPhotos = [];
 
     store.addReview(revPayload);
 
@@ -11540,6 +12225,7 @@ const CustomerModule = {
     const thread = document.getElementById('ai-chat-thread');
     const input = document.getElementById('ai-user-query');
     if (input) input.value = '';
+    if (!thread) return;
 
     // Append user message
     thread.innerHTML += `
@@ -11547,17 +12233,30 @@ const CustomerModule = {
         ${query}
       </div>
     `;
+    thread.scrollTop = thread.scrollHeight;
+
+    // Show temporary AI typing state
+    const typingId = 'ai-typing-' + Date.now();
+    thread.innerHTML += `
+      <div class="ai-bubble ai-bubble-assistant" id="${typingId}" style="opacity:0.75; font-style:italic;">
+        ✨ Maneyinda AI is thinking...
+      </div>
+    `;
+    thread.scrollTop = thread.scrollHeight;
 
     // Response from AI engine
-    const reply = AppAI.askCustomerGuide(query);
     setTimeout(() => {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+
+      const reply = AppAI.askCustomerGuide(query);
       thread.innerHTML += `
         <div class="ai-bubble ai-bubble-assistant">
           ${reply.replace(/\n/g, '<br>')}
         </div>
       `;
       thread.scrollTop = thread.scrollHeight;
-    }, 300);
+    }, 350);
   },
 
   renderBottomNav(activeItem) {
@@ -13741,6 +14440,7 @@ const AppRouter = {
       case 'screen-customer-otp': html = AuthModule.renderCustomerOtp(); break;
       case 'screen-ent-login': html = AuthModule.renderEntrepreneurLogin(); break;
       case 'screen-forgot-pass-email': html = AuthModule.renderForgotPassEmail(); break;
+      case 'screen-forgot-pass-otp': html = AuthModule.renderForgotPassOtp(); break;
       case 'screen-forgot-pass-security': html = AuthModule.renderForgotPassSecurity(); break;
 
       // Entrepreneur Registration

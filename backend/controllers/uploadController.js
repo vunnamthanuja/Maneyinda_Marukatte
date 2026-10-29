@@ -19,8 +19,10 @@ try {
 
 // Whitelist of supported and safe MIME extensions
 const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+const ALLOWED_DOC_EXTS = ['.pdf'];
 const ALLOWED_VIDEO_EXTS = ['.mp4', '.webm'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_VIDEO_SIZE = 15 * 1024 * 1024; // 15 MB
 
 const uploadController = {
@@ -42,6 +44,7 @@ const uploadController = {
             else if (mime.includes('jpeg') || mime.includes('jpg')) ext = '.jpg';
             else if (mime.includes('webp')) ext = '.webp';
             else if (mime.includes('gif')) ext = '.gif';
+            else if (mime.includes('pdf')) ext = '.pdf';
             else if (mime.includes('mp4')) ext = '.mp4';
             else if (mime.includes('webm')) ext = '.webm';
           }
@@ -49,26 +52,27 @@ const uploadController = {
         if (!ext) ext = '.jpg';
 
         const isImage = ALLOWED_IMAGE_EXTS.includes(ext);
+        const isDoc = ALLOWED_DOC_EXTS.includes(ext);
         const isVideo = ALLOWED_VIDEO_EXTS.includes(ext);
 
-        if (!isImage && !isVideo) {
+        if (!isImage && !isDoc && !isVideo) {
           return res.status(400).json({
             success: false,
             error: 'INVALID_FILE_TYPE',
-            message: `Unsupported file format (${ext}). Only safe image formats (JPG, PNG, WEBP, GIF) and video formats (MP4, WEBM) are permitted.`
+            message: `Unsupported file format (${ext}). Supported formats: JPG, PNG, WEBP, GIF, PDF, MP4, and WEBM.`
           });
         }
 
         // Clean base64 data and decode buffer
         const cleanBase64 = base64.replace(/^data:[A-Za-z0-9\/\+.-]+;base64,/, '');
         const fileBuffer = Buffer.from(cleanBase64, 'base64');
-        const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+        const maxSize = isVideo ? MAX_VIDEO_SIZE : (isDoc ? MAX_DOC_SIZE : MAX_IMAGE_SIZE);
 
         if (fileBuffer.length > maxSize) {
           return res.status(400).json({
             success: false,
             error: 'FILE_TOO_LARGE',
-            message: `File size exceeds maximum permitted limit (${isVideo ? '15MB for video' : '5MB for images'}).`
+            message: `File size exceeds maximum permitted limit (${isVideo ? '15MB for video' : (isDoc ? '10MB for documents' : '5MB for images')}).`
           });
         }
 

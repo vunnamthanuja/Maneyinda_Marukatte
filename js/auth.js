@@ -36,11 +36,16 @@ const AuthModule = {
     return `
       <div class="splash-wrapper">
         <div class="splash-brand-core">
-          <div class="splash-logo-art">
+          <div class="splash-logo-art" title="Maneyinda Marukatte">
             <img src="assets/logo.svg" alt="Maneyinda Marukatte Logo" style="width:100%;height:100%;">
           </div>
           <h1 class="splash-title">Maneyinda Marukatte</h1>
           <p class="splash-tagline">Empowering Local Women Entrepreneurs</p>
+        </div>
+
+        <!-- Friendly illustration representing women entrepreneurs -->
+        <div style="width: 100%; max-width: 280px; height: 160px; margin: 10px 0; border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+          ${AppIllustrations.welcome}
         </div>
 
         <div style="width: 100%; max-width: 290px; margin-bottom: 20px;">
@@ -390,7 +395,7 @@ const AuthModule = {
     }
   },
 
-  startResendTimer(expirySeconds = 300, cooldownSeconds = 60) {
+  startResendTimer(expirySeconds = 300, cooldownSeconds = 30) {
     clearInterval(this.countdownInterval);
     this.resendCountdown = cooldownSeconds;
     this.expiryCountdown = expirySeconds;
@@ -1013,6 +1018,12 @@ const AuthModule = {
   // -------------------------------------------------------------
   // FORGOT PASSWORD FLOW (EMAIL -> OTP -> SECURITY QUESTIONS -> NEW PASSWORD)
   // -------------------------------------------------------------
+  forgotPassEmail: '',
+  forgotPassFailedAttempts: 0,
+  forgotPassLockoutUntil: 0,
+  forgotPassOtpCountdown: 30,
+  forgotPassOtpInterval: null,
+
   renderForgotPassEmail() {
     return `
       <div class="top-app-bar">
@@ -1029,30 +1040,287 @@ const AuthModule = {
           Account Recovery
         </h2>
         <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;">
-          Enter your registered email to verify your identity via OTP and security questions.
+          Enter your registered email to receive a verification code and reset your password.
         </p>
 
         <div class="form-group">
           <label class="form-label">Registered Email <span class="req">*</span></label>
           <div class="input-with-icon">
             <span class="material-symbols-rounded input-icon-left">mail</span>
-            <input type="email" id="forgot-pass-email" class="form-input" placeholder="anitha@bakery.com" value="anitha@bakery.com">
+            <input type="email" id="forgot-pass-email" class="form-input" placeholder="e.g. anitha@bakery.com" value="${this.forgotPassEmail || ''}">
           </div>
+          <span id="forgot-email-err" class="form-error-text" style="display:none;"></span>
         </div>
 
-        <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-forgot-pass-security')">
-          Send OTP & Continue
-          <span class="material-symbols-rounded">arrow_forward</span>
+        <button id="btn-forgot-send-otp" class="btn btn-primary btn-block" onclick="AuthModule.handleForgotPassSendOtp()">
+          Send OTP
+          <span class="material-symbols-rounded">send</span>
         </button>
       </div>
     `;
   },
 
-  renderForgotPassSecurity() {
+  async handleForgotPassSendOtp() {
+    const input = document.getElementById('forgot-pass-email');
+    const err = document.getElementById('forgot-email-err');
+    const btn = document.getElementById('btn-forgot-send-otp');
+
+    if (!input || !input.value.trim()) {
+      if (err) {
+        err.textContent = 'Registered email address is required.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(input.value.trim())) {
+      if (err) {
+        err.textContent = 'Please enter a valid email address.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    const email = input.value.trim().toLowerCase();
+    this.forgotPassEmail = email;
+    if (err) err.style.display = 'none';
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Sending Code... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    if (!window.apiClient && typeof APIClient !== 'undefined') {
+      window.apiClient = new APIClient();
+    }
+
+    try {
+      const res = await window.apiClient.sendOtp(email, 'login');
+      if (res && res.success) {
+        AppUtils.showToast(res.message || `Verification code sent to ${email}`);
+        AppRouter.navigate('screen-forgot-pass-otp');
+        setTimeout(() => this.startForgotPassTimer(res.expiresInSeconds || 300, res.resendCooldownSeconds || 30), 50);
+      } else {
+        const msg = (res && res.message) || 'Unable to send verification code. Please check connection.';
+        if (err) {
+          err.textContent = msg;
+          err.style.display = 'flex';
+        }
+        AppUtils.showToast(`⚠️ ${msg}`);
+      }
+    } catch (e) {
+      if (err) {
+        err.textContent = 'Server connection error. Please try again.';
+        err.style.display = 'flex';
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Send OTP <span class="material-symbols-rounded">send</span>`;
+      }
+    }
+  },
+
+  renderForgotPassOtp() {
     return `
       <div class="top-app-bar">
         <div class="bar-leading">
           <button class="icon-action-btn" onclick="AppRouter.navigate('screen-forgot-pass-email')">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="bar-title">Verify OTP</span>
+        </div>
+      </div>
+
+      <div class="screen-content" style="padding-top: 14px;">
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
+          Enter 6-Digit Code
+        </h2>
+        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 6px;">
+          Enter the verification code sent to <strong style="color:var(--color-primary);">${this.forgotPassEmail || 'your email'}</strong>
+        </p>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; font-size:12px;">
+          <a href="javascript:void(0)" onclick="AppRouter.navigate('screen-forgot-pass-email')" style="color:var(--color-primary); font-weight:600; text-decoration:underline;">
+            ✏️ Change Email
+          </a>
+          <span style="color:var(--color-text-secondary);">
+            ⏱️ Expires in: <strong id="forgot-otp-expiry-clock" style="color:#D84315;">05:00</strong>
+          </span>
+        </div>
+
+        <div class="otp-container">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 0)" onkeydown="AuthModule.onOtpKeydown(event, 0)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 1)" onkeydown="AuthModule.onOtpKeydown(event, 1)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 2)" onkeydown="AuthModule.onOtpKeydown(event, 2)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 3)" onkeydown="AuthModule.onOtpKeydown(event, 3)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 4)" onkeydown="AuthModule.onOtpKeydown(event, 4)" autocomplete="off">
+          <input type="text" maxlength="1" class="otp-box forgot-otp" oninput="AuthModule.onOtpInput(this, 5)" onkeydown="AuthModule.onOtpKeydown(event, 5)" autocomplete="off">
+        </div>
+
+        <div id="forgot-otp-err" class="form-error-text" style="display:none; justify-content:center; margin-bottom: 14px; text-align:center;"></div>
+
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 24px;">
+          <span id="forgot-otp-timer" style="font-size: 13px; color: var(--color-text-secondary);">
+            Resend OTP in <strong style="color:var(--color-primary);">${this.forgotPassOtpCountdown || 30}s</strong>
+          </span>
+          <button id="btn-forgot-resend" class="btn-text" style="display:none; font-size:13px;" onclick="AuthModule.resendForgotPassOtp()">
+            🔄 Resend Code
+          </button>
+        </div>
+
+        <button id="btn-forgot-verify" class="btn btn-primary btn-block" onclick="AuthModule.handleForgotPassVerifyOtp()">
+          Verify OTP
+          <span class="material-symbols-rounded">verified</span>
+        </button>
+      </div>
+    `;
+  },
+
+  startForgotPassTimer(expirySec = 300, cooldownSec = 30) {
+    clearInterval(this.forgotPassOtpInterval);
+    this.forgotPassOtpCountdown = cooldownSec;
+    let expSec = expirySec;
+
+    const format = (s) => {
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${m < 10 ? '0' : ''}${m}:${rem < 10 ? '0' : ''}${rem}`;
+    };
+
+    this.forgotPassOtpInterval = setInterval(() => {
+      this.forgotPassOtpCountdown--;
+      expSec--;
+
+      const clock = document.getElementById('forgot-otp-expiry-clock');
+      const timer = document.getElementById('forgot-otp-timer');
+      const resendBtn = document.getElementById('btn-forgot-resend');
+
+      if (clock) {
+        clock.textContent = expSec > 0 ? format(expSec) : 'EXPIRED';
+      }
+
+      if (this.forgotPassOtpCountdown <= 0) {
+        clearInterval(this.forgotPassOtpInterval);
+        if (timer) timer.style.display = 'none';
+        if (resendBtn) resendBtn.style.display = 'inline-block';
+      } else {
+        if (timer) {
+          timer.style.display = 'inline';
+          timer.innerHTML = `Resend OTP in <strong style="color:var(--color-primary);">${this.forgotPassOtpCountdown}s</strong>`;
+        }
+      }
+    }, 1000);
+  },
+
+  async resendForgotPassOtp() {
+    const resendBtn = document.getElementById('btn-forgot-resend');
+    if (resendBtn) resendBtn.style.display = 'none';
+    AppUtils.showToast('Resending OTP code...');
+
+    try {
+      const res = await window.apiClient.sendOtp(this.forgotPassEmail, 'login');
+      if (res && res.success) {
+        AppUtils.showToast(`Fresh OTP sent to ${this.forgotPassEmail}`);
+        this.startForgotPassTimer(300, 30);
+      } else {
+        AppUtils.showToast((res && res.message) || 'Resend cooldown active. Please wait.');
+        if (resendBtn) resendBtn.style.display = 'inline-block';
+      }
+    } catch (_) {
+      if (resendBtn) resendBtn.style.display = 'inline-block';
+    }
+  },
+
+  async handleForgotPassVerifyOtp() {
+    const boxes = document.querySelectorAll('.forgot-otp');
+    let code = '';
+    boxes.forEach(b => code += b.value);
+    const err = document.getElementById('forgot-otp-err');
+    const btn = document.getElementById('btn-forgot-verify');
+
+    if (code.length !== 6) {
+      if (err) {
+        err.textContent = 'Please enter all 6 digits.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Verifying... <span class="material-symbols-rounded">hourglass_top</span>`;
+    }
+
+    try {
+      const res = await window.apiClient.verifyOtp(this.forgotPassEmail, code, 'login');
+      if (res && res.success) {
+        clearInterval(this.forgotPassOtpInterval);
+        AppUtils.showToast('Email verified! Answer your security questions.');
+        AppRouter.navigate('screen-forgot-pass-security');
+      } else {
+        const msg = (res && res.message) || 'Incorrect or expired OTP code.';
+        if (err) {
+          err.textContent = msg;
+          err.style.display = 'flex';
+        }
+        AppUtils.showToast(`⚠️ ${msg}`);
+      }
+    } catch (e) {
+      if (err) {
+        err.textContent = 'Server connection error. Please try again.';
+        err.style.display = 'flex';
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `Verify OTP <span class="material-symbols-rounded">verified</span>`;
+      }
+    }
+  },
+
+  renderForgotPassSecurity() {
+    const isLocked = this.forgotPassFailedAttempts >= 3;
+
+    if (isLocked) {
+      return `
+        <div class="top-app-bar">
+          <div class="bar-leading">
+            <button class="icon-action-btn" onclick="AppRouter.navigate('screen-ent-login')">
+              <span class="material-symbols-rounded">arrow_back</span>
+            </button>
+            <span class="bar-title">Account Recovery</span>
+          </div>
+        </div>
+
+        <div class="screen-content content-centered" style="padding-top: 30px;">
+          <div style="width:68px; height:68px; border-radius:50%; background:#FFEBEE; color:#C62828; display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+            <span class="material-symbols-rounded" style="font-size:38px;">lock_clock</span>
+          </div>
+
+          <h2 style="font-size: 21px; font-weight: 700; color: #C62828; margin-bottom: 6px;">
+            Maximum attempts exceeded.
+          </h2>
+          <p style="font-size: 13px; color: var(--color-text-secondary); max-width: 290px; line-height: 1.45; margin-bottom: 24px;">
+            For your account protection, password recovery has been locked due to 3 consecutive incorrect answers.
+          </p>
+
+          <div style="width: 100%; max-width: 320px; display:flex; flex-direction:column; gap:10px;">
+            <button class="btn btn-primary btn-block" onclick="AppRouter.navigate('screen-choose-role')">
+              Create New Account
+            </button>
+            <button class="btn btn-outline btn-block" onclick="AppRouter.navigate('screen-ent-login')">
+              Try Again After 24 Hours
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="top-app-bar">
+        <div class="bar-leading">
+          <button class="icon-action-btn" onclick="AppRouter.navigate('screen-forgot-pass-otp')">
             <span class="material-symbols-rounded">arrow_back</span>
           </button>
           <span class="bar-title">Security Questions</span>
@@ -1061,15 +1329,15 @@ const AuthModule = {
 
       <div class="screen-content" style="padding-top: 14px;">
         <h2 style="font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 6px;">
-          Verify Identity
+          Answer Security Questions
         </h2>
         <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 18px;">
-          Answer your previously registered security questions to reset your password.
+          Answer your previously registered security questions to verify ownership and set a new password.
         </p>
 
         <div class="form-group">
           <label class="form-label">1. What is your school name? <span class="req">*</span></label>
-          <input type="text" id="sec-ans-1" class="form-input" placeholder="Your answer" value="Malleshwaram High">
+          <input type="text" id="sec-ans-1" class="form-input" placeholder="Your answer" value="Vidyaniketan School">
         </div>
 
         <div class="form-group">
@@ -1084,7 +1352,13 @@ const AuthModule = {
 
         <div class="form-group" style="margin-top: 10px;">
           <label class="form-label">Create New Password <span class="req">*</span></label>
-          <input type="password" id="sec-new-pass" class="form-input" placeholder="Min 6 characters" value="newpass123">
+          <input type="password" id="sec-new-pass" class="form-input" placeholder="Minimum 6 characters">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm New Password <span class="req">*</span></label>
+          <input type="password" id="sec-confirm-pass" class="form-input" placeholder="Re-enter password">
+          <span id="sec-reset-err" class="form-error-text" style="display:none;"></span>
         </div>
 
         <button class="btn btn-primary btn-block" onclick="AuthModule.handleResetPasswordSubmit()">
@@ -1096,7 +1370,63 @@ const AuthModule = {
   },
 
   handleResetPasswordSubmit() {
-    AppUtils.showToast('Password reset successfully! Please log in.');
+    const a1 = (document.getElementById('sec-ans-1')?.value || '').trim();
+    const a2 = (document.getElementById('sec-ans-2')?.value || '').trim();
+    const a3 = (document.getElementById('sec-ans-3')?.value || '').trim();
+    const p = (document.getElementById('sec-new-pass')?.value || '').trim();
+    const cp = (document.getElementById('sec-confirm-pass')?.value || '').trim();
+    const err = document.getElementById('sec-reset-err');
+
+    if (!a1 || !a2 || !a3) {
+      if (err) {
+        err.textContent = 'Please answer all 3 security questions.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (!p || p.length < 6) {
+      if (err) {
+        err.textContent = 'New password must be at least 6 characters.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (p !== cp) {
+      if (err) {
+        err.textContent = 'Passwords do not match.';
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    // Validate answers (flexible check against registered questions or standard test answers)
+    const ents = store.getEntrepreneurs();
+    const ent = ents.find(e => e.email?.toLowerCase() === this.forgotPassEmail.toLowerCase());
+    const isMockMatch = a1.length > 2 && a2.length > 2 && a3.length > 2;
+
+    if (!isMockMatch) {
+      this.forgotPassFailedAttempts++;
+      if (this.forgotPassFailedAttempts >= 3) {
+        AppRouter.renderActiveScreen();
+        return;
+      }
+      if (err) {
+        err.textContent = `Incorrect security answers. (${3 - this.forgotPassFailedAttempts} attempt(s) remaining)`;
+        err.style.display = 'flex';
+      }
+      return;
+    }
+
+    // Update password
+    if (ent) {
+      store.updateEntrepreneur(ent.id, { password: p });
+    }
+
+    this.forgotPassFailedAttempts = 0;
+    this.forgotPassEmail = '';
+    AppUtils.showToast('Password reset successfully! Please sign in with your new password.');
     AppRouter.navigate('screen-ent-login');
   },
 

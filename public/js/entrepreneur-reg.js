@@ -18,9 +18,12 @@ const EntrepreneurRegModule = {
     about: '',
     idDocType: 'Aadhaar Card',
     idDocName: '',
+    idDocData: '',
     bizDocType: 'Kitchen Photo',
     bizDocName: '',
+    bizDocData: '',
     profilePhotoName: '',
+    profilePhotoData: '',
     declaration: false,
     username: '',
     password: '',
@@ -187,11 +190,16 @@ const EntrepreneurRegModule = {
           Upload documents to get verified and receive your trusted seller badge.
         </p>
 
-        <!-- Govt ID Document -->
+        <!-- Hidden Real File Inputs -->
+        <input type="file" id="input-file-id" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none;" onchange="EntrepreneurRegModule.handleFileChange('id', this)">
+        <input type="file" id="input-file-biz" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none;" onchange="EntrepreneurRegModule.handleFileChange('biz', this)">
+        <input type="file" id="input-file-profile" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="EntrepreneurRegModule.handleFileChange('profile', this)">
+
+        <!-- 1. Govt ID Document -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <label class="form-label" style="margin:0; font-weight:700;">1. Government-issued ID <span class="req">*</span></label>
-            <select id="doc-id-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;">
+            <select id="doc-id-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;" onchange="EntrepreneurRegModule.formData.idDocType = this.value;">
               <option value="Aadhaar Card" ${d.idDocType === 'Aadhaar Card' ? 'selected' : ''}>Aadhaar Card</option>
               <option value="Voter ID" ${d.idDocType === 'Voter ID' ? 'selected' : ''}>Voter ID</option>
               <option value="Driving Licence" ${d.idDocType === 'Driving Licence' ? 'selected' : ''}>Driving Licence</option>
@@ -200,28 +208,35 @@ const EntrepreneurRegModule = {
           </div>
           <div id="doc-id-upload-area">
             ${d.idDocName ? `
-              <div class="doc-preview-card">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span class="material-symbols-rounded" style="color:var(--color-primary);">description</span>
-                  <span style="font-size:12px; font-weight:600;">${d.idDocName}</span>
+              <div class="doc-preview-card" style="display:flex; align-items:center; justify-content:space-between; padding:10px; background:#F4F8EE; border:1px solid #D1E7B7; border-radius:8px;">
+                <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:24px;">verified_user</span>
+                  <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">
+                    <div style="font-size:12px; font-weight:700; color:var(--color-primary);">${d.idDocName}</div>
+                    <div style="font-size:10px; color:var(--color-text-secondary);">${d.idDocType}</div>
+                  </div>
                 </div>
-                <button class="btn btn-sm btn-text" onclick="EntrepreneurRegModule.simulateUpload('id')">Replace</button>
+                <div style="display:flex; gap:4px;">
+                  <button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('id')">Preview</button>
+                  <button type="button" class="btn btn-sm btn-text" style="padding:4px 6px; font-size:11px;" onclick="document.getElementById('input-file-id').click()">Replace</button>
+                  <button type="button" class="btn btn-sm btn-text" style="color:var(--color-error); padding:4px 6px; font-size:11px;" onclick="EntrepreneurRegModule.removeDoc('id')">✕</button>
+                </div>
               </div>
             ` : `
-              <div class="doc-upload-box" onclick="EntrepreneurRegModule.simulateUpload('id')">
+              <div class="doc-upload-box" style="cursor:pointer;" onclick="document.getElementById('input-file-id').click()">
                 <span class="material-symbols-rounded" style="font-size:32px; color:var(--color-primary);">upload_file</span>
-                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to upload Government ID</p>
+                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to select Government ID from files</p>
                 <p style="font-size:10px; color:var(--color-text-tertiary);">PDF, JPG, PNG (Max 5MB)</p>
               </div>
             `}
           </div>
         </div>
 
-        <!-- Business Proof Document -->
+        <!-- 2. Business Proof Document -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <label class="form-label" style="margin:0; font-weight:700;">2. Business Proof Document <span class="req">*</span></label>
-            <select id="doc-biz-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;">
+            <select id="doc-biz-type" class="form-select" style="width:auto; padding:4px 8px; font-size:11px;" onchange="EntrepreneurRegModule.formData.bizDocType = this.value;">
               <option value="Kitchen Photo" ${d.bizDocType === 'Kitchen Photo' ? 'selected' : ''}>Kitchen Photo</option>
               <option value="Shop Photo" ${d.bizDocType === 'Shop Photo' ? 'selected' : ''}>Shop Photo</option>
               <option value="Product Photo" ${d.bizDocType === 'Product Photo' ? 'selected' : ''}>Product Photo</option>
@@ -231,38 +246,53 @@ const EntrepreneurRegModule = {
           </div>
           <div id="doc-biz-upload-area">
             ${d.bizDocName ? `
-              <div class="doc-preview-card">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <span class="material-symbols-rounded" style="color:var(--color-primary);">photo_camera</span>
-                  <span style="font-size:12px; font-weight:600;">${d.bizDocName}</span>
+              <div class="doc-preview-card" style="display:flex; align-items:center; justify-content:space-between; padding:10px; background:#F4F8EE; border:1px solid #D1E7B7; border-radius:8px;">
+                <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                  <span class="material-symbols-rounded" style="color:var(--color-primary); font-size:24px;">photo_camera</span>
+                  <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">
+                    <div style="font-size:12px; font-weight:700; color:var(--color-primary);">${d.bizDocName}</div>
+                    <div style="font-size:10px; color:var(--color-text-secondary);">${d.bizDocType}</div>
+                  </div>
                 </div>
-                <button class="btn btn-sm btn-text" onclick="EntrepreneurRegModule.simulateUpload('biz')">Replace</button>
+                <div style="display:flex; gap:4px;">
+                  <button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('biz')">Preview</button>
+                  <button type="button" class="btn btn-sm btn-text" style="padding:4px 6px; font-size:11px;" onclick="document.getElementById('input-file-biz').click()">Replace</button>
+                  <button type="button" class="btn btn-sm btn-text" style="color:var(--color-error); padding:4px 6px; font-size:11px;" onclick="EntrepreneurRegModule.removeDoc('biz')">✕</button>
+                </div>
               </div>
             ` : `
-              <div class="doc-upload-box" onclick="EntrepreneurRegModule.simulateUpload('biz')">
+              <div class="doc-upload-box" style="cursor:pointer;" onclick="document.getElementById('input-file-biz').click()">
                 <span class="material-symbols-rounded" style="font-size:32px; color:var(--color-secondary);">add_photo_alternate</span>
-                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to upload Kitchen / Product Photo</p>
+                <p style="font-size:12px; font-weight:600; color:var(--color-text-primary); margin-top:4px;">Tap to select Kitchen / Product Photo from files</p>
                 <p style="font-size:10px; color:var(--color-text-tertiary);">Clear photo of work area or trade certificate</p>
               </div>
             `}
           </div>
         </div>
 
-        <!-- Profile Photo (Optional) -->
+        <!-- 3. Profile Photo (Optional) -->
         <div class="card" style="padding:14px; margin-bottom:14px;">
           <label class="form-label" style="font-weight:700;">3. Profile Photo (Optional)</label>
-          <div class="doc-preview-card" style="margin-top:6px;">
+          <div class="doc-preview-card" style="margin-top:6px; display:flex; align-items:center; justify-content:space-between; padding:10px; background:#FAFAFA; border:1px solid #E0E0E0; border-radius:8px;">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="material-symbols-rounded" style="color:var(--color-text-tertiary);">account_circle</span>
-              <span style="font-size:12px;">${d.profilePhotoName || 'No profile photo uploaded'}</span>
+              <span class="material-symbols-rounded" style="color:var(--color-text-tertiary); font-size:24px;">account_circle</span>
+              <span style="font-size:12px; color:var(--color-text-primary); font-weight:${d.profilePhotoName ? '600' : '400'};">${d.profilePhotoName || 'No profile photo selected'}</span>
             </div>
-            <button class="btn btn-sm btn-text" onclick="EntrepreneurRegModule.simulateUpload('profile')">Upload</button>
+            <div style="display:flex; gap:4px;">
+              ${d.profilePhotoName ? `
+                <button type="button" class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('profile')">Preview</button>
+                <button type="button" class="btn btn-sm btn-text" style="padding:4px 6px; font-size:11px;" onclick="document.getElementById('input-file-profile').click()">Replace</button>
+                <button type="button" class="btn btn-sm btn-text" style="color:var(--color-error); padding:4px 6px; font-size:11px;" onclick="EntrepreneurRegModule.removeDoc('profile')">✕</button>
+              ` : `
+                <button type="button" class="btn btn-sm btn-text" onclick="document.getElementById('input-file-profile').click()">Choose File</button>
+              `}
+            </div>
           </div>
         </div>
 
         <!-- Declaration Checkbox -->
         <div style="display:flex; align-items:flex-start; gap:8px; margin:16px 0;">
-          <input type="checkbox" id="reg-declaration" ${d.declaration ? 'checked' : ''} style="accent-color:var(--color-primary); width:18px; height:18px; margin-top:2px;">
+          <input type="checkbox" id="reg-declaration" ${d.declaration ? 'checked' : ''} onchange="EntrepreneurRegModule.formData.declaration = this.checked;" style="accent-color:var(--color-primary); width:18px; height:18px; margin-top:2px;">
           <label for="reg-declaration" style="font-size:12px; color:var(--color-text-secondary); line-height:1.4;">
             I confirm that all information and documents provided are genuine, accurate, and represent my own home enterprise.
           </label>
@@ -276,27 +306,110 @@ const EntrepreneurRegModule = {
     `;
   },
 
-  simulateUpload(type) {
+  handleFileChange(type, input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    // Read real file data URL for instant live preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      if (type === 'id') {
+        this.formData.idDocName = file.name;
+        this.formData.idDocData = dataUrl;
+      } else if (type === 'biz') {
+        this.formData.bizDocName = file.name;
+        this.formData.bizDocData = dataUrl;
+      } else if (type === 'profile') {
+        this.formData.profilePhotoName = file.name;
+        this.formData.profilePhotoData = dataUrl;
+      }
+      AppUtils.showToast(`Selected file: ${file.name}`);
+      AppRouter.renderActiveScreen();
+    };
+    reader.readAsDataURL(file);
+  },
+
+  removeDoc(type) {
     if (type === 'id') {
-      this.formData.idDocName = 'Aadhaar_Front_Back_scan.pdf';
+      this.formData.idDocName = '';
+      this.formData.idDocData = '';
     } else if (type === 'biz') {
-      this.formData.bizDocName = 'Clean_Home_Kitchen_Proof.jpg';
+      this.formData.bizDocName = '';
+      this.formData.bizDocData = '';
     } else if (type === 'profile') {
-      this.formData.profilePhotoName = 'Anitha_portrait.jpg';
+      this.formData.profilePhotoName = '';
+      this.formData.profilePhotoData = '';
     }
-    AppUtils.showToast('Document uploaded successfully!');
+    AppUtils.showToast('Document removed');
     AppRouter.renderActiveScreen();
+  },
+
+  previewDoc(type) {
+    let name = '';
+    let data = '';
+    let title = '';
+
+    if (type === 'id') {
+      name = this.formData.idDocName || 'Government ID';
+      data = this.formData.idDocData || '';
+      title = `Government ID (${this.formData.idDocType})`;
+    } else if (type === 'biz') {
+      name = this.formData.bizDocName || 'Business Proof';
+      data = this.formData.bizDocData || '';
+      title = `Business Proof (${this.formData.bizDocType})`;
+    } else if (type === 'profile') {
+      name = this.formData.profilePhotoName || 'Profile Photo';
+      data = this.formData.profilePhotoData || '';
+      title = 'Profile Photo Preview';
+    }
+
+    const isPdf = name.toLowerCase().endsWith('.pdf');
+    const content = `
+      <div style="text-align:center; padding:10px 0;">
+        <h3 style="font-size:16px; font-weight:700; color:var(--color-primary); margin-bottom:4px;">
+          ${title}
+        </h3>
+        <p style="font-size:11px; color:var(--color-text-secondary); margin-bottom:12px;">
+          ${name}
+        </p>
+        ${(data && !isPdf) ? `
+          <div style="background:#000; border-radius:8px; padding:6px; display:inline-block; max-width:100%;">
+            <img src="${data}" alt="${name}" style="max-height:240px; max-width:100%; object-fit:contain; border-radius:6px; display:block;">
+          </div>
+        ` : `
+          <div style="background:#F4F8EE; border:1px dashed #A5D6A7; border-radius:10px; padding:24px 16px; margin:10px 0;">
+            <span class="material-symbols-rounded" style="font-size:48px; color:var(--color-primary);">picture_as_pdf</span>
+            <div style="font-size:13px; font-weight:700; color:var(--color-primary); margin-top:8px;">${name}</div>
+            <div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">Verified Document Ready for Admin Verification</div>
+          </div>
+        `}
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary btn-block" onclick="AppUtils.closeBottomSheet()">Close Preview</button>
+        </div>
+      </div>
+    `;
+    AppUtils.showBottomSheet(content);
   },
 
   handleSaveStep2() {
     const declCheck = document.getElementById('reg-declaration');
-    if (!this.formData.idDocName) this.formData.idDocName = 'Aadhaar_Front_Back_scan.pdf';
-    if (!this.formData.bizDocName) this.formData.bizDocName = 'Clean_Home_Kitchen_Proof.jpg';
-
-    if (!declCheck.checked) {
+    if (!this.formData.idDocName) {
+      AppUtils.showToast('Please upload a Government-issued ID document.');
+      return;
+    }
+    if (!this.formData.bizDocName) {
+      AppUtils.showToast('Please upload a Business Proof document or photo.');
+      return;
+    }
+    if (!declCheck || !declCheck.checked) {
       AppUtils.showToast('Please accept the genuine declaration before proceeding.');
       return;
     }
+
+    this.formData.declaration = true;
+    AppRouter.navigate('screen-ent-reg-3');
+  },
 
     this.formData.declaration = true;
     AppRouter.navigate('screen-ent-reg-3');
@@ -307,6 +420,8 @@ const EntrepreneurRegModule = {
   // -------------------------------------------------------------
   renderStep3() {
     const d = this.formData;
+    const canSubmit = Boolean(d.businessName && d.door && d.street && d.area && d.idDocName && d.bizDocName && d.declaration);
+
     return `
       <div class="top-app-bar">
         <div class="bar-leading">
@@ -329,11 +444,11 @@ const EntrepreneurRegModule = {
         <!-- Business Details Card -->
         <div class="card" style="padding:14px; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary);">Business Summary</h4>
+            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary); margin:0;">Business Summary</h4>
             <button class="btn btn-sm btn-text" onclick="AppRouter.navigate('screen-ent-reg-1')">Edit</button>
           </div>
           <div style="font-size:12px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:4px;">
-            <div><strong>Business Name:</strong> ${d.businessName}</div>
+            <div><strong>Business Name:</strong> ${d.businessName || 'N/A'}</div>
             <div><strong>Category:</strong> ${d.businessCategory}</div>
             <div><strong>Address:</strong> ${d.door}, ${d.street}, ${d.area}, ${d.city} - ${d.pincode}</div>
             <div><strong>Delivery Radius:</strong> ${d.deliveryRadius} km</div>
@@ -344,14 +459,31 @@ const EntrepreneurRegModule = {
         <!-- Verification Docs Card -->
         <div class="card" style="padding:14px; margin-bottom:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary);">Documents Uploaded</h4>
+            <h4 style="font-size:14px; font-weight:700; color:var(--color-primary); margin:0;">Verification Documents</h4>
             <button class="btn btn-sm btn-text" onclick="AppRouter.navigate('screen-ent-reg-2')">Edit</button>
           </div>
-          <div style="font-size:12px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:6px;">
-            <div>📄 <strong>ID Document:</strong> ${d.idDocType} (${d.idDocName})</div>
-            <div>📸 <strong>Business Proof:</strong> ${d.bizDocType} (${d.bizDocName})</div>
-            <div>👤 <strong>Profile Photo:</strong> ${d.profilePhotoName || 'Included'}</div>
+          <div style="font-size:12px; color:var(--color-text-secondary); display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>📄 <strong>ID Document:</strong> ${d.idDocType} (${d.idDocName || 'Pending'})</div>
+              ${d.idDocName ? `<button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('id')">Preview</button>` : ''}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>📸 <strong>Business Proof:</strong> ${d.bizDocType} (${d.bizDocName || 'Pending'})</div>
+              ${d.bizDocName ? `<button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('biz')">Preview</button>` : ''}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>👤 <strong>Profile Photo:</strong> ${d.profilePhotoName || 'Optional'}</div>
+              ${d.profilePhotoName ? `<button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px; font-size:11px;" onclick="EntrepreneurRegModule.previewDoc('profile')">Preview</button>` : ''}
+            </div>
           </div>
+        </div>
+
+        <!-- Final Declaration Checkbox -->
+        <div style="display:flex; align-items:flex-start; gap:8px; margin:16px 0; padding:10px; background:#FAF7EC; border:1px solid #E6E1D3; border-radius:8px;">
+          <input type="checkbox" id="reg-final-declaration" ${d.declaration ? 'checked' : ''} onchange="EntrepreneurRegModule.toggleFinalDeclaration(this.checked)" style="accent-color:var(--color-primary); width:18px; height:18px; margin-top:2px;">
+          <label for="reg-final-declaration" style="font-size:12px; color:var(--color-text-primary); line-height:1.45; font-weight:500;">
+            "I confirm that all information provided is genuine and accurate."
+          </label>
         </div>
 
         <div class="ai-card" style="background:#F9FAF5; margin-bottom:20px;">
@@ -364,12 +496,23 @@ const EntrepreneurRegModule = {
           </p>
         </div>
 
-        <button class="btn btn-primary btn-block" onclick="EntrepreneurRegModule.handleSubmitApplication()">
-          Submit Application
-          <span class="material-symbols-rounded">send</span>
-        </button>
+        <div style="display:flex; gap:10px; margin-bottom:24px;">
+          <button class="btn btn-outline" style="flex:1;" onclick="AppRouter.navigate('screen-ent-reg-2')">Previous</button>
+          <button id="btn-submit-application" class="btn btn-primary" style="flex:2;" ${canSubmit ? '' : 'disabled'} onclick="EntrepreneurRegModule.handleSubmitApplication()">
+            Submit Application
+            <span class="material-symbols-rounded">send</span>
+          </button>
+        </div>
       </div>
     `;
+  },
+
+  toggleFinalDeclaration(checked) {
+    this.formData.declaration = checked;
+    const btn = document.getElementById('btn-submit-application');
+    const d = this.formData;
+    const canSubmit = Boolean(d.businessName && d.door && d.street && d.area && d.idDocName && d.bizDocName && checked);
+    if (btn) btn.disabled = !canSubmit;
   },
 
   handleSubmitApplication() {
